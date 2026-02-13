@@ -19,6 +19,7 @@ export default defineConfig({
         ]
       : []),
   ],
+  cacheDir: path.resolve(import.meta.dirname, ".vite-cache"),
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
