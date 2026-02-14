@@ -629,7 +629,7 @@ export default function BubblePage() {
   const dragBubbleStartRef = useRef({ x: 0, y: 0, w: 0, h: 0 });
   const selectedIdRef = useRef<string | null>(null);
   const bubblesRef = useRef<SpeechBubble[]>([]);
-  const [canvasSize, setCanvasSize] = useState({ width: 600, height: 800 });
+  const [canvasSize, setCanvasSize] = useState({ width: 522, height: 695 });
   const [fontsInjected, setFontsInjected] = useState(false);
   const [editingBubbleId, setEditingBubbleId] = useState<string | null>(null);
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
@@ -1557,7 +1557,7 @@ export default function BubblePage() {
         <div ref={containerRef} className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <div
             ref={canvasAreaRef}
-            className="flex-1 min-h-100 flex items-center justify-center bg-muted/30 p-4"
+            className="flex-1 min-h-0 overflow-auto flex items-center justify-center bg-muted/30 p-4"
             data-testid="canvas-area"
           >
             <div
@@ -1614,7 +1614,7 @@ export default function BubblePage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-center gap-3 px-4 py-2 border-t border-border bg-background" data-testid="bottom-toolbar">
+          <div className="shrink-0 flex items-center justify-center gap-3 px-4 py-2 border-t border-border bg-background" data-testid="bottom-toolbar">
             <div className="flex items-center gap-1.5">
               <Button
                 size="icon"
@@ -1943,7 +1943,7 @@ export default function BubblePage() {
                 </p>
                 <Button size="sm" onClick={addBubble} className="mt-3 gap-1.5" data-testid="button-add-bubble-empty">
                   <Plus className="h-3.5 w-3.5" />
-                  말풍선 추가
+                  말���선 추가
                 </Button>
               </Card>
             )}

@@ -3446,9 +3446,9 @@ export default function StoryPage() {
         )}
       </div>
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         <div
-          className="w-full relative"
+          className="w-full relative shrink-0"
           data-testid="canvas-toolbar"
         >
           <div
@@ -3522,7 +3522,7 @@ export default function StoryPage() {
 
         <div
           ref={canvasAreaRef}
-          className="flex-1 min-h-100 flex items-center justify-center p-6 bg-muted/20 dark:bg-muted/10"
+          className="flex-1 min-h-0 overflow-auto flex items-center justify-center p-6 bg-muted/20 dark:bg-muted/10"
           data-testid="story-canvas-area"
         >
           {activePanel && (
@@ -3551,7 +3551,7 @@ export default function StoryPage() {
           )}
         </div>
 
-        <div className="flex items-center justify-center gap-3 px-4 py-2 border-t border-border bg-background" data-testid="story-bottom-toolbar">
+        <div className="shrink-0 flex items-center justify-center gap-3 px-4 py-2 border-t border-border bg-background" data-testid="story-bottom-toolbar">
           <div className="flex items-center gap-1.5">
             <Button
               size="icon"
