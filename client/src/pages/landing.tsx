@@ -114,7 +114,7 @@ export default function LandingPage() {
           <div
             className="absolute inset-0"
             style={{
-              background: "radial-gradient(ellipse 80% 60% at 50% 40%, hsl(var(--primary) / 0.06), transparent 70%)",
+              background: "radial-gradient(ellipse 80% 60% at 50% 40%, hsl(262 83% 58% / 0.06), transparent 70%)",
             }}
           />
         </div>
@@ -398,7 +398,7 @@ export default function LandingPage() {
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: "radial-gradient(ellipse 60% 40% at 50% 50%, hsl(var(--primary) / 0.05), transparent 70%)",
+            background: "radial-gradient(ellipse 60% 40% at 50% 50%, hsl(262 83% 58% / 0.05), transparent 70%)",
           }}
         />
         <div className="relative mx-auto max-w-3xl px-4 text-center">
