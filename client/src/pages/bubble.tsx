@@ -1536,7 +1536,7 @@ export default function BubblePage() {
         <div ref={containerRef} className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <div
             ref={canvasAreaRef}
-            className="flex-1 min-h-0 overflow-auto flex items-center justify-center bg-muted/30 p-4"
+            className="flex-1 min-h-100 flex items-center justify-center bg-muted/30 p-4"
             data-testid="canvas-area"
           >
             <div

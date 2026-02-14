@@ -3454,7 +3454,7 @@ export default function StoryPage() {
 
         <div
           ref={canvasAreaRef}
-          className="flex-1 min-h-0 overflow-auto flex items-center justify-center p-6 bg-muted/20 dark:bg-muted/10"
+          className="flex-1 min-h-100 flex items-center justify-center p-6 bg-muted/20 dark:bg-muted/10"
           data-testid="story-canvas-area"
         >
           {activePanel && (
