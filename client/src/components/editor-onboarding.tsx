@@ -200,7 +200,7 @@ export function EditorOnboarding({ editor }: { editor: "story" | "bubble" }) {
             <Button
               size="sm"
               onClick={handleNext}
-              className="gap-1 bg-[hsl(262_83%_58%)] text-white border-[hsl(262_83%_52%)]"
+              className="gap-1 bg-[hsl(262_83%_58%)] text-white border-[hsl(173_100%_35%)]"
               data-testid="button-onboarding-next"
             >
               {step === steps.length - 1 ? "시작하기" : "다음"}

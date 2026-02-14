@@ -154,7 +154,7 @@ export default function LandingPage() {
             인스타툰,{" "}
             <GradientText
               className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mt-4"
-              colors={["#7c3aed", "#060505", "#3b82f6", "#7c3aed"]}
+              colors={["#3aedcf", "#050606", "#3bf680", "#edc63a"]}
               animationSpeed={5}
             >
               AI가 다 해줄게

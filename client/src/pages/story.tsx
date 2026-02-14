@@ -3439,7 +3439,7 @@ export default function StoryPage() {
               <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => downloadPanel(activePanelIndex)} title="다운로드" data-testid="button-download-panel">
                 <Download className="h-3.5 w-3.5" />
               </Button>
-              <Button size="sm" onClick={() => setShowSaveModal(true)} className="gap-1 h-7 text-xs px-2.5 bg-[hsl(262_83%_58%)] text-white border-[hsl(262_83%_52%)]" data-testid="button-save-story-project">
+              <Button size="sm" onClick={() => setShowSaveModal(true)} className="gap-1 h-7 text-xs px-2.5 bg-[hsl(262_83%_58%)] text-white border-[hsl(173_100%_35%)]" data-testid="button-save-story-project">
                 <Save className="h-3 w-3" />
                 저장
                 {isPro && <Crown className="h-2.5 w-2.5 ml-0.5" />}
