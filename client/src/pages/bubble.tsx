@@ -1836,7 +1836,7 @@ export default function BubblePage() {
                         value={[selectedBubble.fontSize]}
                         onValueChange={([v]) => updateBubble(selectedBubble.id, { fontSize: v })}
                         min={8}
-                        max={36}
+                        max={40}
                         step={1}
                         data-testid="slider-font-size"
                       />

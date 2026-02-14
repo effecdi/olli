@@ -2145,7 +2145,7 @@ function RightSidebar({
                 updateBubble(selectedBubble.id, { fontSize: v })
               }
               min={8}
-              max={28}
+              max={40}
               step={1}
               data-testid="slider-font-size"
             />
