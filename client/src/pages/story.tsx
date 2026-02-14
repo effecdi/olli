@@ -18,6 +18,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { isUnauthorizedError, redirectToLogin } from "@/lib/auth-utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import {
@@ -2526,6 +2527,19 @@ export default function StoryPage() {
       });
     },
     onError: (error: any) => {
+      if (isUnauthorizedError(error)) {
+        redirectToLogin(toast);
+        return;
+      }
+      if (/^403: /.test(error.message)) {
+        setAiLimitOpen(true);
+        toast({
+          title: "AI 생성 제한",
+          description: "오늘 무료 AI 생성 3회를 초과했습니다.",
+          variant: "destructive",
+        });
+        return;
+      }
       toast({
         title: "생성 실패",
         description: error.message || "스크립트 생성에 실패했습니다",
@@ -3073,23 +3087,23 @@ export default function StoryPage() {
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
-                        <Input
-                          value={activePanel.topScript.text}
-                          onChange={(e) => {
-                            const p = activePanel;
-                            updatePanel(activePanelIndex, {
-                              ...p,
-                              topScript: {
-                                ...p.topScript!,
-                                text: e.target.value,
-                              },
-                            });
-                          }}
-                          placeholder="상단 스크립트..."
-                          className="text-sm"
-                          data-testid={`input-panel-${activePanelIndex}-top`}
-                        />
                       </div>
+                      <Textarea
+                        value={activePanel.topScript.text}
+                        onChange={(e) => {
+                          const p = activePanel;
+                          updatePanel(activePanelIndex, {
+                            ...p,
+                            topScript: {
+                              ...p.topScript!,
+                              text: e.target.value,
+                            },
+                          });
+                        }}
+                        placeholder="상단 스크립트..."
+                        className="text-sm min-h-[150px] resize-none"
+                        data-testid={`input-panel-${activePanelIndex}-top`}
+                      />
                       <div className="flex gap-1 flex-wrap">
                         {SCRIPT_STYLE_OPTIONS.map((opt) => (
                           <button
@@ -3243,23 +3257,23 @@ export default function StoryPage() {
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
-                        <Input
-                          value={activePanel.bottomScript.text}
-                          onChange={(e) => {
-                            const p = activePanel;
-                            updatePanel(activePanelIndex, {
-                              ...p,
-                              bottomScript: {
-                                ...p.bottomScript!,
-                                text: e.target.value,
-                              },
-                            });
-                          }}
-                          placeholder="하단 스크립트..."
-                          className="text-sm"
-                          data-testid={`input-panel-${activePanelIndex}-bottom`}
-                        />
                       </div>
+                          <Textarea
+                            value={activePanel.bottomScript.text}
+                            onChange={(e) => {
+                              const p = activePanel;
+                              updatePanel(activePanelIndex, {
+                                ...p,
+                                bottomScript: {
+                                  ...p.bottomScript!,
+                                  text: e.target.value,
+                                },
+                              });
+                            }}
+                            placeholder="하단 스크립트..."
+                            className="text-sm min-h-[150px] resize-none"
+                            data-testid={`input-panel-${activePanelIndex}-bottom`}
+                          />
                       <div className="flex gap-1 flex-wrap">
                         {SCRIPT_STYLE_OPTIONS.map((opt) => (
                           <button
