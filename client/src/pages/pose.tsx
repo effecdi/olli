@@ -170,34 +170,12 @@ export default function PosePage() {
         <p className="mt-2 text-muted-foreground">다양한 포즈와 표정을 만들어보세요</p>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-3">
-        <div className="flex flex-col gap-4">
-          <Card className="p-4">
-            <h3 className="text-sm font-medium mb-3 text-muted-foreground">참조 캐릭터</h3>
-            {characterLoading ? (
-              <Skeleton className="w-full aspect-[3/4] rounded-md" />
-            ) : character ? (
-              <div className="overflow-hidden rounded-md border">
-                <img
-                  src={character.imageUrl}
-                  alt="Reference character"
-                  className="w-full object-contain"
-                  data-testid="img-reference-character"
-                />
-              </div>
-            ) : null}
-            <p className="mt-2 text-xs text-muted-foreground truncate">
-              {character?.prompt}
-            </p>
-            <Badge variant="secondary" className="mt-2 capitalize">{character?.style}</Badge>
-          </Card>
-        </div>
+      <div className="grid gap-8 lg:grid-cols-2">
 
         <div className="flex flex-col gap-4">
           <Card className="p-4">
             <h3 className="text-sm font-medium mb-3">포즈 설명</h3>
             <Textarea
-              placeholder="예: 점프하는 포즈, 행복한 표정..."
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               className="min-h-[80px] resize-none"
@@ -270,7 +248,7 @@ export default function PosePage() {
             size="lg"
             className="w-full gap-2"
             onClick={() => generateMutation.mutate()}
-            disabled={!prompt.trim() || generateMutation.isPending || isOutOfCredits || generationCount >= 3}
+            disabled={!prompt.trim() || !referenceImage || !characterId || generateMutation.isPending || isOutOfCredits || generationCount >= 3}
             data-testid="button-generate-pose"
           >
             {generateMutation.isPending ? (
