@@ -52,6 +52,8 @@ import {
   FolderOpen,
   Crown,
   Loader2,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { FlowStepper } from "@/components/flow-stepper";
 import { EditorOnboarding } from "@/components/editor-onboarding";
@@ -248,6 +250,7 @@ interface SpeechBubble {
   fontKey: string;
   templateSrc?: string;
   templateImg?: HTMLImageElement;
+  zIndex?: number;
 }
 
 interface CharacterPlacement {
@@ -257,6 +260,7 @@ interface CharacterPlacement {
   y: number;
   scale: number;
   imageEl: HTMLImageElement | null;
+  zIndex?: number;
 }
 
 interface ScriptData {
@@ -317,6 +321,7 @@ function createBubble(
     wobble: 5,
     fontSize: 15,
     fontKey: "default",
+    zIndex: 10,
   };
 }
 
@@ -1071,52 +1076,59 @@ function PanelCanvas({
 
     const p = panelRef.current;
 
-    p.characters.forEach((ch) => {
-      if (ch.imageEl) {
-        const w = ch.imageEl.naturalWidth * ch.scale;
-        const h = ch.imageEl.naturalHeight * ch.scale;
-        ctx.drawImage(ch.imageEl, ch.x - w / 2, ch.y - h / 2, w, h);
-        if (ch.id === selectedCharIdRef.current) {
-          const bx = ch.x - w / 2 - 3;
-          const by = ch.y - h / 2 - 3;
-          const bw = w + 6;
-          const bh = h + 6;
-          ctx.strokeStyle = "hsl(150, 80%, 40%)";
-          ctx.lineWidth = 2;
-          ctx.setLineDash([5, 3]);
-          ctx.strokeRect(bx, by, bw, bh);
-          ctx.setLineDash([]);
-
-          const handleSize = 8;
-          const corners = [
-            { hx: bx, hy: by },
-            { hx: bx + bw, hy: by },
-            { hx: bx, hy: by + bh },
-            { hx: bx + bw, hy: by + bh },
-          ];
-          corners.forEach(({ hx, hy }) => {
-            ctx.fillStyle = "#ffffff";
+    const drawables: Array<
+      | { type: "char"; z: number; ch: CharacterPlacement }
+      | { type: "bubble"; z: number; b: SpeechBubble }
+    > = [
+      ...p.characters.map((ch) => ({
+        type: "char" as const,
+        z: ch.zIndex ?? 0,
+        ch,
+      })),
+      ...p.bubbles.map((b) => ({
+        type: "bubble" as const,
+        z: b.zIndex ?? 10,
+        b,
+      })),
+    ];
+    drawables.sort((a, b) => a.z - b.z);
+    drawables.forEach((d) => {
+      if (d.type === "char") {
+        const ch = d.ch;
+        if (ch.imageEl) {
+          const w = ch.imageEl.naturalWidth * ch.scale;
+          const h = ch.imageEl.naturalHeight * ch.scale;
+          ctx.drawImage(ch.imageEl, ch.x - w / 2, ch.y - h / 2, w, h);
+          if (ch.id === selectedCharIdRef.current) {
+            const bx = ch.x - w / 2 - 3;
+            const by = ch.y - h / 2 - 3;
+            const bw = w + 6;
+            const bh = h + 6;
             ctx.strokeStyle = "hsl(150, 80%, 40%)";
             ctx.lineWidth = 2;
-            ctx.fillRect(
-              hx - handleSize / 2,
-              hy - handleSize / 2,
-              handleSize,
-              handleSize,
-            );
-            ctx.strokeRect(
-              hx - handleSize / 2,
-              hy - handleSize / 2,
-              handleSize,
-              handleSize,
-            );
-          });
+            ctx.setLineDash([5, 3]);
+            ctx.strokeRect(bx, by, bw, bh);
+            ctx.setLineDash([]);
+            const handleSize = 8;
+            const corners = [
+              { hx: bx, hy: by },
+              { hx: bx + bw, hy: by },
+              { hx: bx, hy: by + bh },
+              { hx: bx + bw, hy: by + bh },
+            ];
+            corners.forEach(({ hx, hy }) => {
+              ctx.fillStyle = "#ffffff";
+              ctx.strokeStyle = "hsl(150, 80%, 40%)";
+              ctx.lineWidth = 2;
+              ctx.fillRect(hx - handleSize / 2, hy - handleSize / 2, handleSize, handleSize);
+              ctx.strokeRect(hx - handleSize / 2, hy - handleSize / 2, handleSize, handleSize);
+            });
+          }
         }
+      } else {
+        const b = d.b;
+        drawBubble(ctx, b, b.id === selectedBubbleIdRef.current);
       }
-    });
-
-    p.bubbles.forEach((b) => {
-      drawBubble(ctx, b, b.id === selectedBubbleIdRef.current);
     });
 
     if (p.topScript)
@@ -1219,30 +1231,6 @@ function PanelCanvas({
         }
       }
 
-      for (let i = p.bubbles.length - 1; i >= 0; i--) {
-        const b = p.bubbles[i];
-        if (
-          pos.x >= b.x &&
-          pos.x <= b.x + b.width &&
-          pos.y >= b.y &&
-          pos.y <= b.y + b.height
-        ) {
-          onSelectBubble(b.id);
-          onSelectChar(null);
-          selectedBubbleIdRef.current = b.id;
-          selectedCharIdRef.current = null;
-          dragModeRef.current = "move";
-          dragStartRef.current = pos;
-          dragBubbleStartRef.current = {
-            x: b.x,
-            y: b.y,
-            w: b.width,
-            h: b.height,
-          };
-          return;
-        }
-      }
-
       const selCid = selectedCharIdRef.current;
       if (selCid) {
         const selCh = p.characters.find((c) => c.id === selCid);
@@ -1276,25 +1264,50 @@ function PanelCanvas({
         }
       }
 
-      for (let i = p.characters.length - 1; i >= 0; i--) {
-        const ch = p.characters[i];
-        if (!ch.imageEl) continue;
-        const w = ch.imageEl.naturalWidth * ch.scale;
-        const h = ch.imageEl.naturalHeight * ch.scale;
-        if (
-          pos.x >= ch.x - w / 2 &&
-          pos.x <= ch.x + w / 2 &&
-          pos.y >= ch.y - h / 2 &&
-          pos.y <= ch.y + h / 2
-        ) {
-          onSelectChar(ch.id);
-          onSelectBubble(null);
-          selectedCharIdRef.current = ch.id;
-          selectedBubbleIdRef.current = null;
-          dragModeRef.current = "move-char";
-          dragStartRef.current = pos;
-          dragCharStartRef.current = { x: ch.x, y: ch.y, scale: ch.scale };
-          return;
+      {
+        const drawables: Array<
+          | { type: "char"; z: number; ch: CharacterPlacement }
+          | { type: "bubble"; z: number; b: SpeechBubble }
+        > = [
+          ...p.characters.map((ch) => ({ type: "char" as const, z: ch.zIndex ?? 0, ch })),
+          ...p.bubbles.map((b) => ({ type: "bubble" as const, z: b.zIndex ?? 10, b })),
+        ];
+        drawables.sort((a, b) => a.z - b.z);
+        for (let i = drawables.length - 1; i >= 0; i--) {
+          const d = drawables[i];
+          if (d.type === "bubble") {
+            const b = d.b;
+            if (pos.x >= b.x && pos.x <= b.x + b.width && pos.y >= b.y && pos.y <= b.y + b.height) {
+              onSelectBubble(b.id);
+              onSelectChar(null);
+              selectedBubbleIdRef.current = b.id;
+              selectedCharIdRef.current = null;
+              dragModeRef.current = "move";
+              dragStartRef.current = pos;
+              dragBubbleStartRef.current = { x: b.x, y: b.y, w: b.width, h: b.height };
+              return;
+            }
+          } else {
+            const ch = d.ch;
+            if (!ch.imageEl) continue;
+            const w = ch.imageEl.naturalWidth * ch.scale;
+            const h = ch.imageEl.naturalHeight * ch.scale;
+            if (
+              pos.x >= ch.x - w / 2 &&
+              pos.x <= ch.x + w / 2 &&
+              pos.y >= ch.y - h / 2 &&
+              pos.y <= ch.y + h / 2
+            ) {
+              onSelectChar(ch.id);
+              onSelectBubble(null);
+              selectedCharIdRef.current = ch.id;
+              selectedBubbleIdRef.current = null;
+              dragModeRef.current = "move-char";
+              dragStartRef.current = pos;
+              dragCharStartRef.current = { x: ch.x, y: ch.y, scale: ch.scale };
+              return;
+            }
+          }
         }
       }
 
@@ -1392,32 +1405,38 @@ function PanelCanvas({
           }
         }
 
-        for (let i = p.characters.length - 1; i >= 0; i--) {
-          const ch = p.characters[i];
-          if (!ch.imageEl) continue;
-          const w = ch.imageEl.naturalWidth * ch.scale;
-          const h = ch.imageEl.naturalHeight * ch.scale;
-          if (
-            pos.x >= ch.x - w / 2 &&
-            pos.x <= ch.x + w / 2 &&
-            pos.y >= ch.y - h / 2 &&
-            pos.y <= ch.y + h / 2
-          ) {
-            if (canvas) canvas.style.cursor = "move";
-            return;
-          }
-        }
-
-        for (let i = p.bubbles.length - 1; i >= 0; i--) {
-          const b = p.bubbles[i];
-          if (
-            pos.x >= b.x &&
-            pos.x <= b.x + b.width &&
-            pos.y >= b.y &&
-            pos.y <= b.y + b.height
-          ) {
-            if (canvas) canvas.style.cursor = "move";
-            return;
+        {
+          const drawables: Array<
+            | { type: "char"; z: number; ch: CharacterPlacement }
+            | { type: "bubble"; z: number; b: SpeechBubble }
+          > = [
+            ...p.characters.map((ch) => ({ type: "char" as const, z: ch.zIndex ?? 0, ch })),
+            ...p.bubbles.map((b) => ({ type: "bubble" as const, z: b.zIndex ?? 10, b })),
+          ];
+          drawables.sort((a, b) => a.z - b.z);
+          for (let i = drawables.length - 1; i >= 0; i--) {
+            const d = drawables[i];
+            if (d.type === "bubble") {
+              const b = d.b;
+              if (pos.x >= b.x && pos.x <= b.x + b.width && pos.y >= b.y && pos.y <= b.y + b.height) {
+                if (canvas) canvas.style.cursor = "move";
+                return;
+              }
+            } else {
+              const ch = d.ch;
+              if (!ch.imageEl) continue;
+              const w = ch.imageEl.naturalWidth * ch.scale;
+              const h = ch.imageEl.naturalHeight * ch.scale;
+              if (
+                pos.x >= ch.x - w / 2 &&
+                pos.x <= ch.x + w / 2 &&
+                pos.y >= ch.y - h / 2 &&
+                pos.y <= ch.y + h / 2
+              ) {
+                if (canvas) canvas.style.cursor = "move";
+                return;
+              }
+            }
           }
         }
 
@@ -1844,6 +1863,7 @@ function RightSidebar({
         y: CANVAS_H / 2,
         scale: s,
         imageEl: img,
+        zIndex: 0,
       };
       onUpdate({ ...panel, characters: [...panel.characters, newChar] });
       setSelectedCharId(newChar.id);
@@ -1996,6 +2016,36 @@ function RightSidebar({
               <Button
                 size="icon"
                 variant="ghost"
+                onClick={() =>
+                  onUpdate({
+                    ...panel,
+                    characters: panel.characters.map((c) =>
+                      c.id === ch.id ? { ...c, zIndex: (c.zIndex ?? 0) + 1 } : c,
+                    ),
+                  })
+                }
+                title="앞으로"
+              >
+                <ChevronUp className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() =>
+                  onUpdate({
+                    ...panel,
+                    characters: panel.characters.map((c) =>
+                      c.id === ch.id ? { ...c, zIndex: (c.zIndex ?? 0) - 1 } : c,
+                    ),
+                  })
+                }
+                title="뒤로"
+              >
+                <ChevronDown className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
                 onClick={() => removeCharacter(ch.id)}
                 data-testid={`button-remove-char-${ci}`}
               >
@@ -2019,6 +2069,30 @@ function RightSidebar({
             >
               <Trash2 className="h-3.5 w-3.5 mr-1" />
               삭제
+            </Button>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() =>
+                updateBubble(selectedBubble.id, {
+                  zIndex: (selectedBubble.zIndex ?? 10) + 1,
+                })
+              }
+            >
+              앞으로
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() =>
+                updateBubble(selectedBubble.id, {
+                  zIndex: (selectedBubble.zIndex ?? 10) - 1,
+                })
+              }
+            >
+              뒤로
             </Button>
           </div>
 
@@ -2528,7 +2602,13 @@ export default function StoryPage() {
     },
     onError: (error: any) => {
       if (isUnauthorizedError(error)) {
-        redirectToLogin(toast);
+        redirectToLogin((o) =>
+          toast({
+            title: o.title,
+            description: o.description,
+            variant: o.variant as any,
+          }),
+        );
         return;
       }
       if (/^403: /.test(error.message)) {
@@ -2812,6 +2892,72 @@ export default function StoryPage() {
 
   const isPro = usageData?.tier === "pro";
 
+  const startStoryTour = useCallback(() => {
+    const ensureDriver = () =>
+      new Promise<void>((resolve) => {
+        const hasDriver = (window as any)?.driver?.js?.driver;
+        if (hasDriver) {
+          resolve();
+          return;
+        }
+        const cssId = "driverjs-css";
+        if (!document.getElementById(cssId)) {
+          const link = document.createElement("link");
+          link.id = cssId;
+          link.rel = "stylesheet";
+          link.href = "https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css";
+          document.head.appendChild(link);
+        }
+        const scriptId = "driverjs-script";
+        if (!document.getElementById(scriptId)) {
+          const script = document.createElement("script");
+          script.id = scriptId;
+          script.src = "https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js";
+          script.onload = () => resolve();
+          document.body.appendChild(script);
+        } else {
+          resolve();
+        }
+      });
+    ensureDriver().then(() => {
+      const driver = (window as any).driver.js.driver;
+      const driverObj = driver({
+        overlayColor: "rgba(0,0,0,0.6)",
+        showProgress: true,
+        steps: [
+          {
+            element: '[data-testid="canvas-toolbar"]',
+            popover: { title: "툴바", description: "패널 추가, 실행 취소 등을 할 수 있어요." },
+          },
+          {
+            element: '[data-testid="button-add-panel"]',
+            popover: { title: "패널 추가", description: "스토리 패널을 추가합니다." },
+          },
+          {
+            element: '[data-testid="button-undo"]',
+            popover: { title: "실행 취소", description: "최근 변경을 되돌립니다." },
+          },
+          {
+            element: '[data-testid="button-redo"]',
+            popover: { title: "다시 실행", description: "되돌린 변경을 다시 적용합니다." },
+          },
+          {
+            element: '[data-testid="story-canvas-area"]',
+            popover: { title: "캔버스", description: "패널에서 말풍선/캐릭터를 편집하세요." },
+          },
+          {
+            element: '[data-testid="button-download-panel"]',
+            popover: { title: "다운로드", description: "현재 패널을 이미지로 저장합니다." },
+          },
+          {
+            element: '[data-testid="button-save-story-project"]',
+            popover: { title: "프로젝트 저장", description: "작업을 프로젝트로 저장합니다." },
+          },
+        ],
+      });
+      driverObj.drive();
+    });
+  }, []);
   const LEFT_TABS: { id: LeftTab; icon: typeof Wand2; label: string }[] = [
     { id: "ai", icon: Wand2, label: "AI 생성" },
     { id: "panels", icon: Layers, label: "패널" },
@@ -3504,6 +3650,9 @@ export default function StoryPage() {
               </div>
             </div>
             <div className="flex items-center gap-1 flex-wrap">
+              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={startStoryTour} title="도움말" data-testid="button-story-help">
+                <Lightbulb className="h-3.5 w-3.5" />
+              </Button>
               <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => downloadPanel(activePanelIndex)} title="다운로드" data-testid="button-download-panel">
                 <Download className="h-3.5 w-3.5" />
               </Button>

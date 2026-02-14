@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Upload, Download, Plus, Trash2, MessageCircle, ArrowRight, Type, Move, Maximize2, ImagePlus, X, Loader2, Layers, ChevronUp, ChevronDown, Save, Minimize2, ZoomIn, ZoomOut, FolderOpen, Share2, Crown } from "lucide-react";
+import { Upload, Download, Plus, Trash2, MessageCircle, ArrowRight, Type, Move, Maximize2, ImagePlus, X, Loader2, Layers, ChevronUp, ChevronDown, Save, Minimize2, ZoomIn, ZoomOut, FolderOpen, Share2, Crown, Lightbulb } from "lucide-react";
 import { EditorOnboarding } from "@/components/editor-onboarding";
 import { useLocation } from "wouter";
 
@@ -100,6 +100,7 @@ interface SpeechBubble {
   fontKey: string;
   templateSrc?: string;
   templateImg?: HTMLImageElement;
+  zIndex?: number;
 }
 
 interface CharacterOverlay {
@@ -113,6 +114,7 @@ interface CharacterOverlay {
   originalWidth: number;
   originalHeight: number;
   label: string;
+  zIndex?: number;
 }
 
 type DragMode = null | "move" | "move-tail" | "resize-br" | "resize-bl" | "resize-tr" | "resize-tl" | "resize-r" | "resize-l" | "resize-t" | "resize-b"
@@ -670,6 +672,68 @@ export default function BubblePage() {
 
   const isPro = usage?.tier === "pro";
 
+  const startBubbleTour = useCallback(() => {
+    const ensureDriver = () =>
+      new Promise<void>((resolve) => {
+        const hasDriver = (window as any)?.driver?.js?.driver;
+        if (hasDriver) {
+          resolve();
+          return;
+        }
+        const cssId = "driverjs-css";
+        if (!document.getElementById(cssId)) {
+          const link = document.createElement("link");
+          link.id = cssId;
+          link.rel = "stylesheet";
+          link.href = "https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css";
+          document.head.appendChild(link);
+        }
+        const scriptId = "driverjs-script";
+        if (!document.getElementById(scriptId)) {
+          const script = document.createElement("script");
+          script.id = scriptId;
+          script.src = "https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js";
+          script.onload = () => resolve();
+          document.body.appendChild(script);
+        } else {
+          resolve();
+        }
+      });
+    ensureDriver().then(() => {
+      const driver = (window as any).driver.js.driver;
+      const driverObj = driver({
+        overlayColor: "rgba(0,0,0,0.6)",
+        showProgress: true,
+        steps: [
+          {
+            element: '[data-testid="bubble-toolbar"]',
+            popover: { title: "툴바", description: "말풍선 추가, 이미지 업로드 등을 할 수 있어요." },
+          },
+          {
+            element: '[data-testid="button-add-bubble"]',
+            popover: { title: "말풍선 추가", description: "새 말풍선을 캔버스에 추가합니다." },
+          },
+          {
+            element: '[data-testid="button-import-character"]',
+            popover: { title: "캐릭터 불러오기", description: "갤러리에서 캐릭터를 캔버스로 가져옵니다." },
+          },
+          {
+            element: '[data-testid="button-bubble-templates"]',
+            popover: { title: "템플릿", description: "이미지 말풍선 템플릿을 선택할 수 있어요." },
+          },
+          {
+            element: '[data-testid="canvas-editor"]',
+            popover: { title: "캔버스", description: "요소를 드래그하여 위치와 크기를 조정하세요." },
+          },
+          {
+            element: '[data-testid="bottom-toolbar"]',
+            popover: { title: "줌/맞춤", description: "확대/축소하거나 화면에 맞출 수 있어요." },
+          },
+        ],
+      });
+      driverObj.drive();
+    });
+  }, []);
   const urlParams = new URLSearchParams(window.location.search);
   const loadProjectId = urlParams.get("projectId");
 
@@ -789,6 +853,7 @@ export default function BubblePage() {
         originalWidth: img.width,
         originalHeight: img.height,
         label: item.prompt?.slice(0, 20) || item.type || "캐릭터",
+        zIndex: 0,
       };
       setCharacterOverlays((prev) => [...prev, overlay]);
       setSelectedCharId(overlay.id);
@@ -833,6 +898,7 @@ export default function BubblePage() {
         fontKey: "default",
         templateSrc: templatePath,
         templateImg: img,
+        zIndex: 10,
       };
       setBubbles((prev) => [...prev, newBubble]);
       setSelectedId(newBubble.id);
@@ -856,13 +922,11 @@ export default function BubblePage() {
   };
 
   const moveCharOverlay = (index: number, direction: "up" | "down") => {
-    setCharacterOverlays((prev) => {
-      const next = [...prev];
-      const swapIdx = direction === "up" ? index - 1 : index + 1;
-      if (swapIdx < 0 || swapIdx >= next.length) return prev;
-      [next[index], next[swapIdx]] = [next[swapIdx], next[index]];
-      return next;
-    });
+    setCharacterOverlays((prev) =>
+      prev.map((c, i) =>
+        i === index ? { ...c, zIndex: (c.zIndex ?? 0) + (direction === "up" ? 1 : -1) } : c,
+      ),
+    );
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -934,17 +998,35 @@ export default function BubblePage() {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    characterOverlays.forEach((c) => {
-      if (c.imgElement) {
-        ctx.drawImage(c.imgElement, c.x, c.y, c.width, c.height);
+    const drawables: Array<
+      | { type: "char"; z: number; c: CharacterOverlay }
+      | { type: "bubble"; z: number; b: SpeechBubble }
+    > = [
+      ...characterOverlays.map((c) => ({
+        type: "char" as const,
+        z: c.zIndex ?? 0,
+        c,
+      })),
+      ...bubbles.map((b) => ({
+        type: "bubble" as const,
+        z: b.zIndex ?? 10,
+        b,
+      })),
+    ];
+    drawables.sort((a, b) => a.z - b.z);
+    drawables.forEach((d) => {
+      if (d.type === "char") {
+        const c = d.c;
+        if (c.imgElement) {
+          ctx.drawImage(c.imgElement, c.x, c.y, c.width, c.height);
+        }
+        if (c.id === selectedCharId) {
+          drawCharOverlaySelection(ctx, c);
+        }
+      } else {
+        const b = d.b;
+        drawBubble(ctx, b, b.id === selectedId);
       }
-      if (c.id === selectedCharId) {
-        drawCharOverlaySelection(ctx, c);
-      }
-    });
-
-    bubbles.forEach((b) => {
-      drawBubble(ctx, b, b.id === selectedId);
     });
   }, [image, bubbles, selectedId, characterOverlays, selectedCharId, drawCharOverlaySelection]);
 
@@ -968,6 +1050,7 @@ export default function BubblePage() {
       wobble: 5,
       fontSize: 14,
       fontKey: "default",
+      zIndex: 10,
     };
     setBubbles((prev) => [...prev, newBubble]);
     setSelectedId(newBubble.id);
@@ -1074,31 +1157,42 @@ export default function BubblePage() {
       }
     }
 
-    for (let i = currentBubbles.length - 1; i >= 0; i--) {
-      const b = currentBubbles[i];
-      if (pos.x >= b.x && pos.x <= b.x + b.width && pos.y >= b.y && pos.y <= b.y + b.height) {
-        setSelectedId(b.id);
-        selectedIdRef.current = b.id;
-        setSelectedCharId(null);
-        selectedCharIdRef.current = null;
-        dragModeRef.current = "move";
-        dragStartRef.current = pos;
-        dragBubbleStartRef.current = { x: b.x, y: b.y, w: b.width, h: b.height };
-        return;
-      }
-    }
-
-    for (let i = currentChars.length - 1; i >= 0; i--) {
-      const c = currentChars[i];
-      if (pos.x >= c.x && pos.x <= c.x + c.width && pos.y >= c.y && pos.y <= c.y + c.height) {
-        setSelectedCharId(c.id);
-        selectedCharIdRef.current = c.id;
-        setSelectedId(null);
-        selectedIdRef.current = null;
-        dragModeRef.current = "char-move";
-        dragStartRef.current = pos;
-        dragBubbleStartRef.current = { x: c.x, y: c.y, w: c.width, h: c.height };
-        return;
+    {
+      const drawables: Array<
+        | { type: "char"; z: number; c: CharacterOverlay }
+        | { type: "bubble"; z: number; b: SpeechBubble }
+      > = [
+        ...currentChars.map((c) => ({ type: "char" as const, z: c.zIndex ?? 0, c })),
+        ...currentBubbles.map((b) => ({ type: "bubble" as const, z: b.zIndex ?? 10, b })),
+      ];
+      drawables.sort((a, b) => a.z - b.z);
+      for (let i = drawables.length - 1; i >= 0; i--) {
+        const d = drawables[i];
+        if (d.type === "bubble") {
+          const b = d.b;
+          if (pos.x >= b.x && pos.x <= b.x + b.width && pos.y >= b.y && pos.y <= b.y + b.height) {
+            setSelectedId(b.id);
+            selectedIdRef.current = b.id;
+            setSelectedCharId(null);
+            selectedCharIdRef.current = null;
+            dragModeRef.current = "move";
+            dragStartRef.current = pos;
+            dragBubbleStartRef.current = { x: b.x, y: b.y, w: b.width, h: b.height };
+            return;
+          }
+        } else {
+          const c = d.c;
+          if (pos.x >= c.x && pos.x <= c.x + c.width && pos.y >= c.y && pos.y <= c.y + c.height) {
+            setSelectedCharId(c.id);
+            selectedCharIdRef.current = c.id;
+            setSelectedId(null);
+            selectedIdRef.current = null;
+            dragModeRef.current = "char-move";
+            dragStartRef.current = pos;
+            dragBubbleStartRef.current = { x: c.x, y: c.y, w: c.width, h: c.height };
+            return;
+          }
+        }
       }
     }
 
@@ -1154,21 +1248,31 @@ export default function BubblePage() {
       }
 
       let overElement = false;
-      for (let i = currentBubbles.length - 1; i >= 0; i--) {
-        const b = currentBubbles[i];
-        if (pos.x >= b.x && pos.x <= b.x + b.width && pos.y >= b.y && pos.y <= b.y + b.height) {
-          canvas.style.cursor = "move";
-          overElement = true;
-          break;
-        }
-      }
-      if (!overElement) {
-        for (let i = currentChars.length - 1; i >= 0; i--) {
-          const c = currentChars[i];
-          if (pos.x >= c.x && pos.x <= c.x + c.width && pos.y >= c.y && pos.y <= c.y + c.height) {
-            canvas.style.cursor = "move";
-            overElement = true;
-            break;
+      {
+        const drawables: Array<
+          | { type: "char"; z: number; c: CharacterOverlay }
+          | { type: "bubble"; z: number; b: SpeechBubble }
+        > = [
+          ...currentChars.map((c) => ({ type: "char" as const, z: c.zIndex ?? 0, c })),
+          ...currentBubbles.map((b) => ({ type: "bubble" as const, z: b.zIndex ?? 10, b })),
+        ];
+        drawables.sort((a, b) => a.z - b.z);
+        for (let i = drawables.length - 1; i >= 0; i--) {
+          const d = drawables[i];
+          if (d.type === "bubble") {
+            const b = d.b;
+            if (pos.x >= b.x && pos.x <= b.x + b.width && pos.y >= b.y && pos.y <= b.y + b.height) {
+              canvas.style.cursor = "move";
+              overElement = true;
+              break;
+            }
+          } else {
+            const c = d.c;
+            if (pos.x >= c.x && pos.x <= c.x + c.width && pos.y >= c.y && pos.y <= c.y + c.height) {
+              canvas.style.cursor = "move";
+              overElement = true;
+              break;
+            }
           }
         }
       }
@@ -1416,23 +1520,40 @@ export default function BubblePage() {
         ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
       }
       const exportScale = (image ? image.width : exportCanvas.width) / canvasSize.width;
-      characterOverlays.forEach((c) => {
-        if (c.imgElement) {
-          ctx.drawImage(c.imgElement, c.x * exportScale, c.y * exportScale, c.width * exportScale, c.height * exportScale);
+      const drawables: Array<
+        | { type: "char"; z: number; c: CharacterOverlay }
+        | { type: "bubble"; z: number; b: SpeechBubble }
+      > = [
+        ...characterOverlays.map((c) => ({ type: "char" as const, z: c.zIndex ?? 0, c })),
+        ...bubbles.map((b) => ({ type: "bubble" as const, z: b.zIndex ?? 10, b })),
+      ];
+      drawables.sort((a, b) => a.z - b.z);
+      drawables.forEach((d) => {
+        if (d.type === "char") {
+          const c = d.c;
+          if (c.imgElement) {
+            ctx.drawImage(
+              c.imgElement,
+              c.x * exportScale,
+              c.y * exportScale,
+              c.width * exportScale,
+              c.height * exportScale,
+            );
+          }
+        } else {
+          const b = d.b;
+          const scaledBubble: SpeechBubble = {
+            ...b,
+            x: b.x * exportScale,
+            y: b.y * exportScale,
+            width: b.width * exportScale,
+            height: b.height * exportScale,
+            strokeWidth: b.strokeWidth * exportScale,
+            wobble: b.wobble * exportScale,
+            fontSize: b.fontSize * exportScale,
+          };
+          drawBubble(ctx, scaledBubble, false);
         }
-      });
-      bubbles.forEach((b) => {
-        const scaledBubble: SpeechBubble = {
-          ...b,
-          x: b.x * exportScale,
-          y: b.y * exportScale,
-          width: b.width * exportScale,
-          height: b.height * exportScale,
-          strokeWidth: b.strokeWidth * exportScale,
-          wobble: b.wobble * exportScale,
-          fontSize: b.fontSize * exportScale,
-        };
-        drawBubble(ctx, scaledBubble, false);
       });
       exportCanvas.toBlob((blob) => resolve(blob), "image/png");
     });
@@ -1537,6 +1658,9 @@ export default function BubblePage() {
             </div>
           </div>
           <div className="flex items-center gap-1 flex-wrap">
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={startBubbleTour} title="도움말" data-testid="button-bubble-help">
+              <Lightbulb className="h-3.5 w-3.5" />
+            </Button>
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleDownload} title="다운로드" data-testid="button-download-bubble">
               <Download className="h-3.5 w-3.5" />
             </Button>
@@ -1674,6 +1798,30 @@ export default function BubblePage() {
                   삭제
                 </Button>
               </div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    updateCharOverlay(selectedCharOverlay.id, {
+                      zIndex: (selectedCharOverlay.zIndex ?? 0) + 1,
+                    })
+                  }
+                >
+                  앞으로
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    updateCharOverlay(selectedCharOverlay.id, {
+                      zIndex: (selectedCharOverlay.zIndex ?? 0) - 1,
+                    })
+                  }
+                >
+                  뒤로
+                </Button>
+              </div>
               <div className="space-y-3">
                 <div className="rounded-md overflow-hidden border border-border/40">
                   {selectedCharOverlay.imgElement && (
@@ -1740,6 +1888,30 @@ export default function BubblePage() {
                     >
                       <Trash2 className="h-3 w-3" />
                       삭제
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        updateBubble(selectedBubble.id, {
+                          zIndex: (selectedBubble.zIndex ?? 10) + 1,
+                        })
+                      }
+                    >
+                      앞으로
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        updateBubble(selectedBubble.id, {
+                          zIndex: (selectedBubble.zIndex ?? 10) - 1,
+                        })
+                      }
+                    >
+                      뒤로
                     </Button>
                   </div>
 
