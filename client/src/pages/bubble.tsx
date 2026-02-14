@@ -648,15 +648,7 @@ export default function BubblePage() {
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
   const canvasAreaRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(100);
-  const getMaxZoom = useCallback(() => {
-    const area = canvasAreaRef.current;
-    if (!area) return 200;
-    const areaW = area.clientWidth;
-    const areaH = area.clientHeight;
-    if (areaW <= 0 || areaH <= 0) return 200;
-    const fitScale = Math.min(areaW / canvasSize.width, areaH / canvasSize.height);
-    return Math.floor(fitScale * 100);
-  }, [canvasSize]);
+  const getMaxZoom = useCallback(() => 200, []);
 
   const [characterOverlays, setCharacterOverlays] = useState<CharacterOverlay[]>([]);
   const characterOverlaysRef = useRef<CharacterOverlay[]>([]);
@@ -705,6 +697,22 @@ export default function BubblePage() {
     ];
     return items.sort((a, b) => a.z - b.z);
   }, [characterOverlays, bubbles]);
+
+  const [dragLayerIdx, setDragLayerIdx] = useState<number | null>(null);
+  const applyLayerOrder = useCallback((ordered: Array<{ type: "char" | "bubble"; id: string }>) => {
+    setCharacterOverlays((prev) =>
+      prev.map((c) => {
+        const idx = ordered.findIndex((it) => it.type === "char" && it.id === c.id);
+        return idx >= 0 ? { ...c, zIndex: idx } : c;
+      }),
+    );
+    setBubbles((prev) =>
+      prev.map((b) => {
+        const idx = ordered.findIndex((it) => it.type === "bubble" && it.id === b.id);
+        return idx >= 0 ? { ...b, zIndex: idx } : b;
+      }),
+    );
+  }, []);
 
   const moveLayer = (index: number, direction: "up" | "down") => {
     const items = layerItems;
@@ -1665,18 +1673,10 @@ export default function BubblePage() {
   };
 
   const fitToView = useCallback(() => {
-    const area = canvasAreaRef.current;
-    if (!area) return;
-    const areaW = area.clientWidth;
-    const areaH = area.clientHeight;
-    if (areaW <= 0 || areaH <= 0) return;
-    const fitScale = Math.min(areaW / canvasSize.width, areaH / canvasSize.height, 2);
-    setZoom(Math.round(fitScale * 100));
-  }, [canvasSize]);
+    setZoom(100);
+  }, []);
 
-  useEffect(() => {
-    fitToView();
-  }, [canvasSize]);
+  /* 최초 진입 시 기본 100% 유지 */
   useEffect(() => {
     const mz = getMaxZoom();
     setZoom((z) => Math.min(z, mz));
@@ -1709,7 +1709,7 @@ export default function BubblePage() {
         setZoom((z) => Math.max(20, z - 10));
       } else if ((e.ctrlKey || e.metaKey) && e.key === "0") {
         e.preventDefault();
-        fitToView();
+        setZoom(100);
       } else if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
         const area = canvasAreaRef.current;
         if (!area) return;
@@ -2337,6 +2337,18 @@ export default function BubblePage() {
                           setSelectedId(item.id);
                           setSelectedCharId(null);
                         }
+                      }}
+                      draggable
+                      onDragStart={() => setDragLayerIdx(i)}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={() => {
+                        if (dragLayerIdx === null || dragLayerIdx === i) return;
+                        const base = layerItems.map((li) => ({ type: li.type, id: li.id }));
+                        const moved = base[dragLayerIdx];
+                        const rest = base.filter((_, idx) => idx !== dragLayerIdx);
+                        const newOrder = [...rest.slice(0, i), moved, ...rest.slice(i)];
+                        applyLayerOrder(newOrder);
+                        setDragLayerIdx(null);
                       }}
                       data-testid={`row-layer-${i}`}
                     >

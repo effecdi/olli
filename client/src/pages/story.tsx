@@ -1957,6 +1957,21 @@ function RightSidebar({
     }
   };
 
+  const [dragLayerIdx, setDragLayerIdx] = useState<number | null>(null);
+  const applyLayerOrder = useCallback((ordered: Array<{ type: "char" | "bubble"; id: string }>) => {
+    onUpdate({
+      ...panel,
+      characters: panel.characters.map((c) => {
+        const idx = ordered.findIndex((it) => it.type === "char" && it.id === c.id);
+        return idx >= 0 ? { ...c, zIndex: idx } : c;
+      }),
+      bubbles: panel.bubbles.map((b) => {
+        const idx = ordered.findIndex((it) => it.type === "bubble" && it.id === b.id);
+        return idx >= 0 ? { ...b, zIndex: idx } : b;
+      }),
+    });
+  }, [panel, onUpdate]);
+
   return (
     <div className="space-y-5" data-testid={`panel-editor-${index}`}>
       <Dialog open={limitOpen} onOpenChange={setLimitOpen}>
@@ -2080,6 +2095,18 @@ function RightSidebar({
                   setSelectedBubbleId(item.id);
                   setSelectedCharId(null);
                 }
+              }}
+              draggable
+              onDragStart={() => setDragLayerIdx(i)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => {
+                if (dragLayerIdx === null || dragLayerIdx === i) return;
+                const base = layerItems.map((li) => ({ type: li.type, id: li.id }));
+                const moved = base[dragLayerIdx];
+                const rest = base.filter((_, idx) => idx !== dragLayerIdx);
+                const newOrder = [...rest.slice(0, i), moved, ...rest.slice(i)];
+                applyLayerOrder(newOrder);
+                setDragLayerIdx(null);
               }}
               data-testid={`row-layer-${i}`}
             >
@@ -2660,9 +2687,7 @@ export default function StoryPage() {
     setZoom(Math.round(fitScale * 100));
   }, []);
 
-  useEffect(() => {
-    fitToView();
-  }, []);
+  /* 최초 진입 시 기본 100% 유지 */
 
   useEffect(() => {
     const area = canvasAreaRef.current;
@@ -2691,7 +2716,7 @@ export default function StoryPage() {
         setZoom((z) => Math.max(20, z - 10));
       } else if ((e.ctrlKey || e.metaKey) && e.key === "0") {
         e.preventDefault();
-        fitToView();
+        setZoom(100);
       } else if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
         const area = canvasAreaRef.current;
         if (!area) return;
