@@ -49,6 +49,7 @@ export default function PosePage() {
   const [prompt, setPrompt] = useState("");
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [generationCount, setGenerationCount] = useState(0);
   const [showBgPanel, setShowBgPanel] = useState(false);
   const [bgPrompt, setBgPrompt] = useState("");
   const [itemsPrompt, setItemsPrompt] = useState("");
@@ -87,6 +88,7 @@ export default function PosePage() {
     },
     onSuccess: (data) => {
       setGeneratedImage(data.imageUrl);
+      setGenerationCount((c) => c + 1);
       setShowBgPanel(false);
       setBgResultImage(null);
       queryClient.invalidateQueries({ queryKey: ["/api/usage"] });
@@ -255,10 +257,10 @@ export default function PosePage() {
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
           >
-            <h3 className="text-sm font-medium mb-3">포즈 참고 이미지 (선택)</h3>
+            <h3 className="text-sm font-medium mb-3">캐릭터 업로드</h3>
             {referenceImage ? (
               <div className="relative">
-                <img src={referenceImage} alt="Reference" className="w-full rounded-md object-contain max-h-40" />
+                <img src={referenceImage} alt="Uploaded character" className="w-full rounded-md object-contain max-h-40" />
                 <Button
                   size="icon"
                   variant="secondary"
@@ -272,7 +274,7 @@ export default function PosePage() {
             ) : (
               <label className="flex flex-col items-center gap-2 py-6 cursor-pointer text-muted-foreground rounded-md border border-dashed hover-elevate">
                 <Upload className="h-6 w-6" />
-                <span className="text-sm">이미지를 끌어오거나 클릭하여 업로드</span>
+                <span className="text-sm">캐릭터 이미지를 끌어오거나 클릭하여 업로드</span>
                 <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} data-testid="input-reference-upload" />
               </label>
             )}
@@ -282,7 +284,7 @@ export default function PosePage() {
             size="lg"
             className="w-full gap-2"
             onClick={() => generateMutation.mutate()}
-            disabled={!prompt.trim() || generateMutation.isPending || isOutOfCredits}
+            disabled={!prompt.trim() || generateMutation.isPending || isOutOfCredits || generationCount >= 3}
             data-testid="button-generate-pose"
           >
             {generateMutation.isPending ? (
@@ -297,6 +299,14 @@ export default function PosePage() {
               </>
             )}
           </Button>
+          {generationCount >= 3 && (
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <p className="text-xs text-muted-foreground">포즈 화면에서 생성은 3회로 제한됐어요.</p>
+              <Button size="sm" variant="secondary" asChild>
+                <a href="/pricing">Pro 업그레이드</a>
+              </Button>
+            </div>
+          )}
           {!isPro && isOutOfCredits && (
             <div className="mt-2 flex items-center justify-between gap-2">
               <p className="text-xs text-muted-foreground">오늘의 무료 생성 3회를 모두 사용했습니다.</p>
