@@ -1920,7 +1920,7 @@ function RightSidebar({
         thumb: b.style === "image" && (b as any).templateSrc ? (b as any).templateSrc : undefined,
       })),
     ];
-    return items.sort((a, b) => a.z - b.z);
+    return items.sort((a, b) => b.z - a.z);
   }, [panel.characters, panel.bubbles]);
 
   const moveLayer = (index: number, direction: "up" | "down") => {
@@ -2676,6 +2676,9 @@ export default function StoryPage() {
 
   const [zoom, setZoom] = useState(100);
   const canvasAreaRef = useRef<HTMLDivElement>(null);
+  const [captureActive, setCaptureActive] = useState(false);
+  const [blockCapture] = useState(true);
+  const [activeScriptSection, setActiveScriptSection] = useState<"top" | "bottom">("top");
 
   const fitToView = useCallback(() => {
     const area = canvasAreaRef.current;
@@ -2717,6 +2720,11 @@ export default function StoryPage() {
       } else if ((e.ctrlKey || e.metaKey) && e.key === "0") {
         e.preventDefault();
         setZoom(100);
+      } else if (e.key === "PrintScreen") {
+        if (blockCapture) {
+          setCaptureActive(true);
+          toast({ title: "스크린캡쳐 차단", description: "화면 캡쳐가 감지되어 캔버스를 보호합니다." });
+        }
       } else if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
         const area = canvasAreaRef.current;
         if (!area) return;
@@ -2728,6 +2736,26 @@ export default function StoryPage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [fitToView]);
+ 
+  useEffect(() => {
+    const onBlur = () => {
+      if (blockCapture) setCaptureActive(true);
+    };
+    const onFocus = () => setCaptureActive(false);
+    const onVisibility = () => {
+      if (document.visibilityState !== "visible" && blockCapture) {
+        setCaptureActive(true);
+      }
+    };
+    window.addEventListener("blur", onBlur);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("blur", onBlur);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [blockCapture]);
 
   const { data: usageData } = useQuery<UsageData>({ queryKey: ["/api/usage"] });
   const maxPanels = usageData?.maxStoryPanels ?? 3;
@@ -3418,18 +3446,18 @@ export default function StoryPage() {
                     설정합니다.
                   </p>
 
-                  <div className="flex gap-1 flex-wrap">
+                <div className="flex gap-1 flex-wrap">
                     <Button
                       size="sm"
-                      variant={activePanel.topScript ? "secondary" : "outline"}
+                    variant={activeScriptSection === "top" ? "secondary" : "outline"}
                       onClick={() => {
-                        const p = activePanel;
-                        updatePanel(activePanelIndex, {
-                          ...p,
-                          topScript: p.topScript
-                            ? null
-                            : { text: "", style: "no-bg", color: "yellow" },
-                        });
+                      const p = activePanel;
+                      updatePanel(activePanelIndex, {
+                        ...p,
+                        topScript:
+                          p.topScript ?? { text: "", style: "no-bg", color: "yellow" },
+                      });
+                      setActiveScriptSection("top");
                       }}
                       data-testid={`button-toggle-top-script-${activePanelIndex}`}
                     >
@@ -3438,17 +3466,15 @@ export default function StoryPage() {
                     </Button>
                     <Button
                       size="sm"
-                      variant={
-                        activePanel.bottomScript ? "secondary" : "outline"
-                      }
+                    variant={activeScriptSection === "bottom" ? "secondary" : "outline"}
                       onClick={() => {
-                        const p = activePanel;
-                        updatePanel(activePanelIndex, {
-                          ...p,
-                          bottomScript: p.bottomScript
-                            ? null
-                            : { text: "", style: "no-bg", color: "sky" },
-                        });
+                      const p = activePanel;
+                      updatePanel(activePanelIndex, {
+                        ...p,
+                        bottomScript:
+                          p.bottomScript ?? { text: "", style: "no-bg", color: "sky" },
+                      });
+                      setActiveScriptSection("bottom");
                       }}
                       data-testid={`button-toggle-bottom-script-${activePanelIndex}`}
                     >
@@ -3457,7 +3483,7 @@ export default function StoryPage() {
                     </Button>
                   </div>
 
-                  {activePanel.topScript && (
+                {activeScriptSection === "top" && activePanel.topScript && (
                     <div className="space-y-2 rounded-md bg-muted/30 p-2">
                       <div className="flex items-center gap-2">
                         <Badge
@@ -3625,9 +3651,9 @@ export default function StoryPage() {
                         캔버스에서 드래그하여 위치를 이동할 수 있습니다
                       </p>
                     </div>
-                  )}
+                )}
 
-                  {activePanel.bottomScript && (
+                {activeScriptSection === "bottom" && activePanel.bottomScript && (
                     <div className="space-y-2 rounded-md bg-muted/30 p-2">
                       <div className="flex items-center gap-2">
                         <Badge
@@ -3917,9 +3943,14 @@ export default function StoryPage() {
 
         <div
           ref={canvasAreaRef}
-          className="flex-1 min-h-0 overflow-auto flex items-center justify-center p-6 bg-muted/20 dark:bg-muted/10"
+          className="flex-1 min-h-0 overflow-auto flex items-center justify-center p-6 bg-muted/20 dark:bg-muted/10 relative"
           data-testid="story-canvas-area"
         >
+          {captureActive && (
+            <div className="absolute inset-0 z-50 bg-black/60 text-white grid place-items-center">
+              <div className="px-3 py-1.5 rounded bg-white/10 text-xs font-medium">스크린캡쳐 방지 중</div>
+            </div>
+          )}
           {activePanel && (
             <div className="shrink-0" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)", borderRadius: "12px" }}>
               <PanelCanvas

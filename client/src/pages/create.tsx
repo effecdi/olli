@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { FlowStepper } from "@/components/flow-stepper";
 import { setFlowState } from "@/lib/flow";
 import { useQuery } from "@tanstack/react-query";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const FREE_STYLES = ["simple-line", "minimal", "doodle"];
 
@@ -38,6 +39,7 @@ export default function CreatePage() {
   const { data: usage } = useQuery<{ tier: string; credits: number }>({ queryKey: ["/api/usage"] });
   const isPro = usage?.tier === "pro";
   const isOutOfCredits = !isPro && (usage?.credits ?? 0) <= 0;
+  const [showStyleDialog, setShowStyleDialog] = useState(false);
 
   const aiPromptMutation = useMutation({
     mutationFn: async () => {
@@ -54,7 +56,7 @@ export default function CreatePage() {
 
   const generateMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/generate-character", { prompt, style });
+      const res = await apiRequest("POST", "/api/generate-character", { prompt, style, format: "png", transparent: true });
       return res.json();
     },
     onSuccess: (data) => {
@@ -123,42 +125,48 @@ export default function CreatePage() {
               </div>
               <h2 className="text-base font-semibold">그림 스타일</h2>
             </div>
-            <RadioGroup
-              value={style}
-              onValueChange={setStyle}
-              className="grid grid-cols-2 sm:grid-cols-3 gap-3"
-              data-testid="radio-style"
-            >
-              {styles.map((s) => {
-                const isFreeStyle = FREE_STYLES.includes(s.value);
-                const isLocked = !isPro && !isFreeStyle;
-                return (
-                  <Label
-                    key={s.value}
-                    htmlFor={s.value}
-                    className={`flex flex-col gap-1.5 rounded-lg border p-3.5 transition-colors ${
-                      isLocked ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-                    } ${
-                      style === s.value && !isLocked ? "border-primary bg-primary/5" : isLocked ? "" : "hover-elevate"
-                    }`}
-                    onClick={(e) => { if (isLocked) e.preventDefault(); }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value={s.value} id={s.value} disabled={isLocked} />
-                      <span className="font-medium text-sm">{s.label}</span>
-                      {isLocked && (
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5">
-                          <Lock className="h-2.5 w-2.5" />
-                          Pro
-                        </Badge>
-                      )}
-                    </div>
-                    <span className="text-xs text-muted-foreground ml-6">{s.description}</span>
-                  </Label>
-                );
-              })}
-            </RadioGroup>
+            <Button size="sm" variant="outline" onClick={() => setShowStyleDialog(true)} data-testid="button-open-style-dialog">
+              그림 스타일
+            </Button>
           </Card>
+
+          <Dialog open={showStyleDialog} onOpenChange={setShowStyleDialog}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-base">그림 스타일 선택</DialogTitle>
+              </DialogHeader>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {styles.map((s) => {
+                  const isFreeStyle = FREE_STYLES.includes(s.value);
+                  const isLocked = !isPro && !isFreeStyle;
+                  const selected = style === s.value;
+                  return (
+                    <button
+                      key={s.value}
+                      className={`text-left rounded-md border p-3 transition-colors ${isLocked ? "opacity-50 cursor-not-allowed" : "hover-elevate"} ${selected ? "border-primary bg-primary/5" : ""}`}
+                      onClick={() => {
+                        if (isLocked) return;
+                        setStyle(s.value);
+                        setShowStyleDialog(false);
+                      }}
+                      data-testid={`button-style-${s.value}`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium text-sm">{s.label}</span>
+                        {isLocked && (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5">
+                            <Lock className="h-2.5 w-2.5" />
+                            Pro
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground">{s.description}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </DialogContent>
+          </Dialog>
 
           <Button
             size="lg"
