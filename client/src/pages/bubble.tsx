@@ -674,6 +674,7 @@ export default function BubblePage() {
   });
 
   const isPro = usage?.tier === "pro";
+  const isOutOfCredits = !isPro && (usage?.credits ?? 0) <= 0;
 
   const layerItems = useMemo(() => {
     const items: Array<
@@ -1441,6 +1442,10 @@ export default function BubblePage() {
   }, [getCanvasPos]);
 
   const handleDownload = () => {
+    if (isOutOfCredits) {
+      toast({ title: "크레딧 부족", description: "다운로드는 크레딧이 필요합니다. Pro 업그레이드 또는 크레딧을 구매하세요.", variant: "destructive" });
+      return;
+    }
     const exportCanvas = document.createElement("canvas");
     if (image) {
       exportCanvas.width = image.width;
@@ -2491,12 +2496,9 @@ export default function BubblePage() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={handleShareInstagram}
                   className="gap-1.5 w-full"
                   data-testid="button-share-instagram"
-                >
-                  <Share2 className="h-3.5 w-3.5" />
-                  Instagram
+                  style={{ display: "none" }}
                 </Button>
               </div>
               {currentProjectId && (
@@ -2523,12 +2525,9 @@ export default function BubblePage() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={handleShareInstagram}
                   className="gap-1.5 w-full"
                   data-testid="button-share-instagram-free"
-                >
-                  <Share2 className="h-3.5 w-3.5" />
-                  Instagram
+                  style={{ display: "none" }}
                 </Button>
               </div>
             </div>

@@ -2969,6 +2969,12 @@ export default function StoryPage() {
   };
 
   const downloadPanel = (idx: number) => {
+    const isPro = usageData?.tier === "pro";
+    const credits = usageData?.credits ?? 0;
+    if (!isPro && credits <= 0) {
+      toast({ title: "크레딧 부족", description: "다운로드는 크레딧이 필요합니다. Pro 업그레이드 또는 크레딧을 구매하세요.", variant: "destructive" });
+      return;
+    }
     const p = panels[idx];
     const canvas = panelCanvasRefs.current.get(p.id);
     if (!canvas) return;
@@ -4031,15 +4037,7 @@ export default function StoryPage() {
                   {savingProject ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                   {currentProjectId ? "업데이트" : "저장하기"}
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleShareInstagram(activePanelIndex)}
-                  className="gap-1.5 w-full"
-                  data-testid="button-modal-story-instagram"
-                >
-                  <Share2 className="h-3.5 w-3.5" />
-                  Instagram
-                </Button>
+                
               </div>
               {currentProjectId && (
                 <p className="text-[11px] text-muted-foreground text-center">
@@ -4063,15 +4061,7 @@ export default function StoryPage() {
                     Pro 업그레이드
                   </a>
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleShareInstagram(activePanelIndex)}
-                  className="gap-1.5 w-full"
-                  data-testid="button-modal-story-instagram-free"
-                >
-                  <Share2 className="h-3.5 w-3.5" />
-                  Instagram
-                </Button>
+                
               </div>
             </div>
           )}
