@@ -1488,7 +1488,7 @@ export default function BubblePage() {
         >
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1.5 mr-1">
-              <div className="w-6 h-6 rounded-md bg-[hsl(262_83%_58%)] flex items-center justify-center">
+              <div className="w-6 h-6 rounded-md bg-[hsl(173_100%_35%)] flex items-center justify-center">
                 <MessageCircle className="h-3.5 w-3.5 text-white" />
               </div>
               <h1 className="text-sm font-bold tracking-tight" data-testid="text-bubble-title">말풍선</h1>
@@ -1519,7 +1519,7 @@ export default function BubblePage() {
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleDownload} title="다운로드" data-testid="button-download-bubble">
               <Download className="h-3.5 w-3.5" />
             </Button>
-            <Button size="sm" onClick={() => setShowSaveModal(true)} className="gap-1 h-7 text-xs px-2.5 bg-[hsl(262_83%_58%)] text-white border-[hsl(173_100%_35%)]" data-testid="button-save-project">
+            <Button size="sm" onClick={() => setShowSaveModal(true)} className="gap-1 h-7 text-xs px-2.5 bg-[hsl(173_100%_35%)] text-white border-[hsl(173_100%_35%)]" data-testid="button-save-project">
               <Save className="h-3 w-3" />
               저장
               {isPro && <Crown className="h-2.5 w-2.5 ml-0.5" />}
@@ -1529,7 +1529,7 @@ export default function BubblePage() {
             </Button>
           </div>
         </div>
-        <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-[hsl(262_83%_58%)] to-transparent opacity-60" />
+        <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-[hsl(173_100%_35%)] to-transparent opacity-60" />
       </div>
 
       <div className="flex flex-1 min-h-0">

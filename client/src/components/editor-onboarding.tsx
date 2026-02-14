@@ -135,7 +135,7 @@ export function EditorOnboarding({ editor }: { editor: "story" | "bubble" }) {
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
       <DialogContent className="max-w-sm p-0 overflow-hidden gap-0" data-testid="modal-editor-onboarding">
         <div className="relative">
-          <div className="bg-gradient-to-br from-[hsl(262_83%_58%)] to-[hsl(262_83%_45%)] px-6 pt-8 pb-6 text-white">
+          <div className="bg-gradient-to-br from-[hsl(173_100%_35%)] to-[hsl(262_83%_45%)] px-6 pt-8 pb-6 text-white">
             <div className="flex items-center gap-2 mb-1">
               <Sparkles className="h-4 w-4 opacity-80" />
               <span className="text-[11px] font-medium opacity-80 uppercase tracking-wider">
@@ -157,7 +157,7 @@ export function EditorOnboarding({ editor }: { editor: "story" | "bubble" }) {
             {steps.map((_, i) => (
               <div
                 key={i}
-                className={`h-[3px] flex-1 rounded-full transition-colors ${i <= step ? "bg-[hsl(262_83%_58%)]" : "bg-border"}`}
+                className={`h-[3px] flex-1 rounded-full transition-colors ${i <= step ? "bg-[hsl(173_100%_35%)]" : "bg-border"}`}
               />
             ))}
           </div>
@@ -169,7 +169,7 @@ export function EditorOnboarding({ editor }: { editor: "story" | "bubble" }) {
           </p>
           {current.tip && (
             <div className="mt-3 flex items-start gap-2 bg-muted/50 dark:bg-muted/30 rounded-lg px-3 py-2.5">
-              <Sparkles className="h-3.5 w-3.5 text-[hsl(262_83%_58%)] shrink-0 mt-0.5" />
+              <Sparkles className="h-3.5 w-3.5 text-[hsl(173_100%_35%)] shrink-0 mt-0.5" />
               <p className="text-[11px] text-muted-foreground leading-relaxed" data-testid="text-onboarding-tip">{current.tip}</p>
             </div>
           )}
@@ -200,7 +200,7 @@ export function EditorOnboarding({ editor }: { editor: "story" | "bubble" }) {
             <Button
               size="sm"
               onClick={handleNext}
-              className="gap-1 bg-[hsl(262_83%_58%)] text-white border-[hsl(173_100%_35%)]"
+              className="gap-1 bg-[hsl(173_100%_35%)] text-white border-[hsl(173_100%_35%)]"
               data-testid="button-onboarding-next"
             >
               {step === steps.length - 1 ? "시작하기" : "다음"}

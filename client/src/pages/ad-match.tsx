@@ -351,7 +351,7 @@ export default function AdMatchPage() {
               </Card>
 
               <h3 className="text-lg font-semibold flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-[hsl(262_83%_58%)]" />
+                <CheckCircle2 className="h-5 w-5 text-[hsl(173_100%_35%)]" />
                 추천 광고주
               </h3>
 
