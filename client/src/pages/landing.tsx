@@ -409,7 +409,7 @@ export default function LandingPage() {
           >
             <GradientText
               className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight"
-              colors={["#7c3aed", "#ec4899", "#3b82f6", "#7c3aed"]}
+              colors={["#3ae1ed", "#4861ec", "#3b82f6", "#3ae4ed"]}
               animationSpeed={4}
             >
               지금 바로 만들어보세요
