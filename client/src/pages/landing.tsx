@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import logoImg from "@assets/logo.png";
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
+import { useState } from "react";
 import { GradientText } from "@/components/effects/gradient-text";
 import { CountUp } from "@/components/effects/count-up";
 import { TiltCard } from "@/components/effects/tilt-card";
@@ -29,6 +30,7 @@ import sample3 from "@assets/sample-char-3.png";
 import sample4 from "@assets/sample-char-4.png";
 import sample5 from "@assets/sample-char-5.png";
 import sample6 from "@assets/sample-char-6.png";
+import { Input } from "@/components/ui/input";
 
 const allSamples = [sample1, sample2, sample3, sample4, sample5, sample6];
 
@@ -101,6 +103,7 @@ export default function LandingPage() {
   const howRef = useRef(null);
   const pricingRef = useRef(null);
   const ctaRef = useRef(null);
+  const [promptText, setPromptText] = useState("");
 
   const featuresInView = useInView(featuresRef, { once: true, margin: "-60px" });
   const howInView = useInView(howRef, { once: true, margin: "-60px" });
@@ -171,6 +174,33 @@ export default function LandingPage() {
             텍스트 한 줄이면 캐릭터 생성부터 포즈, 배경, 말풍선까지.
             그림 못 그려도 괜찮아요.
           </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.45 }}
+            className="flex items-center gap-2 max-w-xl mx-auto mb-6 px-2"
+            data-testid="section-hero-prompt"
+          >
+            <Input
+              value={promptText}
+              onChange={(e) => setPromptText(e.target.value)}
+              placeholder="내 인스타툰에 맞는 캐릭터를 생성해보세요."
+              className="flex-1"
+              data-testid="input-hero-prompt"
+            />
+            <Button
+              size="lg"
+              className="gap-2"
+              asChild
+              data-testid="button-hero-send"
+            >
+              <a href={`/create?prompt=${encodeURIComponent(promptText.trim())}`}>
+                보내기
+                <ArrowRight className="h-4 w-4" />
+              </a>
+            </Button>
+          </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}

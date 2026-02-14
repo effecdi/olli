@@ -647,7 +647,13 @@ export default function BubblePage() {
   const [editingBubbleId, setEditingBubbleId] = useState<string | null>(null);
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
   const canvasAreaRef = useRef<HTMLDivElement>(null);
+  const [panMode, setPanMode] = useState(false);
+  const panDraggingRef = useRef(false);
+  const panStartRef = useRef<{ x: number; y: number } | null>(null);
+  const panScrollStartRef = useRef<{ left: number; top: number } | null>(null);
   const [zoom, setZoom] = useState(100);
+  const [captureActive, setCaptureActive] = useState(false);
+  const [blockCapture] = useState(true);
   const getMaxZoom = useCallback(() => 200, []);
 
   const [characterOverlays, setCharacterOverlays] = useState<CharacterOverlay[]>([]);
@@ -696,7 +702,7 @@ export default function BubblePage() {
         thumb: b.style === "image" && b.templateSrc ? b.templateSrc : undefined,
       })),
     ];
-    return items.sort((a, b) => a.z - b.z);
+    return items.sort((a, b) => b.z - a.z);
   }, [characterOverlays, bubbles]);
 
   const [dragLayerIdx, setDragLayerIdx] = useState<number | null>(null);
@@ -1705,6 +1711,31 @@ export default function BubblePage() {
   }, [getMaxZoom]);
 
   useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        setPanMode(true);
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        setPanMode(false);
+        panDraggingRef.current = false;
+        panStartRef.current = null;
+        panScrollStartRef.current = null;
+        const area = canvasAreaRef.current;
+        if (area) area.style.cursor = "default";
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+    };
+  }, []);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && (e.key === "+" || e.key === "=")) {
         e.preventDefault();
@@ -1715,6 +1746,11 @@ export default function BubblePage() {
       } else if ((e.ctrlKey || e.metaKey) && e.key === "0") {
         e.preventDefault();
         setZoom(100);
+      } else if (e.key === "PrintScreen") {
+        if (blockCapture) {
+          setCaptureActive(true);
+          toast({ title: "스크린캡쳐 차단", description: "화면 캡쳐가 감지되어 캔버스를 보호합니다." });
+        }
       } else if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
         const area = canvasAreaRef.current;
         if (!area) return;
@@ -1726,6 +1762,26 @@ export default function BubblePage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [fitToView, getMaxZoom]);
+ 
+  useEffect(() => {
+    const onBlur = () => {
+      if (blockCapture) setCaptureActive(true);
+    };
+    const onFocus = () => setCaptureActive(false);
+    const onVisibility = () => {
+      if (document.visibilityState !== "visible" && blockCapture) {
+        setCaptureActive(true);
+      }
+    };
+    window.addEventListener("blur", onBlur);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("blur", onBlur);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [blockCapture]);
 
   if (!isAuthenticated) {
     return (
@@ -1803,9 +1859,53 @@ export default function BubblePage() {
         <div ref={containerRef} className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <div
             ref={canvasAreaRef}
-            className="flex-1 min-h-0 overflow-auto flex items-center justify-center bg-muted/30 p-4"
+            className="flex-1 min-h-0 overflow-auto flex items-center justify-center bg-muted/30 p-4 relative"
             data-testid="canvas-area"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              setSelectedId(null);
+              setSelectedCharId(null);
+            }
+          }}
           >
+          {panMode && (
+            <div
+              className="absolute inset-0 z-40"
+              onPointerDown={(e) => {
+                const area = canvasAreaRef.current;
+                if (!area) return;
+                (e.currentTarget as any).setPointerCapture(e.pointerId);
+                panDraggingRef.current = true;
+                panStartRef.current = { x: e.clientX, y: e.clientY };
+                panScrollStartRef.current = { left: area.scrollLeft, top: area.scrollTop };
+                area.style.cursor = "grabbing";
+              }}
+              onPointerMove={(e) => {
+                if (!panDraggingRef.current) return;
+                const area = canvasAreaRef.current;
+                if (!area || !panStartRef.current || !panScrollStartRef.current) return;
+                const dx = e.clientX - panStartRef.current.x;
+                const dy = e.clientY - panStartRef.current.y;
+                area.scrollLeft = panScrollStartRef.current.left - dx;
+                area.scrollTop = panScrollStartRef.current.top - dy;
+              }}
+              onPointerUp={() => {
+                panDraggingRef.current = false;
+                const area = canvasAreaRef.current;
+                if (area) area.style.cursor = "grab";
+              }}
+              onClick={() => {
+                setSelectedId(null);
+                setSelectedCharId(null);
+              }}
+              style={{ cursor: "grab" }}
+            />
+          )}
+            {captureActive && (
+              <div className="absolute inset-0 z-50 bg-black/60 text-white grid place-items-center">
+                <div className="px-3 py-1.5 rounded bg-white/10 text-xs font-medium">스크린캡쳐 방지 중</div>
+              </div>
+            )}
             <div
               ref={canvasWrapperRef}
               className="border border-border rounded-md overflow-hidden relative shrink-0 shadow-sm"

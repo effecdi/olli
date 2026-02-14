@@ -21,6 +21,7 @@ import BackgroundPage from "@/pages/background";
 import StoryPage from "@/pages/story";
 import EditsPage from "@/pages/edits";
 import LoginPage from "@/pages/login";
+import DashboardPage from "@/pages/dashboard";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -51,6 +52,7 @@ function Router() {
       <Route path="/background" component={BackgroundPage} />
       <Route path="/story" component={StoryPage} />
       <Route path="/edits" component={EditsPage} />
+      <Route path="/dashboard" component={DashboardPage} />
       <Route path="/pricing" component={PricingPage} />
       <Route path="/login" component={LoginPage} />
       <Route component={NotFound} />

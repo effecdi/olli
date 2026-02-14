@@ -179,39 +179,25 @@ const SCRIPT_TEXT_COLORS = [
 ];
 
 const KOREAN_FONTS = [
-  {
-    value: "default",
-    label: "기본 고딕",
-    family: "'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif",
-  },
+  { value: "default", label: "기본 고딕", family: "'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" },
   { value: "NanumPen", label: "나눔손글씨 펜", family: "'NanumPen', cursive" },
-  {
-    value: "NanumBrush",
-    label: "나눔손글씨 붓",
-    family: "'NanumBrush', cursive",
-  },
+  { value: "NanumBrush", label: "나눔손글씨 붓", family: "'NanumBrush', cursive" },
   { value: "KyoboHand", label: "교보손글씨", family: "'KyoboHand', cursive" },
   { value: "DaraeHand", label: "다래손글씨", family: "'DaraeHand', cursive" },
-  {
-    value: "KotraHand",
-    label: "코트라 손글씨",
-    family: "'KotraHand', cursive",
-  },
+  { value: "KotraHand", label: "코트라 손글씨", family: "'KotraHand', cursive" },
   { value: "Haesom", label: "온글잎 해솜", family: "'Haesom', cursive" },
-  {
-    value: "GowunDodum",
-    label: "고운 도둠",
-    family: "'GowunDodum', sans-serif",
-  },
+  { value: "GowunDodum", label: "고운 도둠", family: "'GowunDodum', sans-serif" },
   { value: "MitmiFont", label: "온글잎 밋미", family: "'MitmiFont', cursive" },
   { value: "Hanna", label: "배민 한나", family: "'Hanna', sans-serif" },
-  {
-    value: "KCCGanpan",
-    label: "KCC 간판체",
-    family: "'KCCGanpan', sans-serif",
-  },
+  { value: "KCCGanpan", label: "KCC 간판체", family: "'KCCGanpan', sans-serif" },
+  { value: "KCCEunyoung", label: "KCC 은영체", family: "'KCCEunyoung', cursive" },
+  { value: "KCCKimhun", label: "KCC 김훈체", family: "'KCCKimhun', cursive" },
   { value: "Dovemayo", label: "도브메이요", family: "'Dovemayo', sans-serif" },
+  { value: "HakgyoansimDoldamM", label: "학교안심 돌담", family: "'HakgyoansimDoldamM', sans-serif" },
   { value: "LeeSeoyun", label: "이서윤체", family: "'LeeSeoyun', cursive" },
+  { value: "UhBeeSeHyun", label: "어비 세현체", family: "'UhBeeSeHyun', cursive" },
+  { value: "Stylish", label: "나눔 스타일리시", family: "'Stylish', cursive" },
+  { value: "GangwonEdu", label: "강원교육체", family: "'GangwonEdu', sans-serif" },
   { value: "MaruBuri", label: "마루 부리", family: "'MaruBuri', serif" },
 ];
 
@@ -226,8 +212,14 @@ const FONT_CSS = `
 @font-face { font-family: 'MitmiFont'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2402_1@1.0/Ownglyph_meetme-Rg.woff2') format('woff2'); font-weight: normal; font-display: swap; }
 @font-face { font-family: 'Hanna'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_two@1.0/BMHANNAAir.woff') format('woff'); font-weight: normal; font-display: swap; }
 @font-face { font-family: 'KCCGanpan'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/KCCGanpan.woff2') format('woff2'); font-weight: normal; font-display: swap; }
+@font-face { font-family: 'KCCEunyoung'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/KCCEunyoung.woff2') format('woff2'); font-weight: normal; font-display: swap; }
+@font-face { font-family: 'KCCKimhun'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/KCCKimhun.woff2') format('woff2'); font-weight: normal; font-display: swap; }
 @font-face { font-family: 'Dovemayo'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/Dovemayo.woff2') format('woff2'); font-weight: normal; font-display: swap; }
+@font-face { font-family: 'HakgyoansimDoldamM'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2307-2@1.0/HakgyoansimDoldamM.woff2') format('woff2'); font-weight: normal; font-display: swap; }
 @font-face { font-family: 'LeeSeoyun'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2104@1.0/LeeSeoyun.woff') format('woff'); font-weight: normal; font-display: swap; }
+@font-face { font-family: 'UhBeeSeHyun'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_five@1.0/UhBeeSeHyun.woff') format('woff'); font-weight: normal; font-display: swap; }
+@font-face { font-family: 'Stylish'; src: url('https://fonts.gstatic.com/s/stylish/v22/m8JTjfNPYbmjEnNbyeLuEYw.woff2') format('woff2'); font-weight: normal; font-display: swap; }
+@font-face { font-family: 'GangwonEdu'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2201-2@1.0/GangwonEdu_OTFBoldA.woff') format('woff'); font-weight: normal; font-display: swap; }
 @font-face { font-family: 'MaruBuri'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10-21@1.0/MaruBuri-Regular.woff') format('woff'); font-weight: normal; font-display: swap; }
 `;
 
@@ -2676,6 +2668,10 @@ export default function StoryPage() {
 
   const [zoom, setZoom] = useState(100);
   const canvasAreaRef = useRef<HTMLDivElement>(null);
+  const [panMode, setPanMode] = useState(false);
+  const panDraggingRef = useRef(false);
+  const panStartRef = useRef<{ x: number; y: number } | null>(null);
+  const panScrollStartRef = useRef<{ left: number; top: number } | null>(null);
   const [captureActive, setCaptureActive] = useState(false);
   const [blockCapture] = useState(true);
   const [activeScriptSection, setActiveScriptSection] = useState<"top" | "bottom">("top");
@@ -2707,6 +2703,31 @@ export default function StoryPage() {
     };
     area.addEventListener("wheel", onWheel, { passive: false });
     return () => area.removeEventListener("wheel", onWheel as any);
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        setPanMode(true);
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        setPanMode(false);
+        panDraggingRef.current = false;
+        panStartRef.current = null;
+        panScrollStartRef.current = null;
+        const area = canvasAreaRef.current;
+        if (area) area.style.cursor = "default";
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+    };
   }, []);
 
   useEffect(() => {
@@ -3945,7 +3966,46 @@ export default function StoryPage() {
           ref={canvasAreaRef}
           className="flex-1 min-h-0 overflow-auto flex items-center justify-center p-6 bg-muted/20 dark:bg-muted/10 relative"
           data-testid="story-canvas-area"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              setSelectedBubbleId(null);
+              setSelectedCharId(null);
+            }
+          }}
         >
+          {panMode && (
+            <div
+              className="absolute inset-0 z-40"
+              onPointerDown={(e) => {
+                const area = canvasAreaRef.current;
+                if (!area) return;
+                (e.currentTarget as any).setPointerCapture(e.pointerId);
+                panDraggingRef.current = true;
+                panStartRef.current = { x: e.clientX, y: e.clientY };
+                panScrollStartRef.current = { left: area.scrollLeft, top: area.scrollTop };
+                area.style.cursor = "grabbing";
+              }}
+              onPointerMove={(e) => {
+                if (!panDraggingRef.current) return;
+                const area = canvasAreaRef.current;
+                if (!area || !panStartRef.current || !panScrollStartRef.current) return;
+                const dx = e.clientX - panStartRef.current.x;
+                const dy = e.clientY - panStartRef.current.y;
+                area.scrollLeft = panScrollStartRef.current.left - dx;
+                area.scrollTop = panScrollStartRef.current.top - dy;
+              }}
+              onPointerUp={() => {
+                panDraggingRef.current = false;
+                const area = canvasAreaRef.current;
+                if (area) area.style.cursor = "grab";
+              }}
+              onClick={() => {
+                setSelectedBubbleId(null);
+                setSelectedCharId(null);
+              }}
+              style={{ cursor: "grab" }}
+            />
+          )}
           {captureActive && (
             <div className="absolute inset-0 z-50 bg-black/60 text-white grid place-items-center">
               <div className="px-3 py-1.5 rounded bg-white/10 text-xs font-medium">스크린캡쳐 방지 중</div>

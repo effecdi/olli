@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -40,6 +40,14 @@ export default function CreatePage() {
   const isPro = usage?.tier === "pro";
   const isOutOfCredits = !isPro && (usage?.credits ?? 0) <= 0;
   const [showStyleDialog, setShowStyleDialog] = useState(false);
+
+  useEffect(() => {
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const qp = sp.get("prompt");
+      if (qp) setPrompt(qp);
+    } catch {}
+  }, []);
 
   const aiPromptMutation = useMutation({
     mutationFn: async () => {

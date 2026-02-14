@@ -178,6 +178,13 @@ export function Navbar() {
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
+                  <Link href="/dashboard" className="cursor-pointer" data-testid="menu-dashboard">
+                    <Home className="mr-2 h-4 w-4" />
+                    대쉬보드
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
                   <Link href="/gallery" className="cursor-pointer">
                     <Image className="mr-2 h-4 w-4" />
                     My Gallery
