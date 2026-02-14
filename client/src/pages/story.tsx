@@ -2294,6 +2294,14 @@ export default function StoryPage() {
   const skipHistoryRef = useRef(false);
   const MAX_HISTORY = 50;
 
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
   const clonePanels = useCallback((src: PanelData[]): PanelData[] => {
     return src.map((p) => ({
       ...p,

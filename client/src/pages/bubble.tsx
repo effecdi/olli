@@ -664,6 +664,14 @@ export default function BubblePage() {
   const urlParams = new URLSearchParams(window.location.search);
   const loadProjectId = urlParams.get("projectId");
 
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
   const { data: loadedProject } = useQuery<any>({
     queryKey: ["/api/bubble-projects", loadProjectId],
     enabled: isAuthenticated && !!loadProjectId,
