@@ -36,6 +36,7 @@ export function Navbar() {
       paths: ["/create", "/gallery", "/background"],
       items: [
         { path: "/create", label: "New Character", icon: Wand2 },
+        { path: "/pose", label: "Expression/Pose", icon: Image },
         { path: "/background", label: "Background / Items", icon: Trees },
         { path: "/gallery", label: "Gallery", icon: LayoutGrid },
       ],
