@@ -33,11 +33,11 @@ export function Navbar() {
     {
       label: "Create",
       icon: Wand2,
-      paths: ["/create", "/gallery", "/background"],
+      paths: ["/create", "/gallery", "/pose"],
       items: [
         { path: "/create", label: "New Character", icon: Wand2 },
         { path: "/pose", label: "Expression/Pose", icon: Image },
-        { path: "/background", label: "Background / Items", icon: Trees },
+        { path: "/pose", label: "Background / Items", icon: Trees },
         { path: "/gallery", label: "Gallery", icon: LayoutGrid },
       ],
     },

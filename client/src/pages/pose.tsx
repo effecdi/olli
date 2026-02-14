@@ -81,7 +81,8 @@ export default function PosePage() {
 
   const generateMutation = useMutation({
     mutationFn: async () => {
-      const body: any = { characterId, prompt };
+      const body: any = { prompt };
+      if (characterId) body.characterId = characterId;
       if (referenceImage) body.referenceImageData = referenceImage;
       const res = await apiRequest("POST", "/api/generate-pose", body);
       return res.json();
@@ -160,21 +161,6 @@ export default function PosePage() {
     setBgPrompt(preset.bg);
     setItemsPrompt(preset.items);
   };
-
-  if (!characterId) {
-    return (
-      <div className="mx-auto max-w-4xl px-4 py-16 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted mx-auto mb-4">
-          <ImageIcon className="h-8 w-8 text-muted-foreground" />
-        </div>
-        <h2 className="text-xl font-semibold mb-2">캐릭터가 선택되지 않았습니다</h2>
-        <p className="text-muted-foreground mb-6">먼저 캐릭터를 만들어야 포즈를 생성할 수 있어요</p>
-        <Button asChild data-testid="button-go-create">
-          <a href="/create">캐릭터 만들기</a>
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
