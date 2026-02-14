@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -671,6 +671,60 @@ export default function BubblePage() {
   });
 
   const isPro = usage?.tier === "pro";
+
+  const layerItems = useMemo(() => {
+    const items: Array<
+      | { type: "char"; id: string; z: number; label: string; thumb?: string }
+      | { type: "bubble"; id: string; z: number; label: string; thumb?: string }
+    > = [
+      ...characterOverlays.map((c) => ({
+        type: "char" as const,
+        id: c.id,
+        z: c.zIndex ?? 0,
+        label: c.label,
+        thumb: c.imageUrl,
+      })),
+      ...bubbles.map((b, i) => ({
+        type: "bubble" as const,
+        id: b.id,
+        z: b.zIndex ?? 10,
+        label: b.text || STYLE_LABELS[b.style] || `말풍선 ${i + 1}`,
+        thumb: b.style === "image" && b.templateSrc ? b.templateSrc : undefined,
+      })),
+    ];
+    return items.sort((a, b) => a.z - b.z);
+  }, [characterOverlays, bubbles]);
+
+  const moveLayer = (index: number, direction: "up" | "down") => {
+    const items = layerItems;
+    if (direction === "up" && index <= 0) return;
+    if (direction === "down" && index >= items.length - 1) return;
+    const aIdx = index;
+    const bIdx = direction === "up" ? index - 1 : index + 1;
+    const a = items[aIdx];
+    const b = items[bIdx];
+    // swap z
+    const newAz = b.z;
+    const newBz = a.z;
+    if (a.type === "char") {
+      setCharacterOverlays((prev) =>
+        prev.map((c) => (c.id === a.id ? { ...c, zIndex: newAz } : c)),
+      );
+    } else {
+      setBubbles((prev) =>
+        prev.map((bb) => (bb.id === a.id ? { ...bb, zIndex: newAz } : bb)),
+      );
+    }
+    if (b.type === "char") {
+      setCharacterOverlays((prev) =>
+        prev.map((c) => (c.id === b.id ? { ...c, zIndex: newBz } : c)),
+      );
+    } else {
+      setBubbles((prev) =>
+        prev.map((bb) => (bb.id === b.id ? { ...bb, zIndex: newBz } : bb)),
+      );
+    }
+  };
 
   const startBubbleTour = useCallback(() => {
     const ensureDriver = () =>
@@ -2120,27 +2174,46 @@ export default function BubblePage() {
               </Card>
             )}
 
-            {characterOverlays.length > 0 && (
+            {(characterOverlays.length > 0 || bubbles.length > 0) && (
               <Card className="p-4">
-                <h3 className="text-xs font-semibold mb-2" data-testid="label-char-overlay-list">캐릭터 목록 ({characterOverlays.length})</h3>
+                <h3 className="text-xs font-semibold mb-2" data-testid="label-layer-list">
+                  레이어 목록 ({layerItems.length})
+                </h3>
                 <div className="space-y-1">
-                  {characterOverlays.map((c, i) => (
+                  {layerItems.map((item, i) => (
                     <div
-                      key={c.id}
+                      key={`${item.type}:${item.id}`}
                       className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${
-                        c.id === selectedCharId ? "bg-primary/10" : "hover-elevate"
+                        item.type === "char"
+                          ? selectedCharId === item.id
+                            ? "bg-primary/10"
+                            : "hover-elevate"
+                          : selectedId === item.id
+                          ? "bg-primary/10"
+                          : "hover-elevate"
                       }`}
                       onClick={() => {
-                        setSelectedCharId(c.id);
-                        setSelectedId(null);
+                        if (item.type === "char") {
+                          setSelectedCharId(item.id);
+                          setSelectedId(null);
+                        } else {
+                          setSelectedId(item.id);
+                          setSelectedCharId(null);
+                        }
                       }}
-                      data-testid={`row-char-overlay-${i}`}
+                      data-testid={`row-layer-${i}`}
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <div className="w-6 h-6 rounded-md overflow-hidden shrink-0 bg-muted">
-                          {c.imgElement && <img src={c.imageUrl} alt="" className="w-full h-full object-cover" />}
+                          {item.thumb ? (
+                            <img src={item.thumb} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[10px]">
+                              {item.type === "bubble" ? "B" : "C"}
+                            </div>
+                          )}
                         </div>
-                        <span className="text-xs truncate" data-testid={`text-char-label-${i}`}>{c.label}</span>
+                        <span className="text-xs truncate">{item.label}</span>
                       </div>
                       <div className="flex items-center gap-0.5 shrink-0">
                         <Button
@@ -2150,9 +2223,9 @@ export default function BubblePage() {
                           disabled={i === 0}
                           onClick={(e) => {
                             e.stopPropagation();
-                            moveCharOverlay(i, "up");
+                            moveLayer(i, "up");
                           }}
-                          data-testid={`button-moveup-char-${i}`}
+                          data-testid={`button-moveup-layer-${i}`}
                         >
                           <ChevronUp className="h-3.5 w-3.5" />
                         </Button>
@@ -2160,71 +2233,31 @@ export default function BubblePage() {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6"
-                          disabled={i === characterOverlays.length - 1}
+                          disabled={i === layerItems.length - 1}
                           onClick={(e) => {
                             e.stopPropagation();
-                            moveCharOverlay(i, "down");
+                            moveLayer(i, "down");
                           }}
-                          data-testid={`button-movedown-char-${i}`}
+                          data-testid={`button-movedown-layer-${i}`}
                         >
                           <ChevronDown className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6"
                           onClick={(e) => {
                             e.stopPropagation();
-                            deleteCharOverlay(c.id);
+                            if (item.type === "char") {
+                              deleteCharOverlay(item.id);
+                            } else {
+                              deleteBubble(item.id);
+                            }
                           }}
-                          data-testid={`button-delete-char-${i}`}
+                          data-testid={`button-delete-layer-${i}`}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            )}
-
-            {bubbles.length > 0 && (
-              <Card className="p-4">
-                <h3 className="text-xs font-semibold mb-2" data-testid="label-bubble-list">말풍선 목록 ({bubbles.length})</h3>
-                <div className="space-y-1">
-                  {bubbles.map((b, i) => (
-                    <div
-                      key={b.id}
-                      className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${
-                        b.id === selectedId ? "bg-primary/10" : "hover-elevate"
-                      }`}
-                      onClick={() => {
-                        setSelectedId(b.id);
-                        setSelectedCharId(null);
-                      }}
-                      data-testid={`row-bubble-${i}`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        {b.style === "image" && b.templateSrc ? (
-                          <div className="w-6 h-6 rounded-md overflow-hidden shrink-0 bg-muted">
-                            <img src={b.templateSrc} alt="" className="w-full h-full object-contain" />
-                          </div>
-                        ) : (
-                          <Badge variant="secondary" className="text-[10px] shrink-0">{i + 1}</Badge>
-                        )}
-                        <span className="text-xs truncate" data-testid={`text-bubble-label-${i}`}>{b.text || STYLE_LABELS[b.style]}</span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteBubble(b.id);
-                        }}
-                        data-testid={`button-delete-bubble-${i}`}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
                     </div>
                   ))}
                 </div>

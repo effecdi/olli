@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useSearch } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -1883,6 +1883,63 @@ function RightSidebar({
 
   const charImages = galleryImages;
 
+  const layerItems = useMemo(() => {
+    const items: Array<
+      | { type: "char"; id: string; z: number; label: string; thumb?: string }
+      | { type: "bubble"; id: string; z: number; label: string; thumb?: string }
+    > = [
+      ...panel.characters.map((c) => ({
+        type: "char" as const,
+        id: c.id,
+        z: c.zIndex ?? 0,
+        label: "캐릭터",
+        thumb: c.imageUrl,
+      })),
+      ...panel.bubbles.map((b, i) => ({
+        type: "bubble" as const,
+        id: b.id,
+        z: b.zIndex ?? 10,
+        label: b.text || STYLE_LABELS[b.style] || `말풍선 ${i + 1}`,
+        thumb: b.style === "image" && (b as any).templateSrc ? (b as any).templateSrc : undefined,
+      })),
+    ];
+    return items.sort((a, b) => a.z - b.z);
+  }, [panel.characters, panel.bubbles]);
+
+  const moveLayer = (index: number, direction: "up" | "down") => {
+    const items = layerItems;
+    if (direction === "up" && index <= 0) return;
+    if (direction === "down" && index >= items.length - 1) return;
+    const aIdx = index;
+    const bIdx = direction === "up" ? index - 1 : index + 1;
+    const a = items[aIdx];
+    const b = items[bIdx];
+    const newAz = b.z;
+    const newBz = a.z;
+    if (a.type === "char") {
+      onUpdate({
+        ...panel,
+        characters: panel.characters.map((c) => (c.id === a.id ? { ...c, zIndex: newAz } : c)),
+      });
+    } else {
+      onUpdate({
+        ...panel,
+        bubbles: panel.bubbles.map((bb) => (bb.id === a.id ? { ...bb, zIndex: newAz } : bb)),
+      });
+    }
+    if (b.type === "char") {
+      onUpdate({
+        ...panel,
+        characters: panel.characters.map((c) => (c.id === b.id ? { ...c, zIndex: newBz } : c)),
+      });
+    } else {
+      onUpdate({
+        ...panel,
+        bubbles: panel.bubbles.map((bb) => (bb.id === b.id ? { ...bb, zIndex: newBz } : bb)),
+      });
+    }
+  };
+
   return (
     <div className="space-y-5" data-testid={`panel-editor-${index}`}>
       <Dialog open={limitOpen} onOpenChange={setLimitOpen}>
@@ -1978,79 +2035,94 @@ function RightSidebar({
         </div>
       )}
 
-      {panel.characters.length > 0 && (
+      {(panel.characters.length > 0 || panel.bubbles.length > 0) && (
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
+            <Layers className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-[13px] font-medium text-muted-foreground">
-              캐릭터 ({panel.characters.length})
+              레이어 목록 ({layerItems.length})
             </span>
           </div>
-          {panel.characters.map((ch, ci) => (
-            <div key={ch.id} className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded overflow-hidden shrink-0 border border-border">
-                <img
-                  src={ch.imageUrl}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
+          {layerItems.map((item, i) => (
+            <div
+              key={`${item.type}:${item.id}`}
+              className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${
+                item.type === "char"
+                  ? selectedCharId === item.id
+                    ? "bg-primary/10"
+                    : "hover-elevate"
+                  : selectedBubbleId === item.id
+                  ? "bg-primary/10"
+                  : "hover-elevate"
+              }`}
+              onClick={() => {
+                if (item.type === "char") {
+                  setSelectedCharId(item.id);
+                  setSelectedBubbleId(null);
+                } else {
+                  setSelectedBubbleId(item.id);
+                  setSelectedCharId(null);
+                }
+              }}
+              data-testid={`row-layer-${i}`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded overflow-hidden shrink-0 border border-border bg-muted">
+                  {item.thumb ? (
+                    <img src={item.thumb} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[10px]">
+                      {item.type === "bubble" ? "B" : "C"}
+                    </div>
+                  )}
+                </div>
+                <span className="text-xs truncate">{item.label}</span>
               </div>
-              <div className="flex-1 flex items-center gap-1.5">
-                <Slider
-                  value={[ch.scale * 100]}
-                  onValueChange={([v]) => {
-                    const newScale = v / 100;
-                    onUpdate({
-                      ...panel,
-                      characters: panel.characters.map((c) =>
-                        c.id === ch.id ? { ...c, scale: newScale } : c,
-                      ),
-                    });
+              <div className="flex items-center gap-0.5 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  disabled={i === 0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    moveLayer(i, "up");
                   }}
-                  min={10}
-                  max={200}
-                  step={5}
-                  data-testid={`slider-char-scale-${ci}`}
-                />
+                  title="앞으로"
+                  data-testid={`button-moveup-layer-${i}`}
+                >
+                  <ChevronUp className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  disabled={i === layerItems.length - 1}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    moveLayer(i, "down");
+                  }}
+                  title="뒤로"
+                  data-testid={`button-movedown-layer-${i}`}
+                >
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (item.type === "char") {
+                      removeCharacter(item.id);
+                    } else {
+                      deleteBubble(item.id);
+                    }
+                  }}
+                  data-testid={`button-delete-layer-${i}`}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
               </div>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() =>
-                  onUpdate({
-                    ...panel,
-                    characters: panel.characters.map((c) =>
-                      c.id === ch.id ? { ...c, zIndex: (c.zIndex ?? 0) + 1 } : c,
-                    ),
-                  })
-                }
-                title="앞으로"
-              >
-                <ChevronUp className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() =>
-                  onUpdate({
-                    ...panel,
-                    characters: panel.characters.map((c) =>
-                      c.id === ch.id ? { ...c, zIndex: (c.zIndex ?? 0) - 1 } : c,
-                    ),
-                  })
-                }
-                title="뒤로"
-              >
-                <ChevronDown className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => removeCharacter(ch.id)}
-                data-testid={`button-remove-char-${ci}`}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
             </div>
           ))}
         </div>
