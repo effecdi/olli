@@ -635,6 +635,15 @@ export default function BubblePage() {
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
   const canvasAreaRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(100);
+  const getMaxZoom = useCallback(() => {
+    const area = canvasAreaRef.current;
+    if (!area) return 200;
+    const areaW = area.clientWidth;
+    const areaH = area.clientHeight;
+    if (areaW <= 0 || areaH <= 0) return 200;
+    const fitScale = Math.min(areaW / canvasSize.width, areaH / canvasSize.height);
+    return Math.floor(fitScale * 100);
+  }, [canvasSize]);
 
   const [characterOverlays, setCharacterOverlays] = useState<CharacterOverlay[]>([]);
   const characterOverlaysRef = useRef<CharacterOverlay[]>([]);
@@ -1460,8 +1469,8 @@ export default function BubblePage() {
   const fitToView = useCallback(() => {
     const area = canvasAreaRef.current;
     if (!area) return;
-    const areaW = area.clientWidth - 48;
-    const areaH = area.clientHeight - 48;
+    const areaW = area.clientWidth;
+    const areaH = area.clientHeight;
     if (areaW <= 0 || areaH <= 0) return;
     const fitScale = Math.min(areaW / canvasSize.width, areaH / canvasSize.height, 2);
     setZoom(Math.round(fitScale * 100));
@@ -1470,6 +1479,10 @@ export default function BubblePage() {
   useEffect(() => {
     fitToView();
   }, [canvasSize]);
+  useEffect(() => {
+    const mz = getMaxZoom();
+    setZoom((z) => Math.min(z, mz));
+  }, [getMaxZoom]);
 
   if (!isAuthenticated) {
     return (
@@ -1606,7 +1619,7 @@ export default function BubblePage() {
               <Button
                 size="icon"
                 variant="ghost"
-                onClick={() => setZoom((z) => Math.max(20, z - 10))}
+                onClick={() => setZoom((z) => Math.max(20, Math.min(getMaxZoom(), z - 10)))}
                 disabled={zoom <= 20}
                 data-testid="button-zoom-out"
               >
@@ -1614,18 +1627,18 @@ export default function BubblePage() {
               </Button>
               <Slider
                 min={20}
-                max={200}
+                max={getMaxZoom()}
                 step={5}
                 value={[zoom]}
-                onValueChange={([v]) => setZoom(v)}
+                onValueChange={([v]) => setZoom(Math.min(getMaxZoom(), v))}
                 className="w-28"
                 data-testid="slider-zoom"
               />
               <Button
                 size="icon"
                 variant="ghost"
-                onClick={() => setZoom((z) => Math.min(200, z + 10))}
-                disabled={zoom >= 200}
+                onClick={() => setZoom((z) => Math.min(getMaxZoom(), z + 10))}
+                disabled={zoom >= getMaxZoom()}
                 data-testid="button-zoom-in"
               >
                 <ZoomIn className="h-3.5 w-3.5" />
