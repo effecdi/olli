@@ -846,7 +846,7 @@ function getScriptRect(
   canvasW: number,
   canvasH: number,
 ) {
-  const fs = script.fontSize || 13;
+  const fs = script.fontSize || 20;
   const padX = Math.max(14, fs * 1.1);
   const padY = Math.max(6, fs * 0.5);
   const fontFamily = getFontFamily(script.fontKey || "default");
@@ -1005,6 +1005,7 @@ function PanelCanvas({
   onSelectChar,
   canvasRef: externalCanvasRef,
   zoom,
+  fontsReady,
 }: {
   panel: PanelData;
   onUpdate: (updated: PanelData) => void;
@@ -1014,6 +1015,7 @@ function PanelCanvas({
   onSelectChar: (id: string | null) => void;
   canvasRef?: (el: HTMLCanvasElement | null) => void;
   zoom?: number;
+  fontsReady?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
@@ -1022,7 +1024,7 @@ function PanelCanvas({
   const dragBubbleStartRef = useRef({ x: 0, y: 0, w: 0, h: 0 });
   const dragCharStartRef = useRef({ x: 0, y: 0, scale: 1 });
   const dragScriptStartRef = useRef({ x: 0, y: 0 });
-  const dragScriptFontStartRef = useRef(13);
+  const dragScriptFontStartRef = useRef(20);
   const selectedBubbleIdRef = useRef(selectedBubbleId);
   const selectedCharIdRef = useRef(selectedCharId);
   const panelRef = useRef(panel);
@@ -1126,7 +1128,7 @@ function PanelCanvas({
 
   useEffect(() => {
     redraw();
-  }, [panel, selectedBubbleId, selectedCharId, redraw]);
+  }, [panel, selectedBubbleId, selectedCharId, redraw, fontsReady]);
 
   const getCanvasPos = useCallback((clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
@@ -1316,7 +1318,7 @@ function PanelCanvas({
               dragModeRef.current =
                 scriptType === "top" ? "resize-script-top" : "resize-script-bottom";
               dragStartRef.current = pos;
-              dragScriptFontStartRef.current = sd.fontSize || 13;
+              dragScriptFontStartRef.current = sd.fontSize || 20;
               onSelectBubble(null);
               onSelectChar(null);
               selectedBubbleIdRef.current = null;
@@ -2405,6 +2407,7 @@ export default function StoryPage() {
 
   const { data: usageData } = useQuery<UsageData>({ queryKey: ["/api/usage"] });
   const maxPanels = usageData?.maxStoryPanels ?? 3;
+  const [fontsReady, setFontsReady] = useState(false);
 
   useEffect(() => {
     if (!fontsInjected) {
@@ -2412,6 +2415,15 @@ export default function StoryPage() {
       style.textContent = FONT_CSS;
       document.head.appendChild(style);
       setFontsInjected(true);
+      if (document.fonts && typeof document.fonts.ready?.then === "function") {
+        document.fonts.ready.then(() => {
+          setFontsReady(true);
+        }).catch(() => {
+          setFontsReady(true);
+        });
+      } else {
+        setFontsReady(true);
+      }
     }
   }, [fontsInjected]);
 
@@ -2936,6 +2948,7 @@ export default function StoryPage() {
                             selectedCharId={null}
                             onSelectChar={() => {}}
                             canvasRef={() => {}}
+            fontsReady={fontsReady}
                           />
                         </div>
                       </div>
@@ -3086,7 +3099,7 @@ export default function StoryPage() {
                           min={8}
                           max={36}
                           step={1}
-                          value={[activePanel.topScript.fontSize || 13]}
+                          value={[activePanel.topScript.fontSize || 20]}
                           onValueChange={([v]) => {
                             const p = activePanel;
                             updatePanel(activePanelIndex, {
@@ -3098,7 +3111,7 @@ export default function StoryPage() {
                           data-testid={`slider-top-script-fontsize-${activePanelIndex}`}
                         />
                         <span className="text-[11px] text-muted-foreground w-6 text-right">
-                          {activePanel.topScript.fontSize || 13}
+                          {activePanel.topScript.fontSize || 20}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -3246,7 +3259,7 @@ export default function StoryPage() {
                           min={8}
                           max={36}
                           step={1}
-                          value={[activePanel.bottomScript.fontSize || 13]}
+                          value={[activePanel.bottomScript.fontSize || 20]}
                           onValueChange={([v]) => {
                             const p = activePanel;
                             updatePanel(activePanelIndex, {
@@ -3258,7 +3271,7 @@ export default function StoryPage() {
                           data-testid={`slider-bottom-script-fontsize-${activePanelIndex}`}
                         />
                         <span className="text-[11px] text-muted-foreground w-6 text-right">
-                          {activePanel.bottomScript.fontSize || 13}
+                          {activePanel.bottomScript.fontSize || 20}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -3464,6 +3477,7 @@ export default function StoryPage() {
                   if (el) panelCanvasRefs.current.set(activePanel.id, el);
                 }}
                 zoom={zoom}
+                fontsReady={fontsReady}
               />
             </div>
           )}
