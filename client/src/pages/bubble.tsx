@@ -1479,7 +1479,7 @@ export default function BubblePage() {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="editor-page h-[calc(100vh-3.5rem)] flex flex-col overflow-hidden">
       <EditorOnboarding editor="bubble" />
       <div className="w-full relative" data-testid="bubble-toolbar">
         <div
@@ -1533,7 +1533,7 @@ export default function BubblePage() {
       </div>
 
       <div className="flex flex-1 min-h-0">
-        <div ref={containerRef} className="flex-1 flex flex-col min-w-0">
+        <div ref={containerRef} className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <div
             ref={canvasAreaRef}
             className="flex-1 min-h-0 overflow-auto flex items-center justify-center bg-muted/30 p-4"
