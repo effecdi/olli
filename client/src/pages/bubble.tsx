@@ -94,6 +94,12 @@ interface SpeechBubble {
   tailDirection: "bottom" | "left" | "right" | "top";
   tailTipX?: number;
   tailTipY?: number;
+  tailBaseSpread?: number;
+  tailLength?: number;
+  tailCurve?: number;
+  tailJitter?: number;
+  dotsScale?: number;
+  dotsSpacing?: number;
   strokeWidth: number;
   wobble: number;
   fontSize: number;
@@ -333,7 +339,8 @@ function drawWavyPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
 function getDefaultTailTip(bubble: SpeechBubble) {
   const cx = bubble.x + bubble.width / 2;
   const cy = bubble.y + bubble.height / 2;
-  const tailLen = bubble.tailStyle === "long" || bubble.tailStyle === "dots_handwritten" || bubble.tailStyle === "dots_linedrawing" ? 50 : 25;
+  const styleLen = bubble.tailStyle === "long" || bubble.tailStyle === "dots_handwritten" || bubble.tailStyle === "dots_linedrawing" ? 50 : 25;
+  const tailLen = bubble.tailLength ?? styleLen;
   switch (bubble.tailDirection) {
     case "bottom": return { x: cx + 10, y: bubble.y + bubble.height + tailLen };
     case "top": return { x: cx + 10, y: bubble.y - tailLen };
@@ -351,7 +358,7 @@ function getTailGeometry(bubble: SpeechBubble) {
 
   const angle = Math.atan2(tipY - cy, tipX - cx);
   const perpAngle = angle + Math.PI / 2;
-  const baseSpread = 8;
+  const baseSpread = bubble.tailBaseSpread ?? 8;
 
   const edgeX = cx + Math.cos(angle) * (bubble.width / 2);
   const edgeY = cy + Math.sin(angle) * (bubble.height / 2);
@@ -424,14 +431,15 @@ function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, isSelec
   if (hasTail) {
     const geo = getTailGeometry(bubble);
     const rand2 = seededRandom(seed + 1000);
+    const jitterScale = bubble.tailJitter ?? 1;
 
     ctx.beginPath();
     if (bubble.style === "handwritten") {
       const rFill = seededRandom(seed + 1000);
-      ctx.moveTo(geo.baseAx + (rFill() - 0.5) * 3, geo.baseAy + (rFill() - 0.5) * 2);
-      const m = 0.5;
-      ctx.quadraticCurveTo(geo.baseAx + (geo.tipX - geo.baseAx) * m + (rFill() - 0.5) * 4, geo.baseAy + (geo.tipY - geo.baseAy) * m, geo.tipX + (rFill() - 0.5) * 3, geo.tipY + (rFill() - 0.5) * 2);
-      ctx.quadraticCurveTo(geo.baseBx + (geo.tipX - geo.baseBx) * m + (rFill() - 0.5) * 4, geo.baseBy + (geo.tipY - geo.baseBy) * m, geo.baseBx + (rFill() - 0.5) * 3, geo.baseBy + (rFill() - 0.5) * 2);
+      ctx.moveTo(geo.baseAx + (rFill() - 0.5) * 3 * jitterScale, geo.baseAy + (rFill() - 0.5) * 2 * jitterScale);
+      const m = bubble.tailCurve ?? 0.5;
+      ctx.quadraticCurveTo(geo.baseAx + (geo.tipX - geo.baseAx) * m + (rFill() - 0.5) * 4 * jitterScale, geo.baseAy + (geo.tipY - geo.baseAy) * m, geo.tipX + (rFill() - 0.5) * 3 * jitterScale, geo.tipY + (rFill() - 0.5) * 2 * jitterScale);
+      ctx.quadraticCurveTo(geo.baseBx + (geo.tipX - geo.baseBx) * m + (rFill() - 0.5) * 4 * jitterScale, geo.baseBy + (geo.tipY - geo.baseBy) * m, geo.baseBx + (rFill() - 0.5) * 3 * jitterScale, geo.baseBy + (rFill() - 0.5) * 2 * jitterScale);
     } else {
       ctx.moveTo(geo.baseAx, geo.baseAy);
       ctx.lineTo(geo.tipX, geo.tipY);
@@ -448,20 +456,20 @@ function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, isSelec
 
     if (bubble.style === "handwritten") {
       const r = rand2;
-      const midFactor = 0.5;
+      const midFactor = bubble.tailCurve ?? 0.5;
 
       ctx.beginPath();
-      ctx.moveTo(geo.baseAx + (r() - 0.5) * 3, geo.baseAy + (r() - 0.5) * 2);
-      const midX1 = geo.baseAx + (geo.tipX - geo.baseAx) * midFactor + (r() - 0.5) * 4;
+      ctx.moveTo(geo.baseAx + (r() - 0.5) * 3 * jitterScale, geo.baseAy + (r() - 0.5) * 2 * jitterScale);
+      const midX1 = geo.baseAx + (geo.tipX - geo.baseAx) * midFactor + (r() - 0.5) * 4 * jitterScale;
       const midY1 = geo.baseAy + (geo.tipY - geo.baseAy) * midFactor;
-      ctx.quadraticCurveTo(midX1, midY1, geo.tipX + (r() - 0.5) * 3, geo.tipY + (r() - 0.5) * 2);
+      ctx.quadraticCurveTo(midX1, midY1, geo.tipX + (r() - 0.5) * 3 * jitterScale, geo.tipY + (r() - 0.5) * 2 * jitterScale);
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.moveTo(geo.tipX + (r() - 0.5) * 3, geo.tipY + (r() - 0.5) * 2);
-      const midX2 = geo.baseBx + (geo.tipX - geo.baseBx) * midFactor + (r() - 0.5) * 4;
+      ctx.moveTo(geo.tipX + (r() - 0.5) * 3 * jitterScale, geo.tipY + (r() - 0.5) * 2 * jitterScale);
+      const midX2 = geo.baseBx + (geo.tipX - geo.baseBx) * midFactor + (r() - 0.5) * 4 * jitterScale;
       const midY2 = geo.baseBy + (geo.tipY - geo.baseBy) * midFactor;
-      ctx.quadraticCurveTo(midX2, midY2, geo.baseBx + (r() - 0.5) * 3, geo.baseBy + (r() - 0.5) * 2);
+      ctx.quadraticCurveTo(midX2, midY2, geo.baseBx + (r() - 0.5) * 3 * jitterScale, geo.baseBy + (r() - 0.5) * 2 * jitterScale);
       ctx.stroke();
     } else {
       ctx.beginPath();
@@ -489,22 +497,25 @@ function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, isSelec
     const dirX = Math.cos(dotAngle);
     const dirY = Math.sin(dotAngle);
 
+    const scale = bubble.dotsScale ?? 1;
+    const spacing = bubble.dotsSpacing ?? 1;
     const dots = [
-      { size: 8, dist: 12 },
-      { size: 6, dist: 26 },
-      { size: 4, dist: 38 },
+      { size: 8 * scale, dist: 12 * spacing },
+      { size: 6 * scale, dist: 26 * spacing },
+      { size: 4 * scale, dist: 38 * spacing },
     ];
 
     dots.forEach(({ size, dist }) => {
-      const dx = startX + dirX * dist + (isHandwritten ? (rand() - 0.5) * 4 : 0);
-      const dy = startY + dirY * dist + (isHandwritten ? (rand() - 0.5) * 4 : 0);
+      const jitterScale = bubble.tailJitter ?? 1;
+      const dx = startX + dirX * dist + (isHandwritten ? (rand() - 0.5) * 4 * jitterScale : 0);
+      const dy = startY + dirY * dist + (isHandwritten ? (rand() - 0.5) * 4 * jitterScale : 0);
       ctx.beginPath();
       if (isHandwritten) {
         const segments = 12;
         for (let i = 0; i <= segments; i++) {
           const angle = (i / segments) * Math.PI * 2;
-          const jx = (rand() - 0.5) * 2;
-          const jy = (rand() - 0.5) * 2;
+          const jx = (rand() - 0.5) * 2 * jitterScale;
+          const jy = (rand() - 0.5) * 2 * jitterScale;
           const px = dx + Math.cos(angle) * size + jx;
           const py = dy + Math.sin(angle) * size + jy;
           if (i === 0) ctx.moveTo(px, py);
@@ -631,7 +642,7 @@ export default function BubblePage() {
   const dragBubbleStartRef = useRef({ x: 0, y: 0, w: 0, h: 0 });
   const selectedIdRef = useRef<string | null>(null);
   const bubblesRef = useRef<SpeechBubble[]>([]);
-  const [canvasSize, setCanvasSize] = useState({ width: 600, height: 800 });
+  const [canvasSize, setCanvasSize] = useState({ width: 522, height: 695 });
   const [fontsInjected, setFontsInjected] = useState(false);
   const [editingBubbleId, setEditingBubbleId] = useState<string | null>(null);
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
@@ -946,6 +957,12 @@ export default function BubblePage() {
         style: "image",
         tailStyle: "none",
         tailDirection: "bottom",
+        tailBaseSpread: 8,
+        tailLength: undefined,
+        tailCurve: 0.5,
+        tailJitter: 1,
+        dotsScale: 1,
+        dotsSpacing: 1,
         strokeWidth: 2,
         wobble: 5,
         fontSize: 16,
@@ -1100,6 +1117,12 @@ export default function BubblePage() {
       style: "linedrawing",
       tailStyle: "short",
       tailDirection: "bottom",
+      tailBaseSpread: 8,
+      tailLength: undefined,
+      tailCurve: 0.5,
+      tailJitter: 1,
+      dotsScale: 1,
+      dotsSpacing: 1,
       strokeWidth: 2,
       wobble: 5,
       fontSize: 14,
@@ -1659,6 +1682,46 @@ export default function BubblePage() {
     setZoom((z) => Math.min(z, mz));
   }, [getMaxZoom]);
 
+  useEffect(() => {
+    const area = canvasAreaRef.current;
+    if (!area) return;
+    const onWheel = (e: WheelEvent) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        setZoom((z) => {
+          const dir = e.deltaY < 0 ? 1.1 : 0.9;
+          const nz = Math.round(Math.max(20, Math.min(getMaxZoom(), z * dir)));
+          return nz;
+        });
+      }
+    };
+    area.addEventListener("wheel", onWheel, { passive: false });
+    return () => area.removeEventListener("wheel", onWheel as any);
+  }, [getMaxZoom]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "+" || e.key === "=")) {
+        e.preventDefault();
+        setZoom((z) => Math.min(getMaxZoom(), z + 10));
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "-") {
+        e.preventDefault();
+        setZoom((z) => Math.max(20, z - 10));
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "0") {
+        e.preventDefault();
+        fitToView();
+      } else if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        const area = canvasAreaRef.current;
+        if (!area) return;
+        const dx = e.key === "ArrowLeft" ? -50 : e.key === "ArrowRight" ? 50 : 0;
+        const dy = e.key === "ArrowUp" ? -50 : e.key === "ArrowDown" ? 50 : 0;
+        area.scrollBy({ left: dx, top: dy, behavior: "smooth" });
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [fitToView, getMaxZoom]);
+
   if (!isAuthenticated) {
     return (
       <div className="mx-auto max-w-md px-6 py-16 text-center">
@@ -1735,7 +1798,7 @@ export default function BubblePage() {
         <div ref={containerRef} className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <div
             ref={canvasAreaRef}
-            className="flex-1 min-h-100 flex items-center justify-center bg-muted/30 p-4"
+            className="flex-1 min-h-0 overflow-auto flex items-center justify-center bg-muted/30 p-4"
             data-testid="canvas-area"
           >
             <div
@@ -1792,7 +1855,7 @@ export default function BubblePage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-center gap-3 px-4 py-2 border-t border-border bg-background" data-testid="bottom-toolbar">
+          <div className="flex items-center justify-center gap-3 px-4 py-2 border-t border-border bg-background shrink-0" data-testid="bottom-toolbar">
             <div className="flex items-center gap-1.5">
               <Button
                 size="icon"
@@ -2051,6 +2114,80 @@ export default function BubblePage() {
                             <SelectItem value="right">오른쪽</SelectItem>
                           </SelectContent>
                         </Select>
+                      </div>
+                    )}
+                    {selectedBubble.tailStyle !== "none" && (
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        <div>
+                          <Label className="text-xs mb-1.5 block">말꼬리 길이</Label>
+                          <Slider
+                            value={[selectedBubble.tailLength ?? (selectedBubble.tailStyle === "long" ? 50 : 25)]}
+                            onValueChange={([v]) => updateBubble(selectedBubble.id, { tailLength: v })}
+                            min={10}
+                            max={120}
+                            step={2}
+                            data-testid="slider-tail-length"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs mb-1.5 block">말꼬리 폭</Label>
+                          <Slider
+                            value={[selectedBubble.tailBaseSpread ?? 8]}
+                            onValueChange={([v]) => updateBubble(selectedBubble.id, { tailBaseSpread: v })}
+                            min={4}
+                            max={20}
+                            step={1}
+                            data-testid="slider-tail-spread"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs mb-1.5 block">곡률</Label>
+                          <Slider
+                            value={[selectedBubble.tailCurve ?? 0.5]}
+                            onValueChange={([v]) => updateBubble(selectedBubble.id, { tailCurve: v })}
+                            min={0.2}
+                            max={0.8}
+                            step={0.02}
+                            data-testid="slider-tail-curve"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs mb-1.5 block">랜덤 흔들림</Label>
+                          <Slider
+                            value={[selectedBubble.tailJitter ?? 1]}
+                            onValueChange={([v]) => updateBubble(selectedBubble.id, { tailJitter: v })}
+                            min={0}
+                            max={2}
+                            step={0.1}
+                            data-testid="slider-tail-jitter"
+                          />
+                        </div>
+                        {selectedBubble.tailStyle.startsWith("dots_") && (
+                          <>
+                            <div>
+                              <Label className="text-xs mb-1.5 block">점 크기 배율</Label>
+                              <Slider
+                                value={[selectedBubble.dotsScale ?? 1]}
+                                onValueChange={([v]) => updateBubble(selectedBubble.id, { dotsScale: v })}
+                                min={0.5}
+                                max={1.5}
+                                step={0.05}
+                                data-testid="slider-dots-scale"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs mb-1.5 block">점 간격 배율</Label>
+                              <Slider
+                                value={[selectedBubble.dotsSpacing ?? 1]}
+                                onValueChange={([v]) => updateBubble(selectedBubble.id, { dotsSpacing: v })}
+                                min={0.5}
+                                max={1.5}
+                                step={0.05}
+                                data-testid="slider-dots-spacing"
+                              />
+                            </div>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>

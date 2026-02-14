@@ -244,6 +244,12 @@ interface SpeechBubble {
   tailDirection: "bottom" | "left" | "right" | "top";
   tailTipX?: number;
   tailTipY?: number;
+  tailBaseSpread?: number;
+  tailLength?: number;
+  tailCurve?: number;
+  tailJitter?: number;
+  dotsScale?: number;
+  dotsSpacing?: number;
   strokeWidth: number;
   wobble: number;
   fontSize: number;
@@ -317,6 +323,12 @@ function createBubble(
     style,
     tailStyle: "short",
     tailDirection: "bottom",
+    tailBaseSpread: 8,
+    tailLength: undefined,
+    tailCurve: 0.5,
+    tailJitter: 1,
+    dotsScale: 1,
+    dotsSpacing: 1,
     strokeWidth: 2,
     wobble: 5,
     fontSize: 15,
@@ -544,12 +556,13 @@ function drawWavyPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
 function getDefaultTailTip(b: SpeechBubble) {
   const cx = b.x + b.width / 2,
     cy = b.y + b.height / 2;
-  const tailLen =
+  const styleLen =
     b.tailStyle === "long" ||
     b.tailStyle === "dots_handwritten" ||
     b.tailStyle === "dots_linedrawing"
       ? 50
       : 25;
+  const tailLen = b.tailLength ?? styleLen;
   switch (b.tailDirection) {
     case "bottom":
       return { x: cx + 10, y: b.y + b.height + tailLen };
@@ -571,7 +584,7 @@ function getTailGeometry(b: SpeechBubble) {
 
   const angle = Math.atan2(tipY - cy, tipX - cx);
   const perpAngle = angle + Math.PI / 2;
-  const baseSpread = 8;
+  const baseSpread = b.tailBaseSpread ?? 8;
 
   const edgeX = cx + Math.cos(angle) * (b.width / 2);
   const edgeY = cy + Math.sin(angle) * (b.height / 2);
@@ -666,26 +679,27 @@ function drawBubble(
   if (hasTail) {
     const geo = getTailGeometry(bubble);
     const r2 = seededRandom(seed + 1000);
+    const jitterScale = bubble.tailJitter ?? 1;
 
     ctx.beginPath();
     if (style === "handwritten") {
       const rFill = seededRandom(seed + 1000);
       ctx.moveTo(
-        geo.baseAx + (rFill() - 0.5) * 3,
-        geo.baseAy + (rFill() - 0.5) * 2,
+        geo.baseAx + (rFill() - 0.5) * 3 * jitterScale,
+        geo.baseAy + (rFill() - 0.5) * 2 * jitterScale,
       );
-      const m = 0.5;
+      const m = bubble.tailCurve ?? 0.5;
       ctx.quadraticCurveTo(
-        geo.baseAx + (geo.tipX - geo.baseAx) * m + (rFill() - 0.5) * 4,
+        geo.baseAx + (geo.tipX - geo.baseAx) * m + (rFill() - 0.5) * 4 * jitterScale,
         geo.baseAy + (geo.tipY - geo.baseAy) * m,
-        geo.tipX + (rFill() - 0.5) * 3,
-        geo.tipY + (rFill() - 0.5) * 2,
+        geo.tipX + (rFill() - 0.5) * 3 * jitterScale,
+        geo.tipY + (rFill() - 0.5) * 2 * jitterScale,
       );
       ctx.quadraticCurveTo(
-        geo.baseBx + (geo.tipX - geo.baseBx) * m + (rFill() - 0.5) * 4,
+        geo.baseBx + (geo.tipX - geo.baseBx) * m + (rFill() - 0.5) * 4 * jitterScale,
         geo.baseBy + (geo.tipY - geo.baseBy) * m,
-        geo.baseBx + (rFill() - 0.5) * 3,
-        geo.baseBy + (rFill() - 0.5) * 2,
+        geo.baseBx + (rFill() - 0.5) * 3 * jitterScale,
+        geo.baseBy + (rFill() - 0.5) * 2 * jitterScale,
       );
     } else {
       ctx.moveTo(geo.baseAx, geo.baseAy);
@@ -701,23 +715,23 @@ function drawBubble(
     ctx.lineCap = "round";
     ctx.strokeStyle = "#222";
     if (style === "handwritten") {
-      const m = 0.5;
+      const m = bubble.tailCurve ?? 0.5;
       ctx.beginPath();
-      ctx.moveTo(geo.baseAx + (r2() - 0.5) * 3, geo.baseAy + (r2() - 0.5) * 2);
+      ctx.moveTo(geo.baseAx + (r2() - 0.5) * 3 * jitterScale, geo.baseAy + (r2() - 0.5) * 2 * jitterScale);
       ctx.quadraticCurveTo(
-        geo.baseAx + (geo.tipX - geo.baseAx) * m + (r2() - 0.5) * 4,
+        geo.baseAx + (geo.tipX - geo.baseAx) * m + (r2() - 0.5) * 4 * jitterScale,
         geo.baseAy + (geo.tipY - geo.baseAy) * m,
-        geo.tipX + (r2() - 0.5) * 3,
-        geo.tipY + (r2() - 0.5) * 2,
+        geo.tipX + (r2() - 0.5) * 3 * jitterScale,
+        geo.tipY + (r2() - 0.5) * 2 * jitterScale,
       );
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(geo.tipX + (r2() - 0.5) * 3, geo.tipY + (r2() - 0.5) * 2);
+      ctx.moveTo(geo.tipX + (r2() - 0.5) * 3 * jitterScale, geo.tipY + (r2() - 0.5) * 2 * jitterScale);
       ctx.quadraticCurveTo(
-        geo.baseBx + (geo.tipX - geo.baseBx) * m + (r2() - 0.5) * 4,
+        geo.baseBx + (geo.tipX - geo.baseBx) * m + (r2() - 0.5) * 4 * jitterScale,
         geo.baseBy + (geo.tipY - geo.baseBy) * m,
-        geo.baseBx + (r2() - 0.5) * 3,
-        geo.baseBy + (r2() - 0.5) * 2,
+        geo.baseBx + (r2() - 0.5) * 3 * jitterScale,
+        geo.baseBy + (r2() - 0.5) * 2 * jitterScale,
       );
       ctx.stroke();
     } else {
@@ -744,20 +758,23 @@ function drawBubble(
     const startY = cy2 + Math.sin(dotAngle) * (h / 2) + Math.sin(dotAngle) * 5;
     const dirX = Math.cos(dotAngle);
     const dirY = Math.sin(dotAngle);
+    const scale = bubble.dotsScale ?? 1;
+    const spacing = bubble.dotsSpacing ?? 1;
     [
-      { size: 8, dist: 12 },
-      { size: 6, dist: 26 },
-      { size: 4, dist: 38 },
+      { size: 8 * scale, dist: 12 * spacing },
+      { size: 6 * scale, dist: 26 * spacing },
+      { size: 4 * scale, dist: 38 * spacing },
     ].forEach(({ size, dist }) => {
-      const dx = startX + dirX * dist + (isHw ? (rand() - 0.5) * 4 : 0);
-      const dy = startY + dirY * dist + (isHw ? (rand() - 0.5) * 4 : 0);
+      const jitterScale = bubble.tailJitter ?? 1;
+      const dx = startX + dirX * dist + (isHw ? (rand() - 0.5) * 4 * jitterScale : 0);
+      const dy = startY + dirY * dist + (isHw ? (rand() - 0.5) * 4 * jitterScale : 0);
       ctx.beginPath();
       if (isHw) {
         const segs = 12;
         for (let i = 0; i <= segs; i++) {
           const a = (i / segs) * Math.PI * 2;
-          const px = dx + Math.cos(a) * size + (rand() - 0.5) * 2;
-          const py = dy + Math.sin(a) * size + (rand() - 0.5) * 2;
+          const px = dx + Math.cos(a) * size + (rand() - 0.5) * 2 * jitterScale;
+          const py = dy + Math.sin(a) * size + (rand() - 0.5) * 2 * jitterScale;
           if (i === 0) ctx.moveTo(px, py);
           else ctx.lineTo(px, py);
         }
@@ -2277,6 +2294,92 @@ function RightSidebar({
                 </Select>
               </div>
             )}
+            {selectedBubble.tailStyle !== "none" && (
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <div>
+                  <Label className="text-[13px] mb-1 block">말꼬리 길이</Label>
+                  <Slider
+                    value={[selectedBubble.tailLength ?? (selectedBubble.tailStyle === "long" ? 50 : 25)]}
+                    onValueChange={([v]) =>
+                      updateBubble(selectedBubble.id, { tailLength: v })
+                    }
+                    min={10}
+                    max={120}
+                    step={2}
+                    data-testid="slider-tail-length"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[13px] mb-1 block">말꼬리 폭</Label>
+                  <Slider
+                    value={[selectedBubble.tailBaseSpread ?? 8]}
+                    onValueChange={([v]) =>
+                      updateBubble(selectedBubble.id, { tailBaseSpread: v })
+                    }
+                    min={4}
+                    max={20}
+                    step={1}
+                    data-testid="slider-tail-spread"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[13px] mb-1 block">곡률</Label>
+                  <Slider
+                    value={[selectedBubble.tailCurve ?? 0.5]}
+                    onValueChange={([v]) =>
+                      updateBubble(selectedBubble.id, { tailCurve: v })
+                    }
+                    min={0.2}
+                    max={0.8}
+                    step={0.02}
+                    data-testid="slider-tail-curve"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[13px] mb-1 block">랜덤 흔들림</Label>
+                  <Slider
+                    value={[selectedBubble.tailJitter ?? 1]}
+                    onValueChange={([v]) =>
+                      updateBubble(selectedBubble.id, { tailJitter: v })
+                    }
+                    min={0}
+                    max={2}
+                    step={0.1}
+                    data-testid="slider-tail-jitter"
+                  />
+                </div>
+                {selectedBubble.tailStyle.startsWith("dots_") && (
+                  <>
+                    <div>
+                      <Label className="text-[13px] mb-1 block">점 크기 배율</Label>
+                      <Slider
+                        value={[selectedBubble.dotsScale ?? 1]}
+                        onValueChange={([v]) =>
+                          updateBubble(selectedBubble.id, { dotsScale: v })
+                        }
+                        min={0.5}
+                        max={1.5}
+                        step={0.05}
+                        data-testid="slider-dots-scale"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[13px] mb-1 block">점 간격 배율</Label>
+                      <Slider
+                        value={[selectedBubble.dotsSpacing ?? 1]}
+                        onValueChange={([v]) =>
+                          updateBubble(selectedBubble.id, { dotsSpacing: v })
+                        }
+                        min={0.5}
+                        max={1.5}
+                        step={0.05}
+                        data-testid="slider-dots-spacing"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           <div>
@@ -2560,6 +2663,46 @@ export default function StoryPage() {
   useEffect(() => {
     fitToView();
   }, []);
+
+  useEffect(() => {
+    const area = canvasAreaRef.current;
+    if (!area) return;
+    const onWheel = (e: WheelEvent) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        setZoom((z) => {
+          const dir = e.deltaY < 0 ? 1.1 : 0.9;
+          const nz = Math.round(Math.max(20, Math.min(200, z * dir)));
+          return nz;
+        });
+      }
+    };
+    area.addEventListener("wheel", onWheel, { passive: false });
+    return () => area.removeEventListener("wheel", onWheel as any);
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "+" || e.key === "=")) {
+        e.preventDefault();
+        setZoom((z) => Math.min(200, z + 10));
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "-") {
+        e.preventDefault();
+        setZoom((z) => Math.max(20, z - 10));
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "0") {
+        e.preventDefault();
+        fitToView();
+      } else if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        const area = canvasAreaRef.current;
+        if (!area) return;
+        const dx = e.key === "ArrowLeft" ? -50 : e.key === "ArrowRight" ? 50 : 0;
+        const dy = e.key === "ArrowUp" ? -50 : e.key === "ArrowDown" ? 50 : 0;
+        area.scrollBy({ left: dx, top: dy, behavior: "smooth" });
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [fitToView]);
 
   const { data: usageData } = useQuery<UsageData>({ queryKey: ["/api/usage"] });
   const maxPanels = usageData?.maxStoryPanels ?? 3;
@@ -3038,7 +3181,7 @@ export default function StoryPage() {
   ];
 
   return (
-    <div className="editor-page h-[calc(100vh-3.5rem)] flex overflow-hidden bg-muted/30 dark:bg-background">
+    <div className="editor-page h-[calc(100vh-3.5rem)] flex overflow-hidden bg-muted/30 dark:bg-background relative">
       <EditorOnboarding editor="story" />
       <div
         className="flex shrink-0 bg-card dark:bg-card"
@@ -3743,7 +3886,7 @@ export default function StoryPage() {
 
         <div
           ref={canvasAreaRef}
-          className="flex-1 min-h-100 flex items-center justify-center p-6 bg-muted/20 dark:bg-muted/10"
+          className="flex-1 min-h-0 overflow-auto flex items-center justify-center p-6 bg-muted/20 dark:bg-muted/10"
           data-testid="story-canvas-area"
         >
           {activePanel && (
@@ -3772,7 +3915,7 @@ export default function StoryPage() {
           )}
         </div>
 
-        <div className="flex items-center justify-center gap-3 px-4 py-2 border-t border-border bg-background" data-testid="story-bottom-toolbar">
+        <div className="flex items-center justify-center gap-3 px-4 py-2 border-t border-border bg-background shrink-0" data-testid="story-bottom-toolbar">
           <div className="flex items-center gap-1.5">
             <Button
               size="icon"
