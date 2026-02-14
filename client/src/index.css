@@ -28,15 +28,15 @@
   --sidebar: 220 14% 96%;
   --sidebar-foreground: 220 15% 13%;
   --sidebar-border: 220 9% 91%;
-  --sidebar-primary: 262 83% 58%;
-  --sidebar-primary-foreground: 262 83% 98%;
+  --sidebar-primary: 173 100% 60%;
+  --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 220 14% 92%;
   --sidebar-accent-foreground: 220 15% 13%;
-  --sidebar-ring: 262 83% 58%;
+  --sidebar-ring: 173 100% 60%;
   --popover: 0 0% 100%;
   --popover-foreground: 220 15% 13%;
   --popover-border: 220 9% 91%;
-  --primary: 173 100% 57%;
+  --primary: 173 100% 60%;
   --primary-foreground: 0 0% 100%;
   --secondary: 220 14% 94%;
   --secondary-foreground: 220 15% 13%;
@@ -47,7 +47,7 @@
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 84% 98%;
   --input: 220 9% 84%;
-  --ring: 262 83% 58%;
+  --ring: 173 100% 60%;
   --chart-1: 262 70% 50%;
   --chart-2: 280 65% 55%;
   --chart-3: 200 70% 45%;
@@ -111,15 +111,15 @@
   --sidebar: 220 15% 11%;
   --sidebar-foreground: 220 14% 96%;
   --sidebar-border: 220 9% 16%;
-  --sidebar-primary: 262 83% 65%;
+  --sidebar-primary: 173 100% 60%;
   --sidebar-primary-foreground: 262 83% 98%;
   --sidebar-accent: 220 12% 16%;
   --sidebar-accent-foreground: 220 14% 96%;
-  --sidebar-ring: 262 83% 65%;
+  --sidebar-ring: 173 100% 60%;
   --popover: 220 15% 12%;
   --popover-foreground: 220 14% 96%;
   --popover-border: 220 9% 18%;
-  --primary: 262 83% 62%;
+  --primary: 173 100% 57%;
   --primary-foreground: 0 0% 100%;
   --secondary: 220 12% 18%;
   --secondary-foreground: 220 14% 96%;
@@ -130,8 +130,8 @@
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 84% 98%;
   --input: 220 9% 24%;
-  --ring: 262 83% 65%;
-  --chart-1: 262 70% 65%;
+  --ring: 173 100% 60%;
+  --chart-1: 173 80% 60%;
   --chart-2: 280 65% 70%;
   --chart-3: 200 70% 65%;
   --chart-4: 330 70% 65%;
@@ -182,6 +182,33 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+}
+
+/* Center modal styling for external notifications widget (F8) */
+[aria-label="Notifications (F8)"] {
+  position: fixed !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 1000 !important;
+  max-width: 640px !important;
+  width: 90vw !important;
+  background: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow-xl) !important;
+  padding: 16px !important;
+}
+[aria-label="Notifications (F8)"]::before,
+[aria-label="Notifications (F8)"]::after {
+  display: none !important;
+}
+[aria-label="Notifications (F8)"] [role="alert"],
+[aria-label="Notifications (F8)"] [aria-live],
+[aria-label="Notifications (F8)"] .error,
+[aria-label="Notifications (F8)"] .indicator {
+  display: none !important;
 }
 
 /**
@@ -304,13 +331,13 @@
 
 .editor-page button:hover,
 .editor-page [role="button"]:hover {
-  background-color: hsl(262 83% 58% / 0.1) !important;
-  color: hsl(262 83% 58%) !important;
+  background-color: hsl(var(--primary) / 0.1) !important;
+  color: hsl(var(--primary)) !important;
 }
 
 .editor-page button.bg-primary:hover,
 .editor-page button[style*="background"]:hover {
-  background-color: hsl(262 83% 52%) !important;
+  background-color: hsl(var(--primary)) !important;
   color: hsl(0 0% 100%) !important;
 }
 

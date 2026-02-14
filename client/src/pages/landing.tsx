@@ -114,7 +114,7 @@ export default function LandingPage() {
           <div
             className="absolute inset-0"
             style={{
-              background: "radial-gradient(ellipse 80% 60% at 50% 40%, hsl(262 83% 58% / 0.06), transparent 70%)",
+              background: "radial-gradient(ellipse 80% 60% at 50% 40%, hsl(var(--primary) / 0.06), transparent 70%)",
             }}
           />
         </div>
@@ -153,8 +153,8 @@ export default function LandingPage() {
           >
             인스타툰,{" "}
             <GradientText
-              className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight"
-              colors={["#7c3aed", "#ec4899", "#3b82f6", "#7c3aed"]}
+              className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mt-4"
+              colors={["#7c3aed", "#060505", "#3b82f6", "#7c3aed"]}
               animationSpeed={5}
             >
               AI가 다 해줄게
@@ -398,7 +398,7 @@ export default function LandingPage() {
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: "radial-gradient(ellipse 60% 40% at 50% 50%, hsl(262 83% 58% / 0.05), transparent 70%)",
+            background: "radial-gradient(ellipse 60% 40% at 50% 50%, hsl(var(--primary) / 0.05), transparent 70%)",
           }}
         />
         <div className="relative mx-auto max-w-3xl px-4 text-center">
