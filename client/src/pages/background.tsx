@@ -40,8 +40,9 @@ export default function BackgroundPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: usageData } = useQuery<{creatorTier: number; totalGenerations: number; tier: string}>({ queryKey: ["/api/usage"] });
+  const { data: usageData } = useQuery<{creatorTier: number; totalGenerations: number; tier: string; credits: number}>({ queryKey: ["/api/usage"] });
   const isPro = usageData?.tier === "pro";
+  const isOutOfCredits = !isPro && (usageData?.credits ?? 0) <= 0;
 
   useEffect(() => {
     if (isFlow && !sourceImage) {
@@ -305,7 +306,7 @@ export default function BackgroundPage() {
             size="lg"
             className="w-full gap-2"
             onClick={() => bgMutation.mutate()}
-            disabled={!sourceImage || !bgPrompt.trim() || bgMutation.isPending}
+                disabled={!bgPrompt.trim() || bgMutation.isPending || isOutOfCredits}
             data-testid="button-generate-bg"
           >
             {bgMutation.isPending ? (
@@ -320,6 +321,14 @@ export default function BackgroundPage() {
               </>
             )}
           </Button>
+              {!isPro && isOutOfCredits && (
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <p className="text-xs text-muted-foreground">오늘의 무료 생성 3회를 모두 사용했습니다.</p>
+                  <Button size="sm" variant="secondary" asChild>
+                    <a href="/pricing">Pro 업그레이드</a>
+                  </Button>
+                </div>
+              )}
         </div>
 
         <div>

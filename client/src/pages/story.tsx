@@ -93,6 +93,8 @@ type DragMode =
   | "resize-char-br"
   | "move-script-top"
   | "move-script-bottom"
+  | "resize-script-top"
+  | "resize-script-bottom"
   | "move-tail";
 
 const SCRIPT_STYLE_OPTIONS: { value: ScriptStyle; label: string }[] = [
@@ -976,6 +978,18 @@ function drawScriptOverlay(
     ctx.fillStyle = colorOpt.text;
   }
   ctx.fillText(script.text, bx + bw / 2, by + bh / 2);
+
+  // resize handle (bottom-right)
+  const handleSize = 8;
+  const hx = bx + bw - 6;
+  const hy = by + bh - 6;
+  ctx.fillStyle = "#ffffff";
+  ctx.strokeStyle = "hsl(210, 80%, 50%)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.rect(hx - handleSize / 2, hy - handleSize / 2, handleSize, handleSize);
+  ctx.fill();
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -1008,6 +1022,7 @@ function PanelCanvas({
   const dragBubbleStartRef = useRef({ x: 0, y: 0, w: 0, h: 0 });
   const dragCharStartRef = useRef({ x: 0, y: 0, scale: 1 });
   const dragScriptStartRef = useRef({ x: 0, y: 0 });
+  const dragScriptFontStartRef = useRef(13);
   const selectedBubbleIdRef = useRef(selectedBubbleId);
   const selectedCharIdRef = useRef(selectedCharId);
   const panelRef = useRef(panel);
@@ -1292,21 +1307,38 @@ function PanelCanvas({
               CANVAS_W,
               CANVAS_H,
             );
-            if (
-              pos.x >= rect.bx &&
-              pos.x <= rect.bx + rect.bw &&
-              pos.y >= rect.by &&
-              pos.y <= rect.by + rect.bh
-            ) {
+            const handleSize = 10;
+            const hx = rect.bx + rect.bw - 6;
+            const hy = rect.by + rect.bh - 6;
+            const nearHandle =
+              Math.abs(pos.x - hx) <= handleSize && Math.abs(pos.y - hy) <= handleSize;
+            if (nearHandle) {
               dragModeRef.current =
-                scriptType === "top" ? "move-script-top" : "move-script-bottom";
+                scriptType === "top" ? "resize-script-top" : "resize-script-bottom";
               dragStartRef.current = pos;
-              dragScriptStartRef.current = { x: rect.bx, y: rect.by };
+              dragScriptFontStartRef.current = sd.fontSize || 13;
               onSelectBubble(null);
               onSelectChar(null);
               selectedBubbleIdRef.current = null;
               selectedCharIdRef.current = null;
               return;
+            } else {
+              if (
+                pos.x >= rect.bx &&
+                pos.x <= rect.bx + rect.bw &&
+                pos.y >= rect.by &&
+                pos.y <= rect.by + rect.bh
+              ) {
+                dragModeRef.current =
+                  scriptType === "top" ? "move-script-top" : "move-script-bottom";
+                dragStartRef.current = pos;
+                dragScriptStartRef.current = { x: rect.bx, y: rect.by };
+                onSelectBubble(null);
+                onSelectChar(null);
+                selectedBubbleIdRef.current = null;
+                selectedCharIdRef.current = null;
+                return;
+              }
             }
           }
         }
@@ -1401,6 +1433,16 @@ function PanelCanvas({
                     CANVAS_W,
                     CANVAS_H,
                   );
+                  const handleSize = 10;
+                  const hx = rect.bx + rect.bw - 6;
+                  const hy = rect.by + rect.bh - 6;
+                  if (
+                    Math.abs(pos.x - hx) <= handleSize &&
+                    Math.abs(pos.y - hy) <= handleSize
+                  ) {
+                    cvs.style.cursor = "nwse-resize";
+                    return;
+                  }
                   if (
                     pos.x >= rect.bx &&
                     pos.x <= rect.bx + rect.bw &&
@@ -1429,6 +1471,18 @@ function PanelCanvas({
           const newY = dragScriptStartRef.current.y + dy;
           const key = mode === "move-script-top" ? "topScript" : "bottomScript";
           onUpdate({ ...p, [key]: { ...sd, x: newX, y: newY } });
+        }
+        return;
+      }
+
+      if (mode === "resize-script-top" || mode === "resize-script-bottom") {
+        const p = panelRef.current;
+        const sd = mode === "resize-script-top" ? p.topScript : p.bottomScript;
+        if (sd) {
+          const base = dragScriptFontStartRef.current;
+          const next = Math.max(8, Math.min(36, Math.round(base + dy / 2)));
+          const key = mode === "resize-script-top" ? "topScript" : "bottomScript";
+          onUpdate({ ...p, [key]: { ...sd, fontSize: next } });
         }
         return;
       }

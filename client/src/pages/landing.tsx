@@ -277,6 +277,8 @@ export default function LandingPage() {
         </div>
       </section>
 
+      
+
       <section ref={featuresRef} className="border-t bg-card/30 py-20 sm:py-28" data-testid="section-core-features">
         <div className="mx-auto max-w-6xl px-4">
           <div className="text-center mb-14">

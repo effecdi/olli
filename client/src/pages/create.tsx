@@ -35,8 +35,9 @@ export default function CreatePage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { data: usage } = useQuery<{ tier: string }>({ queryKey: ["/api/usage"] });
+  const { data: usage } = useQuery<{ tier: string; credits: number }>({ queryKey: ["/api/usage"] });
   const isPro = usage?.tier === "pro";
+  const isOutOfCredits = !isPro && (usage?.credits ?? 0) <= 0;
 
   const aiPromptMutation = useMutation({
     mutationFn: async () => {
@@ -163,7 +164,7 @@ export default function CreatePage() {
             size="lg"
             className="w-full gap-2"
             onClick={() => generateMutation.mutate()}
-            disabled={!prompt.trim() || generateMutation.isPending}
+            disabled={!prompt.trim() || generateMutation.isPending || isOutOfCredits}
             data-testid="button-generate"
           >
             {generateMutation.isPending ? (
@@ -178,6 +179,14 @@ export default function CreatePage() {
               </>
             )}
           </Button>
+          {!isPro && isOutOfCredits && (
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <p className="text-xs text-muted-foreground">오늘의 무료 생성 3회를 모두 사용했습니다.</p>
+              <Button size="sm" variant="secondary" asChild>
+                <a href="/pricing">Pro 업그레이드</a>
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-4">

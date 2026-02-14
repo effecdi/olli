@@ -304,13 +304,13 @@ const TOOL_SECTIONS = [
       { href: "/story", icon: BookOpen, title: "스토리 에디터", desc: "멀티패널 인스타툰 제작", testId: "card-tool-story", gradient: "from-indigo-500 to-blue-600", lightGradient: "from-indigo-50 to-blue-50 dark:from-indigo-500 dark:to-blue-600" },
       { href: "/bubble", icon: Paintbrush, title: "말풍선 편집", desc: "손글씨 폰트 말풍선 추가", testId: "card-tool-bubble", gradient: "from-pink-500 to-rose-600", lightGradient: "from-pink-50 to-rose-50 dark:from-pink-500 dark:to-rose-600" },
       { href: "/effects", icon: Eye, title: "블러 효과", desc: "가우시안 / 모션 / 방사형", testId: "card-tool-effects", gradient: "from-cyan-500 to-sky-600", lightGradient: "from-cyan-50 to-sky-50 dark:from-cyan-500 dark:to-sky-600" },
-      { href: "/chat", icon: MessageCircle, title: "채팅 이미지", desc: "카카오톡 스타일 채팅", testId: "card-tool-chat", pro: true, gradient: "from-amber-500 to-orange-600", lightGradient: "from-amber-50 to-orange-50 dark:from-amber-500 dark:to-orange-600" },
+      { href: "/chat", icon: MessageCircle, title: "채팅 이미지", desc: "카카오톡 스타일 채팅", testId: "card-tool-chat", gradient: "from-amber-500 to-orange-600", lightGradient: "from-amber-50 to-orange-50 dark:from-amber-500 dark:to-orange-600" },
     ],
   },
   {
     label: "비즈니스",
     items: [
-      { href: "/ad-match", icon: Target, title: "광고주 매칭", desc: "AI 맞춤 광고주 추천", testId: "card-tool-admatch", pro: true, gradient: "from-rose-500 to-red-600", lightGradient: "from-rose-50 to-red-50 dark:from-rose-500 dark:to-red-600" },
+      { href: "/ad-match", icon: Target, title: "광고주 매칭", desc: "AI 맞춤 광고주 추천", testId: "card-tool-admatch", gradient: "from-rose-500 to-red-600", lightGradient: "from-rose-50 to-red-50 dark:from-rose-500 dark:to-red-600" },
       { href: "/media-kit", icon: FileText, title: "미디어킷", desc: "PPT 스타일 포트폴리오", testId: "card-tool-mediakit", gradient: "from-orange-500 to-amber-600", lightGradient: "from-orange-50 to-amber-50 dark:from-orange-500 dark:to-amber-600" },
     ],
   },
@@ -607,9 +607,7 @@ export default function HomePage() {
                           <div>
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <h3 className="font-semibold text-sm dark:text-white">{tool.title}</h3>
-                              {"pro" in tool && tool.pro && (
-                                <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-gradient-to-r from-amber-400 to-orange-400 text-white">PRO</span>
-                              )}
+                              {/* PRO 배지 제거 */}
                             </div>
                             <p className="text-xs text-muted-foreground dark:text-white/60 mt-1 leading-relaxed">{tool.desc}</p>
                           </div>

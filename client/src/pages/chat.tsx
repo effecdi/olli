@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Download, Send, Trash2, RotateCcw, Lock, ArrowRight, User } from "lucide-react";
 import html2canvas from "html2canvas";
 import type { Character } from "@shared/schema";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 interface ChatMessage {
   id: number;
@@ -49,6 +50,27 @@ export default function ChatPage() {
   const selectedCharacter = characters?.find((c: Character) => c.id === selectedCharId);
 
   const isPro = credits?.tier === "pro";
+  const [limitOpen, setLimitOpen] = useState(false);
+
+  const getDailyKey = (feature: string) => {
+    const d = new Date();
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    return `daily_${feature}_${y}${m}${day}`;
+  };
+
+  const getDailyCount = (feature: string) => {
+    const key = getDailyKey(feature);
+    const raw = localStorage.getItem(key);
+    return raw ? parseInt(raw) || 0 : 0;
+  };
+
+  const incDailyCount = (feature: string) => {
+    const key = getDailyKey(feature);
+    const current = getDailyCount(feature);
+    localStorage.setItem(key, String(current + 1));
+  };
 
   const addMessage = useCallback((sender: "me" | "other", text: string) => {
     if (!text.trim()) return;
@@ -74,6 +96,12 @@ export default function ChatPage() {
   };
 
   const downloadImage = async () => {
+    const used = getDailyCount("chat");
+    if (used >= 3) {
+      setLimitOpen(true);
+      return;
+    }
+    incDailyCount("chat");
     if (!chatRef.current || messages.length === 0) {
       toast({ title: "메시지 없음", description: "채팅 이미지를 만들려면 먼저 메시지를 추가하세요.", variant: "destructive" });
       return;
@@ -97,29 +125,21 @@ export default function ChatPage() {
     setIsDownloading(false);
   };
 
-  if (!isPro && isAuthenticated) {
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[hsl(262_83%_58%/0.1)] mx-auto mb-6">
-          <Lock className="h-10 w-10 text-[hsl(262_83%_58%)]" />
-        </div>
-        <h2 className="text-2xl font-bold mb-3" data-testid="text-pro-required-chat">Pro 멤버십 전용</h2>
-        <p className="text-muted-foreground mb-6">
-          채팅 이미지 메이커는 Pro 멤버십 전용 기능입니다.
-          업그레이드하면 내 캐릭터로 카카오톡 스타일 채팅 이미지를 만들 수 있어요.
-        </p>
-        <Link href="/pricing">
-          <Button className="gap-2" data-testid="button-upgrade-chat">
-            Pro 업그레이드
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </Link>
-      </div>
-    );
-  }
+  // Pro 가드 제거: 모든 사용자 사용 가능
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
+      <Dialog open={limitOpen} onOpenChange={setLimitOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>사용 제한 안내</DialogTitle>
+            <DialogDescription>3회이상 사용이 제한됐어요.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setLimitOpen(false)}>닫기</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="mb-6">
         <h1 className="font-sans text-3xl font-bold tracking-tight">채팅 이미지 메이커</h1>
         <p className="mt-2 text-muted-foreground">카카오톡 스타일 채팅 이미지를 만들어보세요</p>

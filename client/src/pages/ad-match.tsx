@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sparkles, Target, TrendingUp, Loader2, Lock, ArrowRight, CheckCircle2, Minus, Plus } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 function NumberStepper({
   value,
@@ -125,6 +126,27 @@ export default function AdMatchPage() {
   const [results, setResults] = useState<AdMatchResult | null>(null);
 
   const isPro = credits?.tier === "pro";
+  const [limitOpen, setLimitOpen] = useState(false);
+
+  const getDailyKey = (feature: string) => {
+    const d = new Date();
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    return `daily_${feature}_${y}${m}${day}`;
+  };
+
+  const getDailyCount = (feature: string) => {
+    const key = getDailyKey(feature);
+    const raw = localStorage.getItem(key);
+    return raw ? parseInt(raw) || 0 : 0;
+  };
+
+  const incDailyCount = (feature: string) => {
+    const key = getDailyKey(feature);
+    const current = getDailyCount(feature);
+    localStorage.setItem(key, String(current + 1));
+  };
 
   const mutation = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -145,6 +167,12 @@ export default function AdMatchPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const used = getDailyCount("admatch");
+    if (used >= 3) {
+      setLimitOpen(true);
+      return;
+    }
+    incDailyCount("admatch");
     mutation.mutate(formData);
   };
 
@@ -160,29 +188,21 @@ export default function AdMatchPage() {
     );
   }
 
-  if (!isPro) {
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[hsl(262_83%_58%/0.1)] mx-auto mb-6">
-          <Lock className="h-10 w-10 text-[hsl(262_83%_58%)]" />
-        </div>
-        <h2 className="text-2xl font-bold mb-3" data-testid="text-pro-required">Pro 멤버십 전용</h2>
-        <p className="text-muted-foreground mb-6">
-          광고주 매칭 AI는 Pro 멤버십 전용 기능입니다.
-          업그레이드하면 AI가 내 인스타툰에 딱 맞는 광고주를 추천해줍니다.
-        </p>
-        <Link href="/pricing">
-          <Button className="gap-2" data-testid="button-upgrade-admatch">
-            Pro 업그레이드
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </Link>
-      </div>
-    );
-  }
+  // Pro 가드 제거: 모든 사용자 사용 가능
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
+      <Dialog open={limitOpen} onOpenChange={setLimitOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>사용 제한 안내</DialogTitle>
+            <DialogDescription>3회이상 사용이 제한됐어요.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setLimitOpen(false)}>닫기</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
