@@ -2480,14 +2480,14 @@ export default function StoryPage() {
             topScript: aiPanel.top
               ? {
                   text: aiPanel.top,
-                  style: panel.topScript?.style || "filled",
+                  style: panel.topScript?.style || "no-bg",
                   color: panel.topScript?.color || "yellow",
                 }
               : panel.topScript,
             bottomScript: aiPanel.bottom
               ? {
                   text: aiPanel.bottom,
-                  style: panel.bottomScript?.style || "filled",
+                  style: panel.bottomScript?.style || "no-bg",
                   color: panel.bottomScript?.color || "sky",
                 }
               : panel.bottomScript,
@@ -2994,7 +2994,7 @@ export default function StoryPage() {
                           ...p,
                           topScript: p.topScript
                             ? null
-                            : { text: "", style: "filled", color: "yellow" },
+                            : { text: "", style: "no-bg", color: "yellow" },
                         });
                       }}
                       data-testid={`button-toggle-top-script-${activePanelIndex}`}
@@ -3013,7 +3013,7 @@ export default function StoryPage() {
                           ...p,
                           bottomScript: p.bottomScript
                             ? null
-                            : { text: "", style: "filled", color: "sky" },
+                            : { text: "", style: "no-bg", color: "sky" },
                         });
                       }}
                       data-testid={`button-toggle-bottom-script-${activePanelIndex}`}
