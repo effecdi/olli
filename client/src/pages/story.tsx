@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -1721,14 +1721,34 @@ function RightSidebar({
   const [showCharPicker, setShowCharPicker] = useState(false);
   const [showBubbleTemplatePicker, setShowBubbleTemplatePicker] = useState(false);
   const [templateCatIdx, setTemplateCatIdx] = useState(0);
+  const [limitOpen, setLimitOpen] = useState(false);
   const { toast } = useToast();
 
-  const canBubbleEdit = isPro || creatorTier >= 1;
+  const canBubbleEdit = true;
   const canAllFonts = isPro || creatorTier >= 3;
   const availableFonts = canAllFonts ? KOREAN_FONTS : KOREAN_FONTS.slice(0, 3);
 
   const selectedBubble =
     panel.bubbles.find((b) => b.id === selectedBubbleId) || null;
+
+  const getDailyKey = (feature: string) => {
+    const d = new Date();
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    return `daily_${feature}_${y}${m}${day}`;
+  };
+  const getDailyCount = (feature: string) => {
+    const key = getDailyKey(feature);
+    const raw = localStorage.getItem(key);
+    const n = raw ? parseInt(raw, 10) : 0;
+    return Number.isFinite(n) ? n : 0;
+  };
+  const incDailyCount = (feature: string) => {
+    const key = getDailyKey(feature);
+    const n = getDailyCount(feature) + 1;
+    localStorage.setItem(key, String(n));
+  };
 
   const updateBubble = (id: string, updates: Partial<SpeechBubble>) => {
     onUpdate({
@@ -1741,8 +1761,14 @@ function RightSidebar({
 
   const addBubble = () => {
     if (!canBubbleEdit) return;
+    const used = getDailyCount("story-bubble");
+    if (used >= 3) {
+      setLimitOpen(true);
+      return;
+    }
     if (panel.bubbles.length >= 5) return;
     const newB = createBubble(CANVAS_W, CANVAS_H);
+    incDailyCount("story-bubble");
     onUpdate({ ...panel, bubbles: [...panel.bubbles, newB] });
     setSelectedBubbleId(newB.id);
     setSelectedCharId(null);
@@ -1755,6 +1781,11 @@ function RightSidebar({
 
   const addBubbleTemplate = (templatePath: string) => {
     if (!canBubbleEdit) return;
+    const used = getDailyCount("story-bubble");
+    if (used >= 3) {
+      setLimitOpen(true);
+      return;
+    }
     if (panel.bubbles.length >= 5) return;
     const img = new Image();
     img.crossOrigin = "anonymous";
@@ -1782,6 +1813,7 @@ function RightSidebar({
         templateSrc: templatePath,
         templateImg: img,
       };
+      incDailyCount("story-bubble");
       onUpdate({ ...panel, bubbles: [...panel.bubbles, newB] });
       setSelectedBubbleId(newB.id);
       setSelectedCharId(null);
@@ -1830,6 +1862,17 @@ function RightSidebar({
 
   return (
     <div className="space-y-5" data-testid={`panel-editor-${index}`}>
+      <Dialog open={limitOpen} onOpenChange={setLimitOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>사용 제한 안내</DialogTitle>
+            <DialogDescription>3회이상 사용이 제한됐어요.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setLimitOpen(false)}>닫기</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="flex gap-1 flex-wrap">
         <Button
           size="sm"
