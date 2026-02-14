@@ -2507,19 +2507,11 @@ export default function StoryPage() {
           return {
             ...panel,
             topScript: aiPanel.top
-              ? {
-                  text: aiPanel.top,
-                  style: panel.topScript?.style || "no-bg",
-                  color: panel.topScript?.color || "yellow",
-                }
-              : panel.topScript,
+              ? { text: aiPanel.top, style: "no-bg", color: "yellow" }
+              : null,
             bottomScript: aiPanel.bottom
-              ? {
-                  text: aiPanel.bottom,
-                  style: panel.bottomScript?.style || "no-bg",
-                  color: panel.bottomScript?.color || "sky",
-                }
-              : panel.bottomScript,
+              ? { text: aiPanel.bottom, style: "no-bg", color: "sky" }
+              : null,
             bubbles: newBubbles.length > 0 ? newBubbles : panel.bubbles,
           };
         }),
@@ -3068,6 +3060,19 @@ export default function StoryPage() {
                         >
                           상단
                         </Badge>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6"
+                          title="상단 스크립트 삭제"
+                          onClick={() => {
+                            const p = activePanel;
+                            updatePanel(activePanelIndex, { ...p, topScript: null });
+                          }}
+                          data-testid={`button-delete-top-script-${activePanelIndex}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                         <Input
                           value={activePanel.topScript.text}
                           onChange={(e) => {
@@ -3225,6 +3230,19 @@ export default function StoryPage() {
                         >
                           하단
                         </Badge>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6"
+                          title="하단 스크립트 삭제"
+                          onClick={() => {
+                            const p = activePanel;
+                            updatePanel(activePanelIndex, { ...p, bottomScript: null });
+                          }}
+                          data-testid={`button-delete-bottom-script-${activePanelIndex}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                         <Input
                           value={activePanel.bottomScript.text}
                           onChange={(e) => {
