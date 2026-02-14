@@ -2287,6 +2287,7 @@ export default function StoryPage() {
   const [projectName, setProjectName] = useState("");
   const [currentProjectId, setCurrentProjectId] = useState<number | null>(null);
   const [savingProject, setSavingProject] = useState(false);
+  const [aiLimitOpen, setAiLimitOpen] = useState(false);
 
   const historyRef = useRef<PanelData[][]>([]);
   const futureRef = useRef<PanelData[][]>([]);
@@ -2433,6 +2434,25 @@ export default function StoryPage() {
     queryKey: ["/api/gallery"],
   });
 
+  const getDailyKey = (feature: string) => {
+    const d = new Date();
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    return `daily_${feature}_${y}${m}${day}`;
+  };
+  const getDailyCount = (feature: string) => {
+    const key = getDailyKey(feature);
+    const raw = localStorage.getItem(key);
+    const n = raw ? parseInt(raw, 10) : 0;
+    return Number.isFinite(n) ? n : 0;
+  };
+  const incDailyCount = (feature: string) => {
+    const key = getDailyKey(feature);
+    const n = getDailyCount(feature) + 1;
+    localStorage.setItem(key, String(n));
+  };
+
   const generateMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/story-scripts", {
@@ -2442,6 +2462,7 @@ export default function StoryPage() {
       return res.json() as Promise<{ panels: StoryPanelScript[] }>;
     },
     onSuccess: (data) => {
+      incDailyCount("story-ai");
       setPanels((prev) =>
         prev.map((panel, i) => {
           if (!data.panels[i]) return panel;
@@ -2847,7 +2868,14 @@ export default function StoryPage() {
                   <Button
                     className="w-full"
                     size="sm"
-                    onClick={() => generateMutation.mutate()}
+                  onClick={() => {
+                    const used = getDailyCount("story-ai");
+                    if (used >= 3) {
+                      setAiLimitOpen(true);
+                      return;
+                    }
+                    generateMutation.mutate();
+                  }}
                     disabled={!topic.trim() || generateMutation.isPending}
                     data-testid="button-generate-scripts"
                   >
@@ -3535,6 +3563,21 @@ export default function StoryPage() {
           </Button>
         </div>
       </div>
+
+      <Dialog open={aiLimitOpen} onOpenChange={setAiLimitOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base">AI 생성 제한</DialogTitle>
+            <DialogDescription>오늘 무료 AI 생성 3회를 초과했습니다.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            <Button asChild className="w-full gap-1.5" data-testid="button-upgrade-pro-ai">
+              <a href="/pricing">Pro 업그레이드</a>
+            </Button>
+            <Button variant="outline" className="w-full" onClick={() => setAiLimitOpen(false)} data-testid="button-close-ai-limit">닫기</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showSaveModal} onOpenChange={setShowSaveModal}>
         <DialogContent className="max-w-sm" data-testid="modal-save-story">
