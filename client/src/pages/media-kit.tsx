@@ -45,8 +45,8 @@ const CATEGORIES = [
 ];
 
 const SLIDE_COLORS = {
-  primary: "#34FFE7",
-  secondary: "#22d3ee",
+  primary: "#00B39E",
+  secondary: "#18C4B0",
   accent: "#ec4899",
   bg: "#fafafe",
   text: "#0b1b1a",
@@ -55,8 +55,8 @@ const SLIDE_COLORS = {
   border: "#e2e8f0",
 };
 
-const PIE_COLORS = ["#34FFE7", "#ec4899", "#f59e0b", "#10b981"];
-const BAR_COLORS = ["#34FFE7", "#22d3ee", "#5eead4", "#a5f3fc", "#67e8f9"];
+const PIE_COLORS = ["#00B39E", "#ec4899", "#f59e0b", "#10b981"];
+const BAR_COLORS = ["#00B39E", "#18C4B0", "#40D6C8", "#78E8DE", "#AEEFE8"];
 
 export default function MediaKitPage() {
   const { isAuthenticated } = useAuth();
