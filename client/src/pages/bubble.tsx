@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import FabricEditor from "@/components/fabric-editor";
 import { Upload, Download, Plus, Trash2, MessageCircle, ArrowRight, Type, Move, Maximize2, ImagePlus, X, Loader2, Layers, ChevronUp, ChevronDown, Save, Minimize2, ZoomIn, ZoomOut, FolderOpen, Share2, Crown, Lightbulb } from "lucide-react";
 import { EditorOnboarding } from "@/components/editor-onboarding";
 import { useLocation } from "wouter";
@@ -38,47 +39,51 @@ type TailStyle = "none" | "long" | "short" | "dots_handwritten" | "dots_linedraw
 
 const KOREAN_FONTS = [
   { value: "default", label: "기본 고딕", family: "'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" },
-  { value: "NanumPen", label: "나눔손글씨 펜", family: "'NanumPen', cursive" },
-  { value: "NanumBrush", label: "나눔손글씨 붓", family: "'NanumBrush', cursive" },
-  { value: "KyoboHand", label: "교보손글씨", family: "'KyoboHand', cursive" },
-  { value: "DaraeHand", label: "다래손글씨", family: "'DaraeHand', cursive" },
-  { value: "KotraHand", label: "코트라 손글씨", family: "'KotraHand', cursive" },
-  { value: "Haesom", label: "온글잎 해솜", family: "'Haesom', cursive" },
-  { value: "GowunDodum", label: "고운 도둠", family: "'GowunDodum', sans-serif" },
-  { value: "MitmiFont", label: "온글잎 밋미", family: "'MitmiFont', cursive" },
-  { value: "Hanna", label: "배민 한나", family: "'Hanna', sans-serif" },
-  { value: "KCCGanpan", label: "KCC 간판체", family: "'KCCGanpan', sans-serif" },
-  { value: "KCCEunyoung", label: "KCC 은영체", family: "'KCCEunyoung', cursive" },
-  { value: "KCCKimhun", label: "KCC 김훈체", family: "'KCCKimhun', cursive" },
-  { value: "Dovemayo", label: "도브메이요", family: "'Dovemayo', sans-serif" },
-  { value: "HakgyoansimDoldamM", label: "학교안심 돌담", family: "'HakgyoansimDoldamM', sans-serif" },
-  { value: "LeeSeoyun", label: "이서윤체", family: "'LeeSeoyun', cursive" },
-  { value: "UhBeeSeHyun", label: "어비 세현체", family: "'UhBeeSeHyun', cursive" },
-  { value: "Stylish", label: "나눔 스타일리시", family: "'Stylish', cursive" },
-  { value: "GangwonEdu", label: "강원교육체", family: "'GangwonEdu', sans-serif" },
-  { value: "MaruBuri", label: "마루 부리", family: "'MaruBuri', serif" },
+  { value: "OnglippDaelong", label: "온글잎 대롱", family: "'OnglippDaelong', cursive" },
+  { value: "OngleipParkDahyeon", label: "온글잎 박다현", family: "'OngleipParkDahyeon', cursive" },
+  { value: "OngleipStudyWell", label: "온글잎 공부열심히", family: "'OngleipStudyWell', cursive" },
+  { value: "NostalgicCocochoitoon", label: "코코초이툰", family: "'NostalgicCocochoitoon', cursive" },
+  { value: "GeekbleMalrangiche", label: "긱블 말랑이체", family: "'GeekbleMalrangiche', cursive" },
+  { value: "Gyeombalbal", label: "인성IT 귀여운지수", family: "'Gyeombalbal', cursive" },
+  { value: "IsYun", label: "이서윤체", family: "'IsYun', cursive" },
+  { value: "Cafe24Surround", label: "카페24 서라운드", family: "'Cafe24Surround', sans-serif" },
+  { value: "GMarketSans", label: "지마켓 산스", family: "'GMarketSans', sans-serif" },
+  { value: "Paperozi", label: "페이퍼로지", family: "'Paperozi', sans-serif" },
+  { value: "Pretendard", label: "프리텐다드", family: "'Pretendard', sans-serif" },
+  { value: "MemomentKkukkukk", label: "미모먼트 꾸꾸꾸", family: "'MemomentKkukkukk', sans-serif" },
 ];
 
 const FONT_CSS = `
-@font-face { font-family: 'NanumPen'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_two@1.0/NanumPen.woff') format('woff'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'NanumBrush'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_two@1.0/NanumBrush.woff') format('woff'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'KyoboHand'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-04@1.0/KyoboHand.woff') format('woff'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'DaraeHand'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_three@1.0/drfont_daraehand.woff') format('woff'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'KotraHand'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10-21@1.0/KOTRA_SONGEULSSI.woff') format('woff'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'Haesom'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105@1.1/Hesom.woff') format('woff'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'GowunDodum'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/GowunDodum-Regular.woff') format('woff'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'MitmiFont'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2402_1@1.0/Ownglyph_meetme-Rg.woff2') format('woff2'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'Hanna'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_two@1.0/BMHANNAAir.woff') format('woff'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'KCCGanpan'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/KCCGanpan.woff2') format('woff2'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'KCCEunyoung'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/KCCEunyoung.woff2') format('woff2'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'KCCKimhun'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/KCCKimhun.woff2') format('woff2'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'Dovemayo'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/Dovemayo.woff2') format('woff2'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'HakgyoansimDoldamM'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2307-2@1.0/HakgyoansimDoldamM.woff2') format('woff2'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'LeeSeoyun'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2104@1.0/LeeSeoyun.woff') format('woff'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'UhBeeSeHyun'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_five@1.0/UhBeeSeHyun.woff') format('woff'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'Stylish'; src: url('https://fonts.gstatic.com/s/stylish/v22/m8JTjfNPYbmjEnNbyeLuEYw.woff2') format('woff2'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'GangwonEdu'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2201-2@1.0/GangwonEdu_OTFBoldA.woff') format('woff'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'MaruBuri'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10-21@1.0/MaruBuri-Regular.woff') format('woff'); font-weight: normal; font-display: swap; }
+@font-face { font-family: 'OnglippDaelong'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2507-2@1.0/Ownglyph_daelong-Rg.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
+@font-face { font-family: 'OngleipParkDahyeon'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2411-3@1.0/Ownglyph_ParkDaHyun.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
+@font-face { font-family: 'OngleipStudyWell'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2411-3@1.0/Ownglyph_StudyHard-Rg.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
+@font-face { font-family: 'NostalgicCocochoitoon'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2601-1@1.0/Griun_Cocochoitoon-Rg.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
+@font-face { font-family: 'GeekbleMalrangiche'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302_01@1.0/GeekbleMalang2WOFF2.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Gyeombalbal'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_11-01@1.0/insungitCutelivelyjisu.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
+@font-face { font-family: 'IsYun'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2202-2@1.0/LeeSeoyun.woff') format('woff'); font-weight: normal; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Cafe24Surround'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/Cafe24Ssurround.woff') format('woff'); font-weight: normal; font-style: normal; font-display: swap; }
+@font-face { font-family: 'GMarketSans'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansLight.woff') format('woff'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'GMarketSans'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.woff') format('woff'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'GMarketSans'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansBold.woff') format('woff'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-1Thin.woff2') format('woff2'); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-2ExtraLight.woff2') format('woff2'); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-3Light.woff2') format('woff2'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-4Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-5Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-6SemiBold.woff2') format('woff2'); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-8ExtraBold.woff2') format('woff2'); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-9Black.woff2') format('woff2'); font-weight: 900; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Thin.woff2') format('woff2'); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-ExtraLight.woff2') format('woff2'); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Light.woff2') format('woff2'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-SemiBold.woff2') format('woff2'); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-ExtraBold.woff2') format('woff2'); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Black.woff2') format('woff2'); font-weight: 900; font-style: normal; font-display: swap; }
+@font-face { font-family: 'MemomentKkukkukk'; src: url('/fonts/MemomentKkukkukk.woff') format('woff'); font-weight: normal; font-style: normal; font-display: swap; }
 `;
 
 interface SpeechBubble {
@@ -120,11 +125,12 @@ interface CharacterOverlay {
   originalWidth: number;
   originalHeight: number;
   label: string;
+  rotation?: number;
   zIndex?: number;
 }
 
 type DragMode = null | "move" | "move-tail" | "resize-br" | "resize-bl" | "resize-tr" | "resize-tl" | "resize-r" | "resize-l" | "resize-t" | "resize-b"
-  | "char-move" | "char-resize-br" | "char-resize-bl" | "char-resize-tr" | "char-resize-tl";
+  | "char-move" | "char-resize-br" | "char-resize-bl" | "char-resize-tr" | "char-resize-tl" | "char-rotate";
 
 function generateId() {
   return Math.random().toString(36).slice(2, 10);
@@ -1046,18 +1052,23 @@ export default function BubblePage() {
 
   const drawCharOverlaySelection = useCallback((ctx: CanvasRenderingContext2D, c: CharacterOverlay) => {
     ctx.save();
+    ctx.translate(c.x + c.width / 2, c.y + c.height / 2);
+    ctx.rotate(c.rotation || 0);
+    const bx = -c.width / 2 - 2;
+    const by = -c.height / 2 - 2;
+    const bw = c.width + 4;
+    const bh = c.height + 4;
     ctx.strokeStyle = "hsl(262, 83%, 58%)";
     ctx.lineWidth = 2;
     ctx.setLineDash([6, 3]);
-    ctx.strokeRect(c.x, c.y, c.width, c.height);
+    ctx.strokeRect(bx, by, bw, bh);
     ctx.setLineDash([]);
-
     const hs = 7;
     const corners = [
-      { x: c.x, y: c.y },
-      { x: c.x + c.width, y: c.y },
-      { x: c.x, y: c.y + c.height },
-      { x: c.x + c.width, y: c.y + c.height },
+      { x: bx, y: by },
+      { x: bx + bw, y: by },
+      { x: bx, y: by + bh },
+      { x: bx + bw, y: by + bh },
     ];
     corners.forEach((pt) => {
       ctx.fillStyle = "#ffffff";
@@ -1066,6 +1077,13 @@ export default function BubblePage() {
       ctx.lineWidth = 2;
       ctx.strokeRect(pt.x - hs / 2, pt.y - hs / 2, hs, hs);
     });
+    ctx.beginPath();
+    ctx.arc(0, by - 16, 6, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+    ctx.strokeStyle = "hsl(262, 83%, 58%)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
     ctx.restore();
   }, []);
 
@@ -1104,7 +1122,11 @@ export default function BubblePage() {
       if (d.type === "char") {
         const c = d.c;
         if (c.imgElement) {
-          ctx.drawImage(c.imgElement, c.x, c.y, c.width, c.height);
+          ctx.save();
+          ctx.translate(c.x + c.width / 2, c.y + c.height / 2);
+          ctx.rotate(c.rotation || 0);
+          ctx.drawImage(c.imgElement, -c.width / 2, -c.height / 2, c.width, c.height);
+          ctx.restore();
         }
         if (c.id === selectedCharId) {
           drawCharOverlaySelection(ctx, c);
@@ -1209,6 +1231,9 @@ export default function BubblePage() {
     for (const h of corners) {
       if (Math.abs(x - h.cx) < hs && Math.abs(y - h.cy) < hs) return h.mode;
     }
+    const rx = c.x + c.width / 2;
+    const ry = c.y - 16;
+    if (Math.hypot(x - rx, y - ry) <= 10) return "char-rotate";
     return null;
   }, []);
 
@@ -1381,6 +1406,17 @@ export default function BubblePage() {
     if (mode === "char-move" && charSid) {
       updateCharOverlay(charSid, { x: bs.x + dx, y: bs.y + dy });
       return;
+    } else if (mode === "char-rotate" && charSid) {
+      const c = characterOverlaysRef.current.find((ch) => ch.id === charSid);
+      if (c) {
+        const cx = c.x + c.width / 2;
+        const cy = c.y + c.height / 2;
+        const startAngle = Math.atan2(dragStartRef.current.y - cy, dragStartRef.current.x - cx);
+        const currentAngle = Math.atan2(pos.y - cy, pos.x - cx);
+        const delta = currentAngle - startAngle;
+        updateCharOverlay(charSid, { rotation: (c.rotation || 0) + delta });
+      }
+      return;
     } else if (mode?.startsWith("char-resize") && charSid) {
       const aspect = bs.w / bs.h;
       if (mode === "char-resize-br") {
@@ -1474,7 +1510,19 @@ export default function BubblePage() {
 
     characterOverlays.forEach((c) => {
       if (c.imgElement) {
-        ctx.drawImage(c.imgElement, c.x * exportScale, c.y * exportScale, c.width * exportScale, c.height * exportScale);
+        ctx.save();
+        const cx = (c.x + c.width / 2) * exportScale;
+        const cy = (c.y + c.height / 2) * exportScale;
+        ctx.translate(cx, cy);
+        ctx.rotate(c.rotation || 0);
+        ctx.drawImage(
+          c.imgElement,
+          -(c.width * exportScale) / 2,
+          -(c.height * exportScale) / 2,
+          c.width * exportScale,
+          c.height * exportScale,
+        );
+        ctx.restore();
       }
     });
 
@@ -1516,7 +1564,19 @@ export default function BubblePage() {
     }
     characterOverlays.forEach((c) => {
       if (c.imgElement) {
-        ctx.drawImage(c.imgElement, c.x * scale, c.y * scale, c.width * scale, c.height * scale);
+        ctx.save();
+        const cx = (c.x + c.width / 2) * scale;
+        const cy = (c.y + c.height / 2) * scale;
+        ctx.translate(cx, cy);
+        ctx.rotate(c.rotation || 0);
+        ctx.drawImage(
+          c.imgElement,
+          -(c.width * scale) / 2,
+          -(c.height * scale) / 2,
+          c.width * scale,
+          c.height * scale,
+        );
+        ctx.restore();
       }
     });
     bubbles.forEach((b) => {
@@ -1798,6 +1858,7 @@ export default function BubblePage() {
     );
   }
 
+  const [showDesignEditor, setShowDesignEditor] = useState(false);
   return (
     <div className="editor-page h-[calc(100vh-3.5rem)] flex flex-col overflow-hidden">
       <EditorOnboarding editor="bubble" />
@@ -1842,6 +1903,9 @@ export default function BubblePage() {
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleDownload} title="다운로드" data-testid="button-download-bubble">
               <Download className="h-3.5 w-3.5" />
             </Button>
+            <Button size="sm" variant="outline" className="gap-1 h-7 text-xs px-2" onClick={() => setShowDesignEditor(true)}>
+              디자인 에디터
+            </Button>
             <Button size="sm" onClick={() => setShowSaveModal(true)} className="gap-1 h-7 text-xs px-2.5 bg-[hsl(173_100%_35%)] text-white border-[hsl(173_100%_35%)]" data-testid="button-save-project">
               <Save className="h-3 w-3" />
               저장
@@ -1854,6 +1918,11 @@ export default function BubblePage() {
         </div>
         <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-[hsl(173_100%_35%)] to-transparent opacity-60" />
       </div>
+      <Dialog open={showDesignEditor} onOpenChange={setShowDesignEditor}>
+        <DialogContent className="max-w-[1200px] w-[1200px] p-0">
+          <FabricEditor />
+        </DialogContent>
+      </Dialog>
 
       <div className="flex flex-1 min-h-0">
         <div ref={containerRef} className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -2594,12 +2663,6 @@ export default function BubblePage() {
                   {savingProject ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                   {currentProjectId ? "업데이트" : "저장하기"}
                 </Button>
-                <Button
-                  variant="outline"
-                  className="gap-1.5 w-full"
-                  data-testid="button-share-instagram"
-                  style={{ display: "none" }}
-                </Button>
               </div>
               {currentProjectId && (
                 <p className="text-[11px] text-muted-foreground text-center">
@@ -2622,12 +2685,6 @@ export default function BubblePage() {
                     <Crown className="h-3.5 w-3.5" />
                     Pro 업그레이드
                   </a>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="gap-1.5 w-full"
-                  data-testid="button-share-instagram-free"
-                  style={{ display: "none" }}
                 </Button>
               </div>
             </div>

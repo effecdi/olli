@@ -244,7 +244,7 @@ export async function registerRoutes(
   app.get("/api/characters/:id", isAuthenticated, async (req: AuthRequest, res) => {
     try {
       const userId = req.userId!;
-      const id = parseInt(req.params.id);
+      const id = parseInt(String(req.params.id));
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid character ID" });
       }
@@ -504,7 +504,7 @@ export async function registerRoutes(
   app.get("/api/bubble-projects/:id", isAuthenticated, async (req: AuthRequest, res) => {
     try {
       const userId = req.userId!;
-      const id = parseInt(req.params.id);
+      const id = parseInt(String(req.params.id));
       if (isNaN(id)) return res.status(400).json({ message: "잘못된 프로젝트 ID입니다." });
       const project = await storage.getBubbleProject(id, userId);
       if (!project) return res.status(404).json({ message: "프로젝트를 찾을 수 없습니다." });
@@ -518,7 +518,7 @@ export async function registerRoutes(
   app.patch("/api/bubble-projects/:id", isAuthenticated, async (req: AuthRequest, res) => {
     try {
       const userId = req.userId!;
-      const id = parseInt(req.params.id);
+      const id = parseInt(String(req.params.id));
       if (isNaN(id)) return res.status(400).json({ message: "잘못된 프로젝트 ID입니다." });
       const parsed = updateBubbleProjectSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -536,7 +536,7 @@ export async function registerRoutes(
   app.delete("/api/bubble-projects/:id", isAuthenticated, async (req: AuthRequest, res) => {
     try {
       const userId = req.userId!;
-      const id = parseInt(req.params.id);
+      const id = parseInt(String(req.params.id));
       if (isNaN(id)) return res.status(400).json({ message: "잘못된 프로젝트 ID입니다." });
       const deleted = await storage.deleteBubbleProject(id, userId);
       if (!deleted) return res.status(404).json({ message: "프로젝트를 찾을 수 없습니다." });

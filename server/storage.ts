@@ -219,11 +219,11 @@ export class DatabaseStorage implements IStorage {
 
   async getAllTrending(): Promise<{ latest: TrendingAccount[]; mostViewed: TrendingAccount[]; realtime: TrendingAccount[] }> {
     const db = this.getDb();
-    const all = await db.select().from(trendingAccounts).orderBy(asc(trendingAccounts.rank));
+    const all: TrendingAccount[] = await db.select().from(trendingAccounts).orderBy(asc(trendingAccounts.rank));
     return {
-      latest: all.filter(a => a.rankType === "latest"),
-      mostViewed: all.filter(a => a.rankType === "most_viewed"),
-      realtime: all.filter(a => a.rankType === "realtime"),
+      latest: all.filter((a: TrendingAccount) => a.rankType === "latest"),
+      mostViewed: all.filter((a: TrendingAccount) => a.rankType === "most_viewed"),
+      realtime: all.filter((a: TrendingAccount) => a.rankType === "realtime"),
     };
   }
 

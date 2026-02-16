@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import FabricEditor from "@/components/fabric-editor";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError, redirectToLogin } from "@/lib/auth-utils";
@@ -59,6 +60,8 @@ import { FlowStepper } from "@/components/flow-stepper";
 import { EditorOnboarding } from "@/components/editor-onboarding";
 import { getFlowState, clearFlowState } from "@/lib/flow";
 import type { StoryPanelScript, Generation } from "@shared/schema";
+import ReactFlow, { Background, Controls, type Node, type NodeChange, applyNodeChanges } from "reactflow";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 function bubblePath(n: number) {
   return `/assets/bubbles/bubble_${String(n).padStart(3, "0")}.png`;
@@ -94,6 +97,7 @@ type DragMode =
   | "resize-char-tr"
   | "resize-char-bl"
   | "resize-char-br"
+  | "rotate-char"
   | "move-script-top"
   | "move-script-bottom"
   | "resize-script-top"
@@ -167,6 +171,23 @@ const SCRIPT_COLOR_OPTIONS = [
   },
 ];
 
+const FLOW_NODE_STYLE_CHAR = {
+  width: 80,
+  height: 40,
+  border: "1px solid hsl(150, 80%, 40%)",
+  borderRadius: 8,
+  background: "white",
+  fontSize: 12,
+};
+const FLOW_NODE_STYLE_BUBBLE = {
+  width: 100,
+  height: 40,
+  border: "1px solid hsl(200, 70%, 40%)",
+  borderRadius: 8,
+  background: "white",
+  fontSize: 12,
+};
+
 const SCRIPT_TEXT_COLORS = [
   { value: "", label: "자동", hex: "" },
   { value: "#1a1a1a", label: "검정", hex: "#1a1a1a" },
@@ -180,47 +201,51 @@ const SCRIPT_TEXT_COLORS = [
 
 const KOREAN_FONTS = [
   { value: "default", label: "기본 고딕", family: "'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" },
-  { value: "NanumPen", label: "나눔손글씨 펜", family: "'NanumPen', cursive" },
-  { value: "NanumBrush", label: "나눔손글씨 붓", family: "'NanumBrush', cursive" },
-  { value: "KyoboHand", label: "교보손글씨", family: "'KyoboHand', cursive" },
-  { value: "DaraeHand", label: "다래손글씨", family: "'DaraeHand', cursive" },
-  { value: "KotraHand", label: "코트라 손글씨", family: "'KotraHand', cursive" },
-  { value: "Haesom", label: "온글잎 해솜", family: "'Haesom', cursive" },
-  { value: "GowunDodum", label: "고운 도둠", family: "'GowunDodum', sans-serif" },
-  { value: "MitmiFont", label: "온글잎 밋미", family: "'MitmiFont', cursive" },
-  { value: "Hanna", label: "배민 한나", family: "'Hanna', sans-serif" },
-  { value: "KCCGanpan", label: "KCC 간판체", family: "'KCCGanpan', sans-serif" },
-  { value: "KCCEunyoung", label: "KCC 은영체", family: "'KCCEunyoung', cursive" },
-  { value: "KCCKimhun", label: "KCC 김훈체", family: "'KCCKimhun', cursive" },
-  { value: "Dovemayo", label: "도브메이요", family: "'Dovemayo', sans-serif" },
-  { value: "HakgyoansimDoldamM", label: "학교안심 돌담", family: "'HakgyoansimDoldamM', sans-serif" },
-  { value: "LeeSeoyun", label: "이서윤체", family: "'LeeSeoyun', cursive" },
-  { value: "UhBeeSeHyun", label: "어비 세현체", family: "'UhBeeSeHyun', cursive" },
-  { value: "Stylish", label: "나눔 스타일리시", family: "'Stylish', cursive" },
-  { value: "GangwonEdu", label: "강원교육체", family: "'GangwonEdu', sans-serif" },
-  { value: "MaruBuri", label: "마루 부리", family: "'MaruBuri', serif" },
+  { value: "OnglippDaelong", label: "온글잎 대롱", family: "'OnglippDaelong', cursive" },
+  { value: "OngleipParkDahyeon", label: "온글잎 박다현", family: "'OngleipParkDahyeon', cursive" },
+  { value: "OngleipStudyWell", label: "온글잎 공부열심히", family: "'OngleipStudyWell', cursive" },
+  { value: "NostalgicCocochoitoon", label: "코코초이툰", family: "'NostalgicCocochoitoon', cursive" },
+  { value: "GeekbleMalrangiche", label: "긱블 말랑이체", family: "'GeekbleMalrangiche', cursive" },
+  { value: "Gyeombalbal", label: "인성IT 귀여운지수", family: "'Gyeombalbal', cursive" },
+  { value: "IsYun", label: "이서윤체", family: "'IsYun', cursive" },
+  { value: "Cafe24Surround", label: "카페24 서라운드", family: "'Cafe24Surround', sans-serif" },
+  { value: "GMarketSans", label: "지마켓 산스", family: "'GMarketSans', sans-serif" },
+  { value: "Paperozi", label: "페이퍼로지", family: "'Paperozi', sans-serif" },
+  { value: "Pretendard", label: "프리텐다드", family: "'Pretendard', sans-serif" },
+  { value: "MemomentKkukkukk", label: "미모먼트 꾸꾸꾸", family: "'MemomentKkukkukk', sans-serif" },
 ];
 
 const FONT_CSS = `
-@font-face { font-family: 'NanumPen'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_two@1.0/NanumPen.woff') format('woff'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'NanumBrush'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_two@1.0/NanumBrush.woff') format('woff'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'KyoboHand'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-04@1.0/KyoboHand.woff') format('woff'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'DaraeHand'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_three@1.0/drfont_daraehand.woff') format('woff'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'KotraHand'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10-21@1.0/KOTRA_SONGEULSSI.woff') format('woff'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'Haesom'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105@1.1/Hesom.woff') format('woff'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'GowunDodum'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/GowunDodum-Regular.woff') format('woff'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'MitmiFont'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2402_1@1.0/Ownglyph_meetme-Rg.woff2') format('woff2'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'Hanna'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_two@1.0/BMHANNAAir.woff') format('woff'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'KCCGanpan'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/KCCGanpan.woff2') format('woff2'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'KCCEunyoung'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/KCCEunyoung.woff2') format('woff2'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'KCCKimhun'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/KCCKimhun.woff2') format('woff2'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'Dovemayo'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/Dovemayo.woff2') format('woff2'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'HakgyoansimDoldamM'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2307-2@1.0/HakgyoansimDoldamM.woff2') format('woff2'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'LeeSeoyun'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2104@1.0/LeeSeoyun.woff') format('woff'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'UhBeeSeHyun'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_five@1.0/UhBeeSeHyun.woff') format('woff'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'Stylish'; src: url('https://fonts.gstatic.com/s/stylish/v22/m8JTjfNPYbmjEnNbyeLuEYw.woff2') format('woff2'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'GangwonEdu'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2201-2@1.0/GangwonEdu_OTFBoldA.woff') format('woff'); font-weight: normal; font-display: swap; }
-@font-face { font-family: 'MaruBuri'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10-21@1.0/MaruBuri-Regular.woff') format('woff'); font-weight: normal; font-display: swap; }
+@font-face { font-family: 'OnglippDaelong'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2507-2@1.0/Ownglyph_daelong-Rg.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
+@font-face { font-family: 'OngleipParkDahyeon'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2411-3@1.0/Ownglyph_ParkDaHyun.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
+@font-face { font-family: 'OngleipStudyWell'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2411-3@1.0/Ownglyph_StudyHard-Rg.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
+@font-face { font-family: 'NostalgicCocochoitoon'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2601-1@1.0/Griun_Cocochoitoon-Rg.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
+@font-face { font-family: 'GeekbleMalrangiche'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302_01@1.0/GeekbleMalang2WOFF2.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Gyeombalbal'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_11-01@1.0/insungitCutelivelyjisu.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
+@font-face { font-family: 'IsYun'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2202-2@1.0/LeeSeoyun.woff') format('woff'); font-weight: normal; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Cafe24Surround'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/Cafe24Ssurround.woff') format('woff'); font-weight: normal; font-style: normal; font-display: swap; }
+@font-face { font-family: 'GMarketSans'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansLight.woff') format('woff'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'GMarketSans'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.woff') format('woff'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'GMarketSans'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansBold.woff') format('woff'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-1Thin.woff2') format('woff2'); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-2ExtraLight.woff2') format('woff2'); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-3Light.woff2') format('woff2'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-4Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-5Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-6SemiBold.woff2') format('woff2'); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-8ExtraBold.woff2') format('woff2'); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-9Black.woff2') format('woff2'); font-weight: 900; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Thin.woff2') format('woff2'); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-ExtraLight.woff2') format('woff2'); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Light.woff2') format('woff2'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-SemiBold.woff2') format('woff2'); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-ExtraBold.woff2') format('woff2'); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Black.woff2') format('woff2'); font-weight: 900; font-style: normal; font-display: swap; }
+@font-face { font-family: 'MemomentKkukkukk'; src: url('/fonts/MemomentKkukkukk.woff') format('woff'); font-weight: normal; font-style: normal; font-display: swap; }
 `;
 
 interface SpeechBubble {
@@ -257,6 +282,7 @@ interface CharacterPlacement {
   x: number;
   y: number;
   scale: number;
+  rotation?: number;
   imageEl: HTMLImageElement | null;
   zIndex?: number;
 }
@@ -1107,10 +1133,13 @@ function PanelCanvas({
         if (ch.imageEl) {
           const w = ch.imageEl.naturalWidth * ch.scale;
           const h = ch.imageEl.naturalHeight * ch.scale;
-          ctx.drawImage(ch.imageEl, ch.x - w / 2, ch.y - h / 2, w, h);
+          ctx.save();
+          ctx.translate(ch.x, ch.y);
+          ctx.rotate(ch.rotation || 0);
+          ctx.drawImage(ch.imageEl, -w / 2, -h / 2, w, h);
           if (ch.id === selectedCharIdRef.current) {
-            const bx = ch.x - w / 2 - 3;
-            const by = ch.y - h / 2 - 3;
+            const bx = -w / 2 - 3;
+            const by = -h / 2 - 3;
             const bw = w + 6;
             const bh = h + 6;
             ctx.strokeStyle = "hsl(150, 80%, 40%)";
@@ -1132,7 +1161,15 @@ function PanelCanvas({
               ctx.fillRect(hx - handleSize / 2, hy - handleSize / 2, handleSize, handleSize);
               ctx.strokeRect(hx - handleSize / 2, hy - handleSize / 2, handleSize, handleSize);
             });
+            ctx.beginPath();
+            ctx.arc(0, by - 18, 6, 0, Math.PI * 2);
+            ctx.fillStyle = "#ffffff";
+            ctx.fill();
+            ctx.strokeStyle = "hsl(150, 80%, 40%)";
+            ctx.lineWidth = 2;
+            ctx.stroke();
           }
+          ctx.restore();
         }
       } else {
         const b = d.b;
@@ -1269,6 +1306,20 @@ function PanelCanvas({
               };
               return;
             }
+          }
+          const rx = selCh.x;
+          const ry = cy - 18;
+          if (Math.hypot(pos.x - rx, pos.y - ry) <= 10) {
+            dragModeRef.current = "rotate-char";
+            dragStartRef.current = pos;
+            dragCharStartRef.current = {
+              x: selCh.x,
+              y: selCh.y,
+              scale: selCh.scale,
+              rotation: selCh.rotation || 0,
+              angleStart: Math.atan2(pos.y - selCh.y, pos.x - selCh.x),
+            } as any;
+            return;
           }
         }
       }
@@ -1529,6 +1580,22 @@ function PanelCanvas({
         return;
       }
 
+      if (mode === "rotate-char") {
+        const cid = selectedCharIdRef.current;
+        if (cid) {
+          const p = panelRef.current;
+          const ch = p.characters.find((c) => c.id === cid);
+          if (ch) {
+            const currentAngle = Math.atan2(pos.y - ch.y, pos.x - ch.x);
+            const startAngle = (dragCharStartRef.current as any).angleStart ?? 0;
+            const baseRotation = (dragCharStartRef.current as any).rotation ?? (ch.rotation || 0);
+            const nextRotation = baseRotation + (currentAngle - startAngle);
+            updateCharInPanel(cid, { rotation: nextRotation });
+          }
+        }
+        return;
+      }
+
       if (mode?.startsWith("resize-char")) {
         const cid = selectedCharIdRef.current;
         if (cid) {
@@ -1644,6 +1711,8 @@ function PanelCanvas({
 
   const hasZoom = zoom !== undefined;
   const zoomScale = (zoom ?? 100) / 100;
+
+ 
 
   return (
     <div
@@ -2553,6 +2622,7 @@ export default function StoryPage() {
   const [activePanelIndex, setActivePanelIndex] = useState(0);
   const [fontsInjected, setFontsInjected] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showDesignEditor, setShowDesignEditor] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [currentProjectId, setCurrentProjectId] = useState<number | null>(null);
   const [savingProject, setSavingProject] = useState(false);
@@ -2667,6 +2737,7 @@ export default function StoryPage() {
   }, [undo, redo]);
 
   const [zoom, setZoom] = useState(100);
+  const flowZoomScale = zoom / 100;
   const canvasAreaRef = useRef<HTMLDivElement>(null);
   const [panMode, setPanMode] = useState(false);
   const panDraggingRef = useRef(false);
@@ -3009,6 +3080,52 @@ export default function StoryPage() {
   const [selectedBubbleId, setSelectedBubbleId] = useState<string | null>(null);
   const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
   const panelCanvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map());
+  const [flowMode, setFlowMode] = useState(false);
+  const [flowNodes, setFlowNodes] = useState<Node[]>([]);
+  useEffect(() => {
+    if (!flowMode || !activePanel) return;
+    const nodes: Node[] = [
+      ...activePanel.characters.map((ch) => ({
+        id: `char:${ch.id}`,
+        position: { x: ch.x, y: ch.y },
+        data: { label: "캐릭터" },
+        style: { width: 100, height: 40, border: "1px solid hsl(150,80%,40%)", borderRadius: 8, background: "white", fontSize: 12 },
+        draggable: true,
+      })),
+      ...activePanel.bubbles.map((b, i) => ({
+        id: `bubble:${b.id}`,
+        position: { x: b.x, y: b.y },
+        data: { label: b.text ? b.text.slice(0, 12) : `말풍선 ${i + 1}` },
+        style: { width: 120, height: 40, border: "1px solid hsl(200,70%,40%)", borderRadius: 8, background: "white", fontSize: 12 },
+        draggable: true,
+      })),
+    ];
+    setFlowNodes(nodes);
+  }, [flowMode, activePanel]);
+  const onFlowNodesChange = useCallback((changes: NodeChange[]) => {
+    setFlowNodes((nds) => applyNodeChanges(changes, nds));
+    if (!activePanel) return;
+    changes.forEach((ch) => {
+      if (ch.type === "position" && ch.id && ch.position) {
+        const [kind, entityId] = ch.id.split(":");
+        if (kind === "bubble") {
+          const p = activePanel;
+          const updated = {
+            ...p,
+            bubbles: p.bubbles.map((b) => (b.id === entityId ? { ...b, x: ch.position!.x, y: ch.position!.y } : b)),
+          };
+          updatePanel(activePanelIndex, updated);
+        } else if (kind === "char") {
+          const p = activePanel;
+          const updated = {
+            ...p,
+            characters: p.characters.map((c) => (c.id === entityId ? { ...c, x: ch.position!.x, y: ch.position!.y } : c)),
+          };
+          updatePanel(activePanelIndex, updated);
+        }
+      }
+    });
+  }, [activePanel, activePanelIndex]);
 
   type LeftTab = "ai" | "panels" | "edit" | "script" | null;
   const [activeLeftTab, setActiveLeftTab] = useState<LeftTab>("panels");
@@ -3263,6 +3380,8 @@ export default function StoryPage() {
   return (
     <div className="editor-page h-[calc(100vh-3.5rem)] flex overflow-hidden bg-muted/30 dark:bg-background relative">
       <EditorOnboarding editor="story" />
+      <ResizablePanelGroup direction="horizontal" className="flex w-full h-full">
+        <ResizablePanel defaultSize={18} minSize={14} maxSize={26}>
       <div
         className="flex shrink-0 bg-card dark:bg-card"
         data-testid="left-icon-sidebar"
@@ -3850,41 +3969,17 @@ export default function StoryPage() {
               )}
 
               {activeLeftTab === "edit" && activePanel && (
-                <>
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-sm font-semibold">편집</h3>
-                    <button
-                      onClick={() => setActiveLeftTab(null)}
-                      className="text-muted-foreground hover-elevate rounded-md p-1"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                  <RightSidebar
-                    key={activePanel.id}
-                    panel={activePanel}
-                    index={activePanelIndex}
-                    total={panels.length}
-                    onUpdate={(updated) =>
-                      updatePanel(activePanelIndex, updated)
-                    }
-                    onRemove={() => removePanel(activePanelIndex)}
-                    galleryImages={galleryData || []}
-                    galleryLoading={galleryLoading}
-                    selectedBubbleId={selectedBubbleId}
-                    setSelectedBubbleId={setSelectedBubbleId}
-                    selectedCharId={selectedCharId}
-                    setSelectedCharId={setSelectedCharId}
-                    creatorTier={usageData?.creatorTier ?? 0}
-                    isPro={usageData?.tier === "pro"}
-                  />
-                </>
+                <div className="p-3 text-xs text-muted-foreground">
+                  우측 패널에서 편집하세요
+                </div>
               )}
             </div>
           </div>
         )}
       </div>
-
+        </ResizablePanel>
+        <ResizableHandle withHandle />
+        <ResizablePanel defaultSize={52} minSize={40} className="flex flex-col min-w-0 overflow-hidden">
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <div
           className="w-full relative"
@@ -3930,6 +4025,10 @@ export default function StoryPage() {
                 <Plus className="h-3 w-3" />
                 추가
               </Button>
+              <Button size="sm" variant="outline" onClick={() => setFlowMode((v) => !v)} className="gap-1 h-7 text-xs px-2" data-testid="button-toggle-flow-mode">
+                {flowMode ? <LayoutGrid className="h-3 w-3" /> : <LayoutGrid className="h-3 w-3" />}
+                Flow 모드
+              </Button>
               <div className="flex items-center gap-0.5">
                 <Button size="icon" variant="ghost" className="h-7 w-7" onClick={undo} disabled={historyRef.current.length === 0} title="실행 취소 (Ctrl+Z)" data-testid="button-undo">
                   <Undo2 className="h-3.5 w-3.5" />
@@ -3948,6 +4047,9 @@ export default function StoryPage() {
               </Button>
               <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => downloadPanel(activePanelIndex)} title="다운로드" data-testid="button-download-panel">
                 <Download className="h-3.5 w-3.5" />
+              </Button>
+              <Button size="sm" variant="outline" className="gap-1 h-7 text-xs px-2" onClick={() => setShowDesignEditor(true)}>
+                디자인 에디터
               </Button>
               <Button size="sm" onClick={() => setShowSaveModal(true)} className="gap-1 h-7 text-xs px-2.5 bg-[hsl(173_100%_35%)] text-white border-[hsl(173_100%_35%)]" data-testid="button-save-story-project">
                 <Save className="h-3 w-3" />
@@ -4012,30 +4114,52 @@ export default function StoryPage() {
             </div>
           )}
           {activePanel && (
-            <div className="shrink-0" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)", borderRadius: "12px" }}>
-              <PanelCanvas
-                key={activePanel.id + "-main"}
-                panel={activePanel}
-                onUpdate={(updated) => updatePanel(activePanelIndex, updated)}
-                selectedBubbleId={selectedBubbleId}
-                onSelectBubble={(id) => {
-                  setSelectedBubbleId(id);
-                  setSelectedCharId(null);
-                }}
-                selectedCharId={selectedCharId}
-                onSelectChar={(id) => {
-                  setSelectedCharId(id);
-                  setSelectedBubbleId(null);
-                }}
-                canvasRef={(el) => {
-                  if (el) panelCanvasRefs.current.set(activePanel.id, el);
-                }}
-                zoom={zoom}
-                fontsReady={fontsReady}
-              />
-            </div>
+            flowMode ? (
+              <div
+                className="border border-border rounded-md overflow-hidden relative shrink-0 bg-white"
+                style={{ width: CANVAS_W * flowZoomScale, height: CANVAS_H * flowZoomScale }}
+              >
+                <ReactFlow
+                  nodes={flowNodes}
+                  edges={[]}
+                  onNodesChange={onFlowNodesChange}
+                  fitView
+                >
+                  <Background />
+                  <Controls />
+                </ReactFlow>
+              </div>
+            ) : (
+              <div className="shrink-0" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)", borderRadius: "12px" }}>
+                <PanelCanvas
+                  key={activePanel.id + "-main"}
+                  panel={activePanel}
+                  onUpdate={(updated) => updatePanel(activePanelIndex, updated)}
+                  selectedBubbleId={selectedBubbleId}
+                  onSelectBubble={(id) => {
+                    setSelectedBubbleId(id);
+                    setSelectedCharId(null);
+                  }}
+                  selectedCharId={selectedCharId}
+                  onSelectChar={(id) => {
+                    setSelectedCharId(id);
+                    setSelectedBubbleId(null);
+                  }}
+                  canvasRef={(el) => {
+                    if (el) panelCanvasRefs.current.set(activePanel.id, el);
+                  }}
+                  zoom={zoom}
+                  fontsReady={fontsReady}
+                />
+              </div>
+            )
           )}
         </div>
+        <Dialog open={showDesignEditor} onOpenChange={setShowDesignEditor}>
+          <DialogContent className="max-w-[1200px] w-[1200px] p-0">
+            <FabricEditor />
+          </DialogContent>
+        </Dialog>
 
         <div className="flex items-center justify-center gap-3 px-4 py-2 border-t border-border bg-background shrink-0" data-testid="story-bottom-toolbar">
           <div className="flex items-center gap-1.5">
@@ -4089,6 +4213,32 @@ export default function StoryPage() {
           </Button>
         </div>
       </div>
+      </ResizablePanel>
+
+      <ResizableHandle withHandle />
+
+      <ResizablePanel defaultSize={30} minSize={20} maxSize={36} className="w-[300px] shrink-0 border-l border-border overflow-y-auto p-4 space-y-4 hidden lg:block">
+        {activePanel ? (
+          <RightSidebar
+            key={activePanel.id}
+            panel={activePanel}
+            index={activePanelIndex}
+            total={panels.length}
+            onUpdate={(updated) => updatePanel(activePanelIndex, updated)}
+            onRemove={() => removePanel(activePanelIndex)}
+            galleryImages={galleryData || []}
+            galleryLoading={galleryLoading}
+            selectedBubbleId={selectedBubbleId}
+            setSelectedBubbleId={setSelectedBubbleId}
+            selectedCharId={selectedCharId}
+            setSelectedCharId={setSelectedCharId}
+            creatorTier={usageData?.creatorTier ?? 0}
+            isPro={usageData?.tier === "pro"}
+          />
+        ) : null}
+      </ResizablePanel>
+
+      </ResizablePanelGroup>
 
       <Dialog open={aiLimitOpen} onOpenChange={setAiLimitOpen}>
         <DialogContent className="max-w-sm">

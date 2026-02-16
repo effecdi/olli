@@ -185,7 +185,7 @@ export default function LandingPage() {
             <Input
               value={promptText}
               onChange={(e) => setPromptText(e.target.value)}
-              placeholder="내 인스타툰에 맞는 캐릭터를 생성해보세요."
+              placeholder="내 인스타툰을 완성시킬 캐릭터를 생성해서 완성하세요."
               className="flex-1"
               data-testid="input-hero-prompt"
             />
