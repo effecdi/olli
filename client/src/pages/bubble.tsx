@@ -519,6 +519,37 @@ export default function BubblePage() {
       <div className="flex flex-1 overflow-hidden" data-testid="bubble-canvas-area">
 
         <div className="w-[320px] overflow-y-auto border-r bg-background p-4" data-testid="bubble-right-panel">
+          <div className="mb-3">
+            <div className="flex items-center justify-between gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 justify-center gap-1.5"
+                onClick={addBubble}
+              >
+                <MessageCircle className="h-3.5 w-3.5" />
+                <span className="text-xs">말풍선</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 justify-center gap-1.5"
+                onClick={() => setShowGalleryPicker(true)}
+              >
+                <ImagePlus className="h-3.5 w-3.5" />
+                <span className="text-xs">캐릭터</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 justify-center gap-1.5"
+                onClick={() => setShowTemplatePicker(true)}
+              >
+                <Type className="h-3.5 w-3.5" />
+                <span className="text-xs">템플릿</span>
+              </Button>
+            </div>
+          </div>
           {(activePage.characters.length > 0 || activePage.bubbles.length > 0) && (
             <div className="space-y-1.5 mb-4">
               <div className="flex items-center gap-2">
