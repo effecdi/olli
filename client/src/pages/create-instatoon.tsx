@@ -11,7 +11,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Upload, Image as ImageIcon, Sparkles, Download, MessageCircle, Type, ArrowLeft } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Loader2,
+  Upload,
+  Image as ImageIcon,
+  Sparkles,
+  Download,
+  MessageCircle,
+  Type,
+  ArrowLeft,
+  Plus,
+  Trash2,
+} from "lucide-react";
+import { BubbleCanvas } from "@/components/bubble-canvas";
+import type { PageData, SpeechBubble } from "@/lib/bubble-types";
+import { generateId, getDefaultTailTip } from "@/lib/bubble-utils";
 import type { Generation } from "@shared/schema";
 
 export default function CreateInstatoonPage() {
@@ -23,9 +38,16 @@ export default function CreateInstatoonPage() {
   const [selectedGenerationId, setSelectedGenerationId] = useState<number | null>(null);
   const [instatoonImage, setInstatoonImage] = useState<string | null>(null);
   const [scenePrompt, setScenePrompt] = useState("");
-  const [topCaption, setTopCaption] = useState("");
-  const [bottomCaption, setBottomCaption] = useState("");
-  const [bubbleCaption, setBubbleCaption] = useState("");
+  const [topCaptions, setTopCaptions] = useState<string[]>([""]);
+  const [bottomCaptions, setBottomCaptions] = useState<string[]>([""]);
+  const [bubblePage, setBubblePage] = useState<PageData>({
+    id: generateId(),
+    bubbles: [],
+    characters: [],
+    canvasSize: { width: 1024, height: 1024 },
+  });
+  const [selectedBubbleId, setSelectedBubbleId] = useState<string | null>(null);
+  const [zoom] = useState(100);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -142,58 +164,93 @@ export default function CreateInstatoonPage() {
   const baseImageForCanvas = instatoonImage || sourceImage;
 
   useEffect(() => {
-    if (!baseImageForCanvas || !canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    setBubblePage((prev) => ({
+      ...prev,
+      imageDataUrl: baseImageForCanvas || undefined,
+      imageElement: undefined,
+    }));
+  }, [baseImageForCanvas]);
 
-    const img = new Image();
-    img.onload = () => {
-      const size = 1024;
-      canvas.width = size;
-      canvas.height = size;
-
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, size, size);
-
-      const scale = Math.min(size / img.width, size / img.height);
-      const w = img.width * scale;
-      const h = img.height * scale;
-      const x = (size - w) / 2;
-      const y = (size - h) / 2;
-      ctx.drawImage(img, x, y, w, h);
-
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#111827";
-      ctx.font = "bold 40px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-
-      if (topCaption.trim()) {
-        wrapText(ctx, topCaption.trim(), size / 2, 80, size - 160, 44);
-      }
-
-      if (bottomCaption.trim()) {
-        wrapText(ctx, bottomCaption.trim(), size / 2, size - 80, size - 160, 44);
-      }
-
-      if (bubbleCaption.trim()) {
-        const bubbleWidth = size * 0.7;
-        const bubbleHeight = 180;
-        const bubbleX = (size - bubbleWidth) / 2;
-        const bubbleY = size * 0.25;
-
-        drawRoundedRect(ctx, bubbleX, bubbleY, bubbleWidth, bubbleHeight, 24, "#ffffff", "#111827");
-
-        ctx.fillStyle = "#111827";
-        ctx.font = "bold 34px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-        wrapText(ctx, bubbleCaption.trim(), size / 2, bubbleY + bubbleHeight / 2 + 12, bubbleWidth - 60, 38);
-      }
+  const addSpeechBubble = () => {
+    const canvasSize = bubblePage.canvasSize || { width: 1024, height: 1024 };
+    const baseBubble: SpeechBubble = {
+      id: generateId(),
+      seed: Math.floor(Math.random() * 1_000_000),
+      x: canvasSize.width * 0.2,
+      y: canvasSize.height * 0.2,
+      width: canvasSize.width * 0.6,
+      height: 180,
+      text: "",
+      style: "handwritten",
+      tailStyle: "long",
+      tailDirection: "bottom",
+      strokeWidth: 4,
+      wobble: 1.5,
+      fontSize: 28,
+      fontKey: "default",
+      zIndex: (bubblePage.bubbles[bubblePage.bubbles.length - 1]?.zIndex ?? 0) + 1,
     };
-    img.src = baseImageForCanvas;
-  }, [baseImageForCanvas, topCaption, bottomCaption, bubbleCaption]);
+    const tip = getDefaultTailTip(baseBubble);
+    const newBubble: SpeechBubble = {
+      ...baseBubble,
+      tailTipX: tip?.x,
+      tailTipY: tip?.y,
+    };
+    setBubblePage((prev) => ({
+      ...prev,
+      bubbles: [...prev.bubbles, newBubble],
+    }));
+    setSelectedBubbleId(newBubble.id);
+  };
+
+  const updateSpeechBubble = (id: string, updates: Partial<SpeechBubble>) => {
+    setBubblePage((prev) => ({
+      ...prev,
+      bubbles: prev.bubbles.map((b) => (b.id === id ? { ...b, ...updates } : b)),
+    }));
+  };
 
   const handleDownload = () => {
     if (!canvasRef.current) return;
-    const url = canvasRef.current.toDataURL("image/png");
+    const srcCanvas = canvasRef.current;
+
+    const hasTop = topCaptions.some((t) => t.trim().length > 0);
+    const hasBottom = bottomCaptions.some((t) => t.trim().length > 0);
+
+    if (!hasTop && !hasBottom) {
+      const directUrl = srcCanvas.toDataURL("image/png");
+      const directLink = document.createElement("a");
+      directLink.href = directUrl;
+      directLink.download = `instatoon-${Date.now()}.png`;
+      directLink.click();
+      return;
+    }
+
+    const outCanvas = document.createElement("canvas");
+    outCanvas.width = srcCanvas.width;
+    outCanvas.height = srcCanvas.height;
+    const ctx = outCanvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.drawImage(srcCanvas, 0, 0);
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#111827";
+    ctx.font = "bold 40px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+
+    const topTexts = topCaptions.map((t) => t.trim()).filter((t) => t.length > 0);
+    topTexts.forEach((text, index) => {
+      const yPos = 80 + index * 56;
+      wrapText(ctx, text, outCanvas.width / 2, yPos, outCanvas.width - 160, 44);
+    });
+
+    const bottomTexts = bottomCaptions.map((t) => t.trim()).filter((t) => t.length > 0);
+    bottomTexts.forEach((text, index) => {
+      const yPos = outCanvas.height - 80 - (bottomTexts.length - 1 - index) * 56;
+      wrapText(ctx, text, outCanvas.width / 2, yPos, outCanvas.width - 160, 44);
+    });
+
+    const url = outCanvas.toDataURL("image/png");
     const a = document.createElement("a");
     a.href = url;
     a.download = `instatoon-${Date.now()}.png`;
@@ -369,43 +426,117 @@ export default function CreateInstatoonPage() {
 
           <Card className="p-4">
             <h3 className="text-sm font-medium mb-3">자막 설정</h3>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
-                <Label className="text-xs font-medium mb-1 flex items-center gap-1">
-                  <Type className="h-3.5 w-3.5" />
-                  상단 자막
-                </Label>
-                <Input
-                  placeholder="예: 월요일 아침, 출근 10분 전..."
-                  value={topCaption}
-                  onChange={(e) => setTopCaption(e.target.value)}
-                  data-testid="input-caption-top"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <Label className="text-xs font-medium flex items-center gap-1">
+                    <Type className="h-3.5 w-3.5" />
+                    상단 자막
+                  </Label>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={() => setTopCaptions((prev) => [...prev, ""])}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {topCaptions.map((value, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <Input
+                        placeholder="예: 월요일 아침, 출근 10분 전..."
+                        value={value}
+                        onChange={(e) =>
+                          setTopCaptions((prev) => prev.map((v, i) => (i === index ? e.target.value : v)))
+                        }
+                        data-testid={`input-caption-top-${index}`}
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        onClick={() =>
+                          setTopCaptions((prev) => prev.filter((_, i) => i !== index))
+                        }
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                      </Button>
+                    </div>
+                  ))}
+                  {topCaptions.length === 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-center gap-1.5 text-xs"
+                      onClick={() => setTopCaptions([""])}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      상단 자막 추가
+                    </Button>
+                  )}
+                </div>
               </div>
+
               <div>
-                <Label className="text-xs font-medium mb-1 flex items-center gap-1">
-                  <Type className="h-3.5 w-3.5" />
-                  하단 자막
-                </Label>
-                <Input
-                  placeholder="예: 결국 또 지각각..."
-                  value={bottomCaption}
-                  onChange={(e) => setBottomCaption(e.target.value)}
-                  data-testid="input-caption-bottom"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <Label className="text-xs font-medium flex items-center gap-1">
+                    <Type className="h-3.5 w-3.5" />
+                    하단 자막
+                  </Label>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={() => setBottomCaptions((prev) => [...prev, ""])}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {bottomCaptions.map((value, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <Input
+                        placeholder="예: 결국 또 지각각..."
+                        value={value}
+                        onChange={(e) =>
+                          setBottomCaptions((prev) => prev.map((v, i) => (i === index ? e.target.value : v)))
+                        }
+                        data-testid={`input-caption-bottom-${index}`}
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        onClick={() =>
+                          setBottomCaptions((prev) => prev.filter((_, i) => i !== index))
+                        }
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                      </Button>
+                    </div>
+                  ))}
+                  {bottomCaptions.length === 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-center gap-1.5 text-xs"
+                      onClick={() => setBottomCaptions([""])}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      하단 자막 추가
+                    </Button>
+                  )}
+                </div>
               </div>
-              <div>
-                <Label className="text-xs font-medium mb-1 flex items-center gap-1">
-                  <MessageCircle className="h-3.5 w-3.5" />
-                  말풍선 자막
-                </Label>
-                <Input
-                  placeholder='예: "아... 오늘만 더 자고 싶다..."'
-                  value={bubbleCaption}
-                  onChange={(e) => setBubbleCaption(e.target.value)}
-                  data-testid="input-caption-bubble"
-                />
-              </div>
+
             </div>
           </Card>
         </div>
@@ -422,12 +553,128 @@ export default function CreateInstatoonPage() {
               </div>
             ) : baseImageForCanvas ? (
               <div className="flex flex-col gap-3 w-full">
-                <div className="overflow-hidden rounded-md border bg-white">
-                  <canvas
-                    ref={canvasRef}
-                    className="w-full h-auto block"
-                    data-testid="canvas-instatoon-preview"
-                  />
+                <div className="flex gap-4 items-stretch">
+                  <div className="w-[260px] border rounded-md bg-muted/40 p-3 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <MessageCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                        <h3 className="text-xs font-medium text-muted-foreground">말풍선 패널</h3>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={addSpeechBubble}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      {bubblePage.bubbles.length === 0 ? (
+                        <p className="text-[11px] text-muted-foreground">
+                          말풍선을 추가하고 캔버스에서 자유롭게 움직여보세요.
+                        </p>
+                      ) : (
+                        bubblePage.bubbles.map((b, index) => (
+                          <div
+                            key={b.id}
+                            className={`flex items-center justify-between rounded-md px-2 py-1.5 cursor-pointer text-xs ${
+                              selectedBubbleId === b.id ? "bg-primary/10" : "hover:bg-muted"
+                            }`}
+                            onClick={() => setSelectedBubbleId(b.id)}
+                          >
+                            <span className="truncate">
+                              말풍선 {index + 1}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setBubblePage((prev) => ({
+                                  ...prev,
+                                  bubbles: prev.bubbles.filter((x) => x.id !== b.id),
+                                }));
+                                if (selectedBubbleId === b.id) {
+                                  setSelectedBubbleId(null);
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                            </Button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {selectedBubbleId && (
+                      <div className="mt-2 space-y-3 border-t pt-3">
+                        {(() => {
+                          const selected = bubblePage.bubbles.find((b) => b.id === selectedBubbleId);
+                          if (!selected) return null;
+                          return (
+                            <>
+                              <div className="space-y-1.5">
+                                <Label className="text-xs">말풍선 텍스트</Label>
+                                <Textarea
+                                  value={selected.text}
+                                  onChange={(e) =>
+                                    updateSpeechBubble(selected.id, { text: e.target.value })
+                                  }
+                                  className="h-20 text-xs"
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                  <Label className="text-[11px]">꼬리 방향</Label>
+                                  <Select
+                                    value={selected.tailDirection}
+                                    onValueChange={(v: any) =>
+                                      updateSpeechBubble(selected.id, { tailDirection: v })
+                                    }
+                                  >
+                                    <SelectTrigger className="h-8 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="bottom">아래</SelectItem>
+                                      <SelectItem value="top">위</SelectItem>
+                                      <SelectItem value="left">왼쪽</SelectItem>
+                                      <SelectItem value="right">오른쪽</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              <p className="text-[11px] text-muted-foreground">
+                                캔버스에서 말풍선을 드래그하면 위치를, 꼬리 끝을 드래그하면 꼬리를 조절할 수 있어요.
+                              </p>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 overflow-hidden rounded-md border bg-white">
+                    <BubbleCanvas
+                      page={bubblePage}
+                      isActive
+                      zoom={zoom}
+                      onUpdateBubble={(id, u) => updateSpeechBubble(id, u)}
+                      onUpdateChar={() => {}}
+                      onSelectBubble={(id) => setSelectedBubbleId(id)}
+                      onSelectChar={() => {}}
+                      selectedBubbleId={selectedBubbleId}
+                      selectedCharId={null}
+                      onCanvasRef={(el) => {
+                        canvasRef.current = el;
+                      }}
+                      showWatermark={false}
+                    />
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <Button
