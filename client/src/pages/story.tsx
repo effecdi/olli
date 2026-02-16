@@ -4436,36 +4436,6 @@ export default function StoryPage() {
         </div>
       </div>
       </ResizablePanel>
-
-      <ResizableHandle withHandle />
-
-      <ResizablePanel defaultSize={30} minSize={20} maxSize={36} className="w-[300px] shrink-0 border-l border-border overflow-y-auto p-4 space-y-4 hidden lg:block">
-        {activePanel ? (
-          activeLeftTab === "edit" ? (
-            <div className="text-xs text-muted-foreground">
-              좌측 패널에서 말풍선과 캐릭터를 편집하세요
-            </div>
-          ) : (
-            <RightSidebar
-              key={activePanel.id}
-              panel={activePanel}
-              index={activePanelIndex}
-              total={panels.length}
-              onUpdate={(updated) => updatePanel(activePanelIndex, updated)}
-              onRemove={() => removePanel(activePanelIndex)}
-              galleryImages={galleryData || []}
-              galleryLoading={galleryLoading}
-              selectedBubbleId={selectedBubbleId}
-              setSelectedBubbleId={setSelectedBubbleId}
-              selectedCharId={selectedCharId}
-              setSelectedCharId={setSelectedCharId}
-              creatorTier={usageData?.creatorTier ?? 0}
-              isPro={usageData?.tier === "pro"}
-            />
-          )
-        ) : null}
-      </ResizablePanel>
-
       </ResizablePanelGroup>
 
       <Dialog open={aiLimitOpen} onOpenChange={setAiLimitOpen}>
