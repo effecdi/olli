@@ -27,7 +27,7 @@ const posePresets = [
   { label: "화남", prompt: "angry, puffed cheeks, annoyed expression" },
 ];
 
-const bgPresets = [
+  const bgPresets = [
   { label: "카페", bg: "cozy cafe interior, warm lighting, coffee cups", items: "coffee cup, pastry on table" },
   { label: "공원", bg: "sunny park with green trees, blue sky", items: "bench, flowers, butterfly" },
   { label: "해변", bg: "sandy beach with ocean waves, sunset sky", items: "beach umbrella, surfboard" },
@@ -298,7 +298,14 @@ export default function PosePage() {
             size="lg"
             className="w-full gap-2"
             onClick={() => generateMutation.mutate()}
-            disabled={prompt.trim().length === 0 || !referenceImage || generateMutation.isPending || isOutOfCredits || generationCount >= 3}
+            disabled={
+              prompt.trim().length < 3 ||
+              !referenceImage ||
+              generateMutation.isPending ||
+              isOutOfCredits ||
+              generationCount >= 3 ||
+              !(characterId || character?.id)
+            }
             data-testid="button-generate-pose"
           >
             {generateMutation.isPending ? (
