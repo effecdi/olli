@@ -196,7 +196,7 @@ export default function LandingPage() {
                     value={promptText}
                     onChange={(e) => setPromptText(e.target.value)}
                     placeholder="내 인스타툰을 완성시킬 캐릭터를 생성해서 완성하세요."
-                    className="w-full pr-12 py-[18px] text-base"
+                    className="w-full px-[20px] py-[30px] text-[18px] rounded-[20px] pr-12"
                     data-testid="input-hero-prompt"
                   />
                   <button

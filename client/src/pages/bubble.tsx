@@ -744,27 +744,7 @@ export default function BubblePage() {
                 <Trash2 className="mr-2 h-4 w-4" /> 삭제
               </Button>
             </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <h3 className="font-medium">도구</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" onClick={addBubble} className="h-20 flex-col gap-2">
-                    <MessageCircle className="h-6 w-6" />
-                    말풍선 추가
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowGalleryPicker(true)} className="h-20 flex-col gap-2">
-                    <ImagePlus className="h-6 w-6" />
-                    캐릭터 추가
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowTemplatePicker(true)} className="h-20 flex-col gap-2">
-                    <Type className="h-6 w-6" />
-                    템플릿
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
+          ) : null}
         </div>
 
         {/* Main Canvas Area - Scrollable List */}

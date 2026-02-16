@@ -9,6 +9,7 @@ import NotFound from "@/pages/not-found";
 import LandingPage from "@/pages/landing";
 import HomePage from "@/pages/home";
 import CreatePage from "@/pages/create";
+import CreateInstatoonPage from "@/pages/create-instatoon";
 import PosePage from "@/pages/pose";
 import GalleryPage from "@/pages/gallery";
 import PricingPage from "@/pages/pricing";
@@ -42,6 +43,7 @@ function Router() {
       <Route path="/" component={isAuthenticated ? HomePage : LandingPage} />
       <Route path="/home" component={LandingPage} />
       <Route path="/create" component={CreatePage} />
+      <Route path="/create-instatoon" component={CreateInstatoonPage} />
       <Route path="/pose" component={PosePage} />
       <Route path="/gallery" component={GalleryPage} />
       <Route path="/chat" component={ChatPage} />
