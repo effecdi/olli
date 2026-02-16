@@ -385,10 +385,10 @@ export default function LandingPage() {
                     <span className="text-base font-normal text-muted-foreground">/월</span>
                   </div>
                   <ul className="space-y-2.5 text-sm text-muted-foreground mb-7">
-                    <li className="flex items-center gap-2.5"><Zap className="h-4 w-4 text-primary shrink-0" /> 매일 3회 캐릭터 생성</li>
-                    <li className="flex items-center gap-2.5"><Palette className="h-4 w-4 text-primary shrink-0" /> 3가지 스타일 사용</li>
-                    <li className="flex items-center gap-2.5"><Layers className="h-4 w-4 text-primary shrink-0" /> 포즈 & 배경 생성</li>
-                    <li className="flex items-center gap-2.5"><Paintbrush className="h-4 w-4 text-primary shrink-0" /> 말풍선 편집기 (매일 3회)</li>
+                    <li className="flex items-center gap-2.5"><Zap className="h-4 w-4 text-primary shrink-0" /> 매일 1회 캐릭터 생성</li>
+                    <li className="flex items-center gap-2.5"><Palette className="h-4 w-4 text-primary shrink-0" /> 기본 스타일만 가능</li>
+                    <li className="flex items-center gap-2.5"><Layers className="h-4 w-4 text-primary shrink-0" /> 워터마크 포함</li>
+                    <li className="flex items-center gap-2.5"><Paintbrush className="h-4 w-4 text-primary shrink-0" /> 에디터 기능 제한</li>
                   </ul>
                   <Button className="w-full" size="lg" variant="outline" asChild data-testid="button-pricing-free">
                     <a href="/login">무료로 시작하기</a>

@@ -10,6 +10,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import FabricEditor from "@/components/fabric-editor";
@@ -112,6 +120,7 @@ interface SpeechBubble {
   templateSrc?: string;
   templateImg?: HTMLImageElement;
   zIndex?: number;
+  locked?: boolean;
 }
 
 interface CharacterOverlay {
@@ -127,6 +136,7 @@ interface CharacterOverlay {
   label: string;
   rotation?: number;
   zIndex?: number;
+  locked?: boolean;
 }
 
 type DragMode = null | "move" | "move-tail" | "resize-br" | "resize-bl" | "resize-tr" | "resize-tl" | "resize-r" | "resize-l" | "resize-t" | "resize-b"
@@ -571,8 +581,8 @@ function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, isSelec
   }
 
   if (isSelected) {
-    ctx.strokeStyle = "hsl(240, 80%, 60%)";
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "hsl(150, 80%, 40%)";
+    ctx.lineWidth = 2;
     ctx.setLineDash([5, 3]);
     ctx.strokeRect(x - 4, y - 4, w + 8, h + 8);
     ctx.setLineDash([]);
@@ -592,8 +602,8 @@ function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, isSelec
     handles.forEach((handle) => {
       ctx.fillStyle = "white";
       ctx.fillRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
-      ctx.strokeStyle = "hsl(240, 80%, 60%)";
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "hsl(150, 80%, 40%)";
+      ctx.lineWidth = 2;
       ctx.strokeRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
     });
 
@@ -601,7 +611,7 @@ function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, isSelec
       const geo = getTailGeometry(bubble);
       ctx.beginPath();
       ctx.arc(geo.tipX, geo.tipY, 6, 0, Math.PI * 2);
-      ctx.fillStyle = "hsl(340, 80%, 55%)";
+      ctx.fillStyle = "hsl(150, 80%, 40%)";
       ctx.fill();
       ctx.strokeStyle = "white";
       ctx.lineWidth = 2;
@@ -632,6 +642,7 @@ const TAIL_LABELS: Record<TailStyle, string> = {
   dots_handwritten: "점점점 (손글씨)",
   dots_linedrawing: "점점점 (라인)",
 };
+
 
 export default function BubblePage() {
   const { isAuthenticated } = useAuth();
@@ -1058,12 +1069,12 @@ export default function BubblePage() {
     const by = -c.height / 2 - 2;
     const bw = c.width + 4;
     const bh = c.height + 4;
-    ctx.strokeStyle = "hsl(262, 83%, 58%)";
+    ctx.strokeStyle = "hsl(150, 80%, 40%)";
     ctx.lineWidth = 2;
-    ctx.setLineDash([6, 3]);
+    ctx.setLineDash([5, 3]);
     ctx.strokeRect(bx, by, bw, bh);
     ctx.setLineDash([]);
-    const hs = 7;
+    const hs = 8;
     const corners = [
       { x: bx, y: by },
       { x: bx + bw, y: by },
@@ -1073,15 +1084,15 @@ export default function BubblePage() {
     corners.forEach((pt) => {
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(pt.x - hs / 2, pt.y - hs / 2, hs, hs);
-      ctx.strokeStyle = "hsl(262, 83%, 58%)";
+      ctx.strokeStyle = "hsl(150, 80%, 40%)";
       ctx.lineWidth = 2;
       ctx.strokeRect(pt.x - hs / 2, pt.y - hs / 2, hs, hs);
     });
     ctx.beginPath();
-    ctx.arc(0, by - 16, 6, 0, Math.PI * 2);
+    ctx.arc(0, by - 18, 6, 0, Math.PI * 2);
     ctx.fillStyle = "#ffffff";
     ctx.fill();
-    ctx.strokeStyle = "hsl(262, 83%, 58%)";
+    ctx.strokeStyle = "hsl(150, 80%, 40%)";
     ctx.lineWidth = 2;
     ctx.stroke();
     ctx.restore();
@@ -1250,7 +1261,7 @@ export default function BubblePage() {
 
     if (currentSelected) {
       const selBubble = currentBubbles.find((b) => b.id === currentSelected);
-      if (selBubble) {
+      if (selBubble && !selBubble.locked) {
         const handle = getHandleAtPos(pos.x, pos.y, selBubble);
         if (handle) {
           dragModeRef.current = handle;
@@ -1263,7 +1274,7 @@ export default function BubblePage() {
 
     if (currentCharSel) {
       const selChar = currentChars.find((c) => c.id === currentCharSel);
-      if (selChar) {
+      if (selChar && !selChar.locked) {
         const charHandle = getCharHandleAtPos(pos.x, pos.y, selChar);
         if (charHandle) {
           dragModeRef.current = charHandle;
@@ -1859,6 +1870,125 @@ export default function BubblePage() {
   }
 
   const [showDesignEditor, setShowDesignEditor] = useState(false);
+  const handleLock = useCallback(() => {
+    const sid = selectedIdRef.current;
+    const cid = selectedCharIdRef.current;
+    if (sid) {
+      updateBubble(sid, { locked: !bubbles.find(b => b.id === sid)?.locked });
+    } else if (cid) {
+      updateCharOverlay(cid, { locked: !characterOverlays.find(c => c.id === cid)?.locked });
+    }
+  }, [bubbles, characterOverlays, updateBubble, updateCharOverlay]);
+
+  const handleCopy = useCallback(() => {
+    const sid = selectedIdRef.current;
+    const cid = selectedCharIdRef.current;
+    if (sid) {
+      const b = bubbles.find((b) => b.id === sid);
+      if (b) {
+        localStorage.setItem("olli_clipboard", JSON.stringify({ type: "bubble", data: b }));
+        toast({ title: "복사됨", description: "말풍선이 복사되었습니다." });
+      }
+    } else if (cid) {
+      const c = characterOverlays.find((c) => c.id === cid);
+      if (c) {
+        localStorage.setItem("olli_clipboard", JSON.stringify({ type: "char", data: c }));
+        toast({ title: "복사됨", description: "캐릭터가 복사되었습니다." });
+      }
+    }
+  }, [bubbles, characterOverlays]);
+
+  const handlePaste = useCallback(() => {
+    try {
+      const clip = localStorage.getItem("olli_clipboard");
+      if (!clip) return;
+      const parsed = JSON.parse(clip);
+      if (parsed.type === "bubble") {
+        const b = parsed.data as SpeechBubble;
+        const newB: SpeechBubble = {
+          ...b,
+          id: generateId(),
+          x: b.x + 20,
+          y: b.y + 20,
+          zIndex: (bubbles.length > 0 ? Math.max(...bubbles.map(x => x.zIndex || 0)) : 10) + 1,
+        };
+        setBubbles(prev => [...prev, newB]);
+        setSelectedId(newB.id);
+        setSelectedCharId(null);
+      } else if (parsed.type === "char") {
+        const c = parsed.data as CharacterOverlay;
+        const newC: CharacterOverlay = {
+          ...c,
+          id: generateId(),
+          x: c.x + 20,
+          y: c.y + 20,
+          zIndex: (characterOverlays.length > 0 ? Math.max(...characterOverlays.map(x => x.zIndex || 0)) : 0) + 1,
+        };
+        setCharacterOverlays(prev => [...prev, newC]);
+        setSelectedCharId(newC.id);
+        setSelectedId(null);
+      }
+      toast({ title: "붙여넣기 완료" });
+    } catch (e) {
+      console.error(e);
+    }
+  }, [bubbles, characterOverlays]);
+
+  const handleDuplicate = useCallback(() => {
+    const sid = selectedIdRef.current;
+    const cid = selectedCharIdRef.current;
+
+    if (sid) {
+      const b = bubbles.find((x) => x.id === sid);
+      if (!b) return;
+      const newB = { ...b, id: generateId(), x: b.x + 20, y: b.y + 20, zIndex: (bubbles.length > 0 ? Math.max(...bubbles.map(x => x.zIndex || 0)) : 10) + 1 };
+      setBubbles(prev => [...prev, newB]);
+      setSelectedId(newB.id);
+      setSelectedCharId(null);
+    } else if (cid) {
+      const c = characterOverlays.find((x) => x.id === cid);
+      if (!c) return;
+      const newC = { ...c, id: generateId(), x: c.x + 20, y: c.y + 20, zIndex: (characterOverlays.length > 0 ? Math.max(...characterOverlays.map(x => x.zIndex || 0)) : 0) + 1 };
+      setCharacterOverlays(prev => [...prev, newC]);
+      setSelectedCharId(newC.id);
+      setSelectedId(null);
+    }
+  }, [bubbles, characterOverlays]);
+
+  const handleDelete = useCallback(() => {
+    const sid = selectedIdRef.current;
+    const cid = selectedCharIdRef.current;
+    if (sid) {
+      deleteBubble(sid);
+    } else if (cid) {
+      deleteCharOverlay(cid);
+    }
+  }, [deleteBubble, deleteCharOverlay]);
+
+  const handleBringToFront = useCallback(() => {
+    const sid = selectedIdRef.current;
+    const cid = selectedCharIdRef.current;
+    if (sid) {
+      const maxZ = bubbles.reduce((m, cur) => Math.max(m, cur.zIndex ?? 0), 0);
+      updateBubble(sid, { zIndex: maxZ + 1 });
+    } else if (cid) {
+      const maxZ = characterOverlays.reduce((m, cur) => Math.max(m, cur.zIndex ?? 0), 0);
+      updateCharOverlay(cid, { zIndex: maxZ + 1 });
+    }
+  }, [bubbles, characterOverlays, updateBubble, updateCharOverlay]);
+
+  const handleSendToBack = useCallback(() => {
+    const sid = selectedIdRef.current;
+    const cid = selectedCharIdRef.current;
+    if (sid) {
+      const minZ = bubbles.reduce((m, cur) => Math.min(m, cur.zIndex ?? 0), 0);
+      updateBubble(sid, { zIndex: minZ - 1 });
+    } else if (cid) {
+      const minZ = characterOverlays.reduce((m, cur) => Math.min(m, cur.zIndex ?? 0), 0);
+      updateCharOverlay(cid, { zIndex: minZ - 1 });
+    }
+  }, [bubbles, characterOverlays, updateBubble, updateCharOverlay]);
+
   return (
     <div className="editor-page h-[calc(100vh-3.5rem)] flex flex-col overflow-hidden">
       <EditorOnboarding editor="bubble" />
@@ -1978,58 +2108,81 @@ export default function BubblePage() {
                 <div className="px-3 py-1.5 rounded bg-white/10 text-xs font-medium">스크린캡쳐 방지 중</div>
               </div>
             )}
-            <div
-              ref={canvasWrapperRef}
-              className="border border-border rounded-md overflow-hidden relative shrink-0 shadow-sm"
-              style={{ width: canvasSize.width * (zoom / 100), height: canvasSize.height * (zoom / 100) }}
-              data-testid="canvas-container"
-            >
-              <canvas
-                ref={canvasRef}
-                width={canvasSize.width}
-                height={canvasSize.height}
-                style={{ width: "100%", height: "100%", display: "block", touchAction: "none" }}
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
-                onPointerLeave={handlePointerUp}
-                onDoubleClick={handleDoubleClick}
-                data-testid="canvas-editor"
-              />
-              {editingBubbleId && (() => {
-                const eb = bubbles.find((b) => b.id === editingBubbleId);
-                if (!eb || !canvasRef.current || !canvasWrapperRef.current) return null;
-                const canvas = canvasRef.current;
-                const rect = canvas.getBoundingClientRect();
-                const scaleX = rect.width / canvas.width;
-                const scaleY = rect.height / canvas.height;
-                const font = KOREAN_FONTS.find((f) => f.value === eb.fontKey);
-                return (
-                  <textarea
-                    autoFocus
-                    className="absolute border-2 border-primary rounded bg-white/90 dark:bg-black/80 p-1 resize-none outline-none"
-                    style={{
-                      left: eb.x * scaleX,
-                      top: eb.y * scaleY,
-                      width: eb.width * scaleX,
-                      height: eb.height * scaleY,
-                      fontSize: eb.fontSize * scaleX,
-                      fontFamily: font?.family || "sans-serif",
-                      textAlign: "center",
-                      lineHeight: 1.3,
-                      color: "black",
-                    }}
-                    value={eb.text}
-                    onChange={(e) => updateBubble(eb.id, { text: e.target.value })}
-                    onBlur={() => setEditingBubbleId(null)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Escape") setEditingBubbleId(null);
-                    }}
-                    data-testid="input-inline-bubble-text"
+            <ContextMenu>
+              <ContextMenuTrigger asChild>
+                <div
+                  ref={canvasWrapperRef}
+                  className="border border-border rounded-md overflow-hidden relative shrink-0 shadow-sm"
+                  style={{ width: canvasSize.width * (zoom / 100), height: canvasSize.height * (zoom / 100) }}
+                  data-testid="canvas-container"
+                >
+                  <canvas
+                    ref={canvasRef}
+                    width={canvasSize.width}
+                    height={canvasSize.height}
+                    style={{ width: "100%", height: "100%", display: "block", touchAction: "none" }}
+                    onPointerDown={handlePointerDown}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onPointerLeave={handlePointerUp}
+                    onDoubleClick={handleDoubleClick}
+                    data-testid="canvas-editor"
                   />
-                );
-              })()}
-            </div>
+                  {editingBubbleId && (() => {
+                    const eb = bubbles.find((b) => b.id === editingBubbleId);
+                    if (!eb || !canvasRef.current || !canvasWrapperRef.current) return null;
+                    const canvas = canvasRef.current;
+                    const rect = canvas.getBoundingClientRect();
+                    const scaleX = rect.width / canvas.width;
+                    const scaleY = rect.height / canvas.height;
+                    const font = KOREAN_FONTS.find((f) => f.value === eb.fontKey);
+                    return (
+                      <textarea
+                        autoFocus
+                        className="absolute bg-transparent p-1 resize-none outline-none overflow-hidden"
+                        style={{
+                          left: eb.x * scaleX,
+                          top: eb.y * scaleY,
+                          width: eb.width * scaleX,
+                          height: eb.height * scaleY,
+                          fontSize: eb.fontSize * scaleX,
+                          fontFamily: font?.family || "sans-serif",
+                          textAlign: "center",
+                          lineHeight: 1.3,
+                          color: "black",
+                          border: "1px solid rgba(0, 100, 255, 0.5)",
+                          boxShadow: "0 0 0 1px rgba(0, 100, 255, 0.2)",
+                        }}
+                        value={eb.text}
+                        onChange={(e) => updateBubble(eb.id, { text: e.target.value })}
+                        onBlur={() => setEditingBubbleId(null)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") setEditingBubbleId(null);
+                        }}
+                        data-testid="input-inline-bubble-text"
+                      />
+                    );
+                  })()}
+                </div>
+              </ContextMenuTrigger>
+              <ContextMenuContent className="w-48">
+                <ContextMenuItem onClick={handleCopy}>복사</ContextMenuItem>
+                <ContextMenuItem onClick={handlePaste}>붙여넣기</ContextMenuItem>
+                <ContextMenuItem onClick={handleDuplicate}>복제</ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem onClick={handleBringToFront}>맨 앞으로 가져오기</ContextMenuItem>
+                <ContextMenuItem onClick={handleSendToBack}>맨 뒤로 보내기</ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem onClick={handleLock}>
+                  {selectedId && bubbles.find(b => b.id === selectedId)?.locked ? "잠금 해제" :
+                   selectedCharId && characterOverlays.find(c => c.id === selectedCharId)?.locked ? "잠금 해제" : "잠금"}
+                </ContextMenuItem>
+                <ContextMenuItem onClick={handleDelete} className="text-destructive">
+                  삭제
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
+
           </div>
 
           <div className="flex items-center justify-center gap-3 px-4 py-2 border-t border-border bg-background shrink-0" data-testid="bottom-toolbar">

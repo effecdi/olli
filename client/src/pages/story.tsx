@@ -62,6 +62,14 @@ import { getFlowState, clearFlowState } from "@/lib/flow";
 import type { StoryPanelScript, Generation } from "@shared/schema";
 import ReactFlow, { Background, Controls, type Node, type NodeChange, applyNodeChanges } from "reactflow";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
 function bubblePath(n: number) {
   return `/assets/bubbles/bubble_${String(n).padStart(3, "0")}.png`;
@@ -274,6 +282,7 @@ interface SpeechBubble {
   templateSrc?: string;
   templateImg?: HTMLImageElement;
   zIndex?: number;
+  locked?: boolean;
 }
 
 interface CharacterPlacement {
@@ -285,6 +294,7 @@ interface CharacterPlacement {
   rotation?: number;
   imageEl: HTMLImageElement | null;
   zIndex?: number;
+  locked?: boolean;
 }
 
 interface ScriptData {
@@ -1059,6 +1069,7 @@ function PanelCanvas({
   fontsReady?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { toast } = useToast();
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
   const dragModeRef = useRef<DragMode>(null);
   const dragStartRef = useRef({ x: 0, y: 0 });
@@ -1258,10 +1269,9 @@ function PanelCanvas({
       const pos = getCanvasPos(e.clientX, e.clientY);
       const p = panelRef.current;
       const sid = selectedBubbleIdRef.current;
-
       if (sid) {
         const selB = p.bubbles.find((b) => b.id === sid);
-        if (selB) {
+        if (selB && !selB.locked) {
           const handle = getHandleAtPos(pos.x, pos.y, selB);
           if (handle) {
             dragModeRef.current = handle;
@@ -1280,7 +1290,7 @@ function PanelCanvas({
       const selCid = selectedCharIdRef.current;
       if (selCid) {
         const selCh = p.characters.find((c) => c.id === selCid);
-        if (selCh && selCh.imageEl) {
+        if (selCh && selCh.imageEl && !selCh.locked) {
           const cw = selCh.imageEl.naturalWidth * selCh.scale;
           const ch2 = selCh.imageEl.naturalHeight * selCh.scale;
           const cx = selCh.x - cw / 2;
@@ -1711,81 +1721,264 @@ function PanelCanvas({
 
   const hasZoom = zoom !== undefined;
   const zoomScale = (zoom ?? 100) / 100;
+  const hasSelection = !!selectedBubbleIdRef.current || !!selectedCharIdRef.current;
 
- 
+  const handleDeleteSelection = useCallback(() => {
+    const p = panelRef.current;
+    const sid = selectedBubbleIdRef.current;
+    const cid = selectedCharIdRef.current;
+    if (sid) {
+      const newBubbles = p.bubbles.filter((b) => b.id !== sid);
+      onUpdate({ ...p, bubbles: newBubbles });
+      onSelectBubble(null);
+      selectedBubbleIdRef.current = null;
+    } else if (cid) {
+      const newChars = p.characters.filter((c) => c.id !== cid);
+      onUpdate({ ...p, characters: newChars });
+      onSelectChar(null);
+      selectedCharIdRef.current = null;
+    }
+  }, [onUpdate, onSelectBubble, onSelectChar]);
+
+  const handleDuplicateSelection = useCallback(() => {
+    const p = panelRef.current;
+    const sid = selectedBubbleIdRef.current;
+    const cid = selectedCharIdRef.current;
+    if (sid) {
+      const b = p.bubbles.find((x) => x.id === sid);
+      if (!b) return;
+      const maxZ = p.bubbles.reduce((m, cur) => Math.max(m, cur.zIndex ?? 0), 0);
+      const duplicated: SpeechBubble = {
+        ...b,
+        id: generateId(),
+        x: b.x + 24,
+        y: b.y + 24,
+        zIndex: maxZ + 1,
+      };
+      onUpdate({ ...p, bubbles: [...p.bubbles, duplicated] });
+      onSelectBubble(duplicated.id);
+      onSelectChar(null);
+      selectedBubbleIdRef.current = duplicated.id;
+      selectedCharIdRef.current = null;
+    } else if (cid) {
+      const ch = p.characters.find((x) => x.id === cid);
+      if (!ch) return;
+      const maxZ = p.characters.reduce((m, cur) => Math.max(m, cur.zIndex ?? 0), 0);
+      const duplicated: CharacterPlacement = {
+        ...ch,
+        id: generateId(),
+        x: ch.x + 24,
+        y: ch.y + 24,
+        zIndex: maxZ + 1,
+      };
+      onUpdate({ ...p, characters: [...p.characters, duplicated] });
+      onSelectChar(duplicated.id);
+      onSelectBubble(null);
+      selectedCharIdRef.current = duplicated.id;
+      selectedBubbleIdRef.current = null;
+    }
+  }, [onUpdate, onSelectBubble, onSelectChar]);
+
+  const handleBringToFront = useCallback(() => {
+    const p = panelRef.current;
+    const sid = selectedBubbleIdRef.current;
+    const cid = selectedCharIdRef.current;
+    if (sid) {
+      const maxZ = p.bubbles.reduce((m, cur) => Math.max(m, cur.zIndex ?? 0), 0);
+      updateBubbleInPanel(sid, { zIndex: maxZ + 1 });
+    } else if (cid) {
+      const maxZ = p.characters.reduce((m, cur) => Math.max(m, cur.zIndex ?? 0), 0);
+      updateCharInPanel(cid, { zIndex: maxZ + 1 });
+    }
+  }, [updateBubbleInPanel, updateCharInPanel]);
+
+  const handleSendToBack = useCallback(() => {
+    const p = panelRef.current;
+    const sid = selectedBubbleIdRef.current;
+    const cid = selectedCharIdRef.current;
+    if (sid) {
+      const minZ = p.bubbles.reduce((m, cur) => Math.min(m, cur.zIndex ?? 0), 0);
+      updateBubbleInPanel(sid, { zIndex: minZ - 1 });
+    } else if (cid) {
+      const minZ = p.characters.reduce((m, cur) => Math.min(m, cur.zIndex ?? 0), 0);
+      updateCharInPanel(cid, { zIndex: minZ - 1 });
+    }
+  }, [updateBubbleInPanel, updateCharInPanel]);
+
+  const handleLock = useCallback(() => {
+    const sid = selectedBubbleIdRef.current;
+    const cid = selectedCharIdRef.current;
+    if (sid) {
+      const b = panelRef.current.bubbles.find((b) => b.id === sid);
+      if (b) updateBubbleInPanel(sid, { locked: !b.locked });
+    } else if (cid) {
+      const c = panelRef.current.characters.find((c) => c.id === cid);
+      if (c) updateCharInPanel(cid, { locked: !c.locked });
+    }
+  }, [updateBubbleInPanel, updateCharInPanel]);
+
+  const handleCopy = useCallback(() => {
+    const sid = selectedBubbleIdRef.current;
+    const cid = selectedCharIdRef.current;
+    if (sid) {
+      const b = panelRef.current.bubbles.find((b) => b.id === sid);
+      if (b) {
+        localStorage.setItem("olli_clipboard", JSON.stringify({ type: "bubble", data: b }));
+        toast({ title: "복사됨", description: "말풍선이 복사되었습니다." });
+      }
+    } else if (cid) {
+      const c = panelRef.current.characters.find((c) => c.id === cid);
+      if (c) {
+        localStorage.setItem("olli_clipboard", JSON.stringify({ type: "char", data: c }));
+        toast({ title: "복사됨", description: "캐릭터가 복사되었습니다." });
+      }
+    }
+  }, [toast]);
+
+  const handlePaste = useCallback(() => {
+    try {
+      const clip = localStorage.getItem("olli_clipboard");
+      if (!clip) return;
+      const parsed = JSON.parse(clip);
+      if (parsed.type === "bubble") {
+        const b = parsed.data as SpeechBubble;
+        const newB: SpeechBubble = {
+          ...b,
+          id: generateId(),
+          x: b.x + 20,
+          y: b.y + 20,
+          zIndex: (panelRef.current.bubbles.length > 0 ? Math.max(...panelRef.current.bubbles.map(x => x.zIndex || 0)) : 10) + 1,
+        };
+        onUpdate({
+          ...panelRef.current,
+          bubbles: [...panelRef.current.bubbles, newB],
+        });
+        onSelectBubble(newB.id);
+        onSelectChar(null);
+      } else if (parsed.type === "char") {
+        const c = parsed.data as CharacterPlacement;
+        const newC: CharacterPlacement = {
+          ...c,
+          id: generateId(),
+          x: c.x + 20,
+          y: c.y + 20,
+          zIndex: (panelRef.current.characters.length > 0 ? Math.max(...panelRef.current.characters.map(x => x.zIndex || 0)) : 0) + 1,
+        };
+        onUpdate({
+          ...panelRef.current,
+          characters: [...panelRef.current.characters, newC],
+        });
+        onSelectChar(newC.id);
+        onSelectBubble(null);
+      }
+      toast({ title: "붙여넣기 완료" });
+    } catch (e) {
+      console.error(e);
+    }
+  }, [onUpdate, onSelectBubble, onSelectChar, toast]);
 
   return (
-    <div
-      ref={canvasWrapperRef}
-      className="relative inline-block shrink-0"
-      style={hasZoom ? {
-        width: CANVAS_W * zoomScale,
-        height: CANVAS_H * zoomScale,
-      } : undefined}
-    >
-      <canvas
-        ref={(el) => {
-          (canvasRef as any).current = el;
-          externalCanvasRef?.(el);
-        }}
-        width={CANVAS_W}
-        height={CANVAS_H}
-        style={hasZoom ? {
-          width: "100%",
-          height: "100%",
-          display: "block",
-          touchAction: "none",
-        } : {
-          maxWidth: "100%",
-          height: "auto",
-          display: "block",
-          touchAction: "none",
-        }}
-        className="rounded-md border border-border"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
-        onDoubleClick={handleDoubleClick}
-        data-testid="panel-canvas"
-      />
-      {editingBubbleId &&
-        (() => {
-          const eb = panel.bubbles.find((b) => b.id === editingBubbleId);
-          if (!eb || !canvasRef.current) return null;
-          const canvas = canvasRef.current;
-          const rect = canvas.getBoundingClientRect();
-          const scaleX = rect.width / CANVAS_W;
-          const scaleY = rect.height / CANVAS_H;
-          const fontEntry = KOREAN_FONTS.find((f) => f.value === eb.fontKey);
-          return (
-            <textarea
-              autoFocus
-              className="absolute border-2 border-primary rounded bg-white/90 dark:bg-black/80 p-1 resize-none outline-none"
-              style={{
-                left: eb.x * scaleX,
-                top: eb.y * scaleY,
-                width: eb.width * scaleX,
-                height: eb.height * scaleY,
-                fontSize: eb.fontSize * scaleX,
-                fontFamily: fontEntry?.family || "sans-serif",
-                textAlign: "center",
-                lineHeight: 1.3,
-                color: "black",
-              }}
-              value={eb.text}
-              onChange={(e) =>
-                updateBubbleInPanel(eb.id, { text: e.target.value })
-              }
-              onBlur={() => setEditingBubbleId(null)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") setEditingBubbleId(null);
-              }}
-              data-testid="input-inline-bubble-text"
-            />
-          );
-        })()}
-    </div>
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <div
+          ref={canvasWrapperRef}
+          className="relative inline-block shrink-0"
+          style={
+            hasZoom
+              ? {
+                  width: CANVAS_W * zoomScale,
+                  height: CANVAS_H * zoomScale,
+                }
+              : undefined
+          }
+        >
+          <canvas
+            ref={(el) => {
+              (canvasRef as any).current = el;
+              externalCanvasRef?.(el);
+            }}
+            width={CANVAS_W}
+            height={CANVAS_H}
+            style={
+              hasZoom
+                ? {
+                    width: "100%",
+                    height: "100%",
+                    display: "block",
+                    touchAction: "none",
+                  }
+                : {
+                    maxWidth: "100%",
+                    height: "auto",
+                    display: "block",
+                    touchAction: "none",
+                  }
+            }
+            className="rounded-md border border-border"
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerLeave={handlePointerUp}
+            onDoubleClick={handleDoubleClick}
+            data-testid="panel-canvas"
+          />
+          {editingBubbleId &&
+            (() => {
+              const eb = panel.bubbles.find((b) => b.id === editingBubbleId);
+              if (!eb || !canvasRef.current) return null;
+              const canvas = canvasRef.current;
+              const rect = canvas.getBoundingClientRect();
+              const scaleX = rect.width / CANVAS_W;
+              const scaleY = rect.height / CANVAS_H;
+              const fontEntry = KOREAN_FONTS.find((f) => f.value === eb.fontKey);
+              return (
+                <textarea
+                  autoFocus
+                  className="absolute bg-transparent p-1 resize-none outline-none overflow-hidden"
+                  style={{
+                    left: eb.x * scaleX,
+                    top: eb.y * scaleY,
+                    width: eb.width * scaleX,
+                    height: eb.height * scaleY,
+                    fontSize: eb.fontSize * scaleX,
+                    fontFamily: fontEntry?.family || "sans-serif",
+                    textAlign: "center",
+                    lineHeight: 1.3,
+                    color: "black",
+                    border: "1px solid rgba(0, 100, 255, 0.5)",
+                    boxShadow: "0 0 0 1px rgba(0, 100, 255, 0.2)",
+                  }}
+                  value={eb.text}
+                  onChange={(e) =>
+                    updateBubbleInPanel(eb.id, { text: e.target.value })
+                  }
+                  onBlur={() => setEditingBubbleId(null)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setEditingBubbleId(null);
+                  }}
+                  data-testid="input-inline-bubble-text"
+                />
+              );
+            })()}
+        </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="w-48">
+        <ContextMenuItem onSelect={handleCopy}>복사</ContextMenuItem>
+        <ContextMenuItem onSelect={handlePaste}>붙여넣기</ContextMenuItem>
+        <ContextMenuItem onSelect={handleDuplicateSelection}>복제</ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onSelect={handleBringToFront}>맨 앞으로 가져오기</ContextMenuItem>
+        <ContextMenuItem onSelect={handleSendToBack}>맨 뒤로 보내기</ContextMenuItem>
+        <ContextMenuItem onSelect={handleLock}>
+          {selectedBubbleId && panel.bubbles.find(b => b.id === selectedBubbleId)?.locked ? "잠금 해제" :
+           selectedCharId && panel.characters.find(c => c.id === selectedCharId)?.locked ? "잠금 해제" : "잠금"}
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem className="text-destructive" onSelect={handleDeleteSelection}>
+          삭제
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 
