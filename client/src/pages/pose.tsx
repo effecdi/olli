@@ -299,12 +299,11 @@ export default function PosePage() {
             className="w-full gap-2"
             onClick={() => generateMutation.mutate()}
             disabled={
-              prompt.trim().length < 3 ||
+              prompt.trim().length === 0 ||
               !referenceImage ||
               generateMutation.isPending ||
               isOutOfCredits ||
-              generationCount >= 3 ||
-              !(characterId || character?.id)
+              generationCount >= 3
             }
             data-testid="button-generate-pose"
           >
