@@ -4136,127 +4136,137 @@ export default function StoryPage() {
               <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-[hsl(173_100%_35%)] to-transparent opacity-60" />
             </div>
 
-            <div
-              ref={canvasAreaRef}
-              className={`flex-1 min-h-0 overflow-auto flex items-center justify-center bg-muted/20 dark:bg-muted/10 relative ${zoom >= 200 ? "p-0" : "p-6"}`}
-              data-testid="story-canvas-area"
-              onMouseDown={(e) => {
-                if (e.target === e.currentTarget) {
-                  setSelectedBubbleId(null);
-                  setSelectedCharId(null);
-                }
-              }}
-            >
-              {panMode && (
-                <div
-                  className="absolute inset-0 z-40"
-                  onPointerDown={(e) => {
-                    const area = canvasAreaRef.current;
-                    if (!area) return;
-                    (e.currentTarget as any).setPointerCapture(e.pointerId);
-                    panDraggingRef.current = true;
-                    panStartRef.current = { x: e.clientX, y: e.clientY };
-                    panScrollStartRef.current = { left: area.scrollLeft, top: area.scrollTop };
-                    area.style.cursor = "grabbing";
-                  }}
-                  onPointerMove={(e) => {
-                    if (!panDraggingRef.current) return;
-                    const area = canvasAreaRef.current;
-                    if (!area || !panStartRef.current || !panScrollStartRef.current) return;
-                    const dx = e.clientX - panStartRef.current.x;
-                    const dy = e.clientY - panStartRef.current.y;
-                    area.scrollLeft = panScrollStartRef.current.left - dx;
-                    area.scrollTop = panScrollStartRef.current.top - dy;
-                  }}
-                  onPointerUp={() => {
-                    panDraggingRef.current = false;
-                    const area = canvasAreaRef.current;
-                    if (area) area.style.cursor = "grab";
-                  }}
-                  onClick={() => {
+            {showDesignEditor ? (
+              <div className="flex-1 h-full bg-neutral-100 dark:bg-neutral-900 p-4 z-40 absolute inset-0">
+                <FabricEditor
+                  isPro={isPro}
+                  className="h-full"
+                  onClose={() => setShowDesignEditor(false)}
+                />
+              </div>
+            ) : (
+              <div
+                ref={canvasAreaRef}
+                className={`flex-1 min-h-0 overflow-auto flex items-center justify-center bg-muted/20 dark:bg-muted/10 relative ${zoom >= 200 ? "p-0" : "p-6"}`}
+                data-testid="story-canvas-area"
+                onMouseDown={(e) => {
+                  if (e.target === e.currentTarget) {
                     setSelectedBubbleId(null);
                     setSelectedCharId(null);
-                  }}
-                  style={{ cursor: "grab" }}
-                />
-              )}
-              {activePanel && !flowMode && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30">
-                  <div className="flex items-center gap-2 rounded-full border bg-background/95 px-3 py-1.5 shadow-md">
-                    <button
-                      className={`text-xs px-2 py-1 rounded-full ${activeLeftTab === "edit" ? "bg-muted font-medium" : "hover:bg-muted"}`}
-                      onClick={() => toggleLeftTab("edit")}
-                    >
-                      편집
-                    </button>
-                    <div className="h-4 w-px bg-border" />
-                    <button
-                      className="flex items-center gap-1 text-xs px-2 py-1 rounded-full hover:bg-muted"
-                      onClick={() => {
-                        if (!isPro) {
-                          toast({
-                            title: "Pro 전용 기능",
-                            description: "배경 제거는 Pro 멤버십 전용 기능입니다.",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
-                        setShowDesignEditor(true);
-                      }}
-                    >
-                      <span>배경 제거</span>
-                      {!isPro && <Crown className="h-3 w-3 text-amber-500" />}
-                    </button>
-                  </div>
-                </div>
-              )}
-              {captureActive && (
-                <div className="absolute inset-0 z-50 bg-black/60 text-white grid place-items-center">
-                  <div className="px-3 py-1.5 rounded bg-white/10 text-xs font-medium">스크린캡쳐 방지 중</div>
-                </div>
-              )}
-              {activePanel && (
-                flowMode ? (
+                  }
+                }}
+              >
+                {panMode && (
                   <div
-                    className="border border-border rounded-md overflow-hidden relative shrink-0 bg-white"
-                    style={{ width: CANVAS_W * flowZoomScale, height: CANVAS_H * flowZoomScale }}
-                  >
-                    <ReactFlow
-                      nodes={flowNodes}
-                      edges={[]}
-                      onNodesChange={onFlowNodesChange}
-                      fitView
+                    className="absolute inset-0 z-40"
+                    onPointerDown={(e) => {
+                      const area = canvasAreaRef.current;
+                      if (!area) return;
+                      (e.currentTarget as any).setPointerCapture(e.pointerId);
+                      panDraggingRef.current = true;
+                      panStartRef.current = { x: e.clientX, y: e.clientY };
+                      panScrollStartRef.current = { left: area.scrollLeft, top: area.scrollTop };
+                      area.style.cursor = "grabbing";
+                    }}
+                    onPointerMove={(e) => {
+                      if (!panDraggingRef.current) return;
+                      const area = canvasAreaRef.current;
+                      if (!area || !panStartRef.current || !panScrollStartRef.current) return;
+                      const dx = e.clientX - panStartRef.current.x;
+                      const dy = e.clientY - panStartRef.current.y;
+                      area.scrollLeft = panScrollStartRef.current.left - dx;
+                      area.scrollTop = panScrollStartRef.current.top - dy;
+                    }}
+                    onPointerUp={() => {
+                      panDraggingRef.current = false;
+                      const area = canvasAreaRef.current;
+                      if (area) area.style.cursor = "grab";
+                    }}
+                    onClick={() => {
+                      setSelectedBubbleId(null);
+                      setSelectedCharId(null);
+                    }}
+                    style={{ cursor: "grab" }}
+                  />
+                )}
+                {activePanel && !flowMode && (
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30">
+                    <div className="flex items-center gap-2 rounded-full border bg-background/95 px-3 py-1.5 shadow-md">
+                      <button
+                        className={`text-xs px-2 py-1 rounded-full ${activeLeftTab === "edit" ? "bg-muted font-medium" : "hover:bg-muted"}`}
+                        onClick={() => toggleLeftTab("edit")}
+                      >
+                        편집
+                      </button>
+                      <div className="h-4 w-px bg-border" />
+                      <button
+                        className="flex items-center gap-1 text-xs px-2 py-1 rounded-full hover:bg-muted"
+                        onClick={() => {
+                          if (!isPro) {
+                            toast({
+                              title: "Pro 전용 기능",
+                              description: "배경 제거는 Pro 멤버십 전용 기능입니다.",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          setShowDesignEditor(true);
+                        }}
+                      >
+                        <span>배경 제거</span>
+                        {!isPro && <Crown className="h-3 w-3 text-amber-500" />}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {captureActive && (
+                  <div className="absolute inset-0 z-50 bg-black/60 text-white grid place-items-center">
+                    <div className="px-3 py-1.5 rounded bg-white/10 text-xs font-medium">스크린캡쳐 방지 중</div>
+                  </div>
+                )}
+                {activePanel && (
+                  flowMode ? (
+                    <div
+                      className="border border-border rounded-md overflow-hidden relative shrink-0 bg-white"
+                      style={{ width: CANVAS_W * flowZoomScale, height: CANVAS_H * flowZoomScale }}
                     >
-                      <Background />
-                      <Controls />
-                    </ReactFlow>
-                  </div>
-                ) : (
-                  <div className="shrink-0" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)", borderRadius: "12px" }}>
-                    <PanelCanvas
-                      key={activePanel.id + "-main"}
-                      panel={activePanel}
-                      onUpdate={(updated) => updatePanel(activePanelIndex, updated)}
-                      selectedBubbleId={selectedBubbleId}
-                      onSelectBubble={(id) => {
-                        setSelectedBubbleId(id);
-                        setSelectedCharId(null);
-                      }}
-                      selectedCharId={selectedCharId}
-                      onSelectChar={(id) => {
-                        setSelectedCharId(id);
-                        setSelectedBubbleId(null);
-                      }}
-                      canvasRef={(el) => {
-                        if (el) panelCanvasRefs.current.set(activePanel.id, el);
-                      }}
-                      zoom={zoom}
-                      fontsReady={fontsReady}
-                    />
-                  </div>
-                )
-              )}
-            </div>
+                      <ReactFlow
+                        nodes={flowNodes}
+                        edges={[]}
+                        onNodesChange={onFlowNodesChange}
+                        fitView
+                      >
+                        <Background />
+                        <Controls />
+                      </ReactFlow>
+                    </div>
+                  ) : (
+                    <div className="shrink-0" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)", borderRadius: "12px" }}>
+                      <PanelCanvas
+                        key={activePanel.id + "-main"}
+                        panel={activePanel}
+                        onUpdate={(updated) => updatePanel(activePanelIndex, updated)}
+                        selectedBubbleId={selectedBubbleId}
+                        onSelectBubble={(id) => {
+                          setSelectedBubbleId(id);
+                          setSelectedCharId(null);
+                        }}
+                        selectedCharId={selectedCharId}
+                        onSelectChar={(id) => {
+                          setSelectedCharId(id);
+                          setSelectedBubbleId(null);
+                        }}
+                        canvasRef={(el) => {
+                          if (el) panelCanvasRefs.current.set(activePanel.id, el);
+                        }}
+                        zoom={zoom}
+                        fontsReady={fontsReady}
+                      />
+                    </div>
+                  )
+                )}
+              </div>
+            )}
             <div className="border-t border-border bg-background/80 px-4 py-3">
               <div className="flex items-center gap-3 overflow-x-auto" data-testid="story-page-strip">
                 {panels.map((panel, i) => (
@@ -4302,14 +4312,7 @@ export default function StoryPage() {
                 </Button>
               </div>
             </div>
-            <Dialog open={showDesignEditor} onOpenChange={setShowDesignEditor}>
-              <DialogContent className="max-w-[1200px] w-[1200px] p-0">
-                <DialogHeader className="sr-only">
-                  <DialogTitle>디자인 에디터</DialogTitle>
-                </DialogHeader>
-                <FabricEditor isPro={usageData?.tier === "pro"} />
-              </DialogContent>
-            </Dialog>
+
 
             <div className="flex items-center justify-center gap-3 px-4 py-2 border-t border-border bg-background shrink-0" data-testid="story-bottom-toolbar">
               <div className="flex items-center gap-1.5">

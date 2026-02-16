@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 
 type Mode = "idle" | "crop";
 
-export default function FabricEditor({ isPro = false }: { isPro?: boolean }) {
+export default function FabricEditor({ isPro = false, className, onClose }: { isPro?: boolean; className?: string; onClose?: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fabricRef = useRef<Canvas | null>(null);
   const { toast } = useToast();
@@ -40,8 +40,8 @@ export default function FabricEditor({ isPro = false }: { isPro?: boolean }) {
   useEffect(() => {
     if (!canvasRef.current) return;
     const c = new Canvas(canvasRef.current, {
-      width: 800,
-      height: 600,
+      width: canvasRef.current.parentElement?.clientWidth || 800,
+      height: canvasRef.current.parentElement?.clientHeight || 600,
       backgroundColor: bgColor,
       preserveObjectStacking: true,
       selection: true,
@@ -423,7 +423,7 @@ export default function FabricEditor({ isPro = false }: { isPro?: boolean }) {
   };
 
   return (
-    <div className="flex h-[680px] w-full gap-3">
+    <div className={`flex h-full w-full gap-3 ${className}`}>
       <div className="flex flex-col w-52 gap-2">
         <div className="rounded-lg border p-3 flex flex-col gap-2">
           <Button variant="secondary" onClick={addRect}>사각형 추가</Button>
@@ -439,6 +439,11 @@ export default function FabricEditor({ isPro = false }: { isPro?: boolean }) {
           </div>
           <Button variant="outline" onClick={toggleOverlap}>{overlapEnabled ? "오버랩 끄기" : "오버랩 켜기"}</Button>
           <Button variant="secondary" onClick={removeBgApprox}>배경 제거(간이)</Button>
+          {onClose && (
+            <Button variant="ghost" onClick={onClose} className="mt-2 text-muted-foreground">
+              닫기
+            </Button>
+          )}
         </div>
         <div className="rounded-lg border p-3 flex flex-col gap-3">
           <Label>배경색</Label>
@@ -490,7 +495,7 @@ export default function FabricEditor({ isPro = false }: { isPro?: boolean }) {
         </div>
       </div>
       <div className="flex flex-1 items-center justify-center">
-        <div className="p-4 bg-gray-100 rounded-lg border">
+        <div className="p-4 bg-gray-100 rounded-lg border w-full h-full flex items-center justify-center overflow-auto">
           <canvas ref={canvasRef} className="bg-white shadow rounded" />
         </div>
       </div>
