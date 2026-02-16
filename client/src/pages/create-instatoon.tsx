@@ -30,6 +30,8 @@ import type { PageData, SpeechBubble, BubbleStyle } from "@/lib/bubble-types";
 import { generateId, getDefaultTailTip, KOREAN_FONTS, STYLE_LABELS } from "@/lib/bubble-utils";
 import type { Generation } from "@shared/schema";
 
+type InstatoonPanelTab = "image" | "prompt" | "captions" | "bubbles";
+
 export default function CreateInstatoonPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -49,6 +51,7 @@ export default function CreateInstatoonPage() {
   });
   const [selectedBubbleId, setSelectedBubbleId] = useState<string | null>(null);
   const [zoom] = useState(100);
+  const [activeTab, setActiveTab] = useState<InstatoonPanelTab>("image");
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -282,90 +285,154 @@ export default function CreateInstatoonPage() {
       </div>
 
       <div className="flex gap-6">
-        <div className="w-[320px] flex-shrink-0">
-          <div className="space-y-4 border rounded-md bg-background p-4">
-            <Card className="p-3">
-              <h3 className="text-sm font-medium mb-3 text-muted-foreground">베이스 이미지 선택</h3>
-              {sourceImage ? (
-                <div className="relative">
-                  <div className="overflow-hidden rounded-md border">
-                    <img
-                      src={sourceImage}
-                      alt="Base"
-                      className="w-full object-contain max-h-[320px]"
-                      data-testid="img-instatoon-base"
+        <div className="w-[220px] flex-shrink-0">
+          <div className="rounded-md border bg-card">
+            <div className="px-3 py-2 border-b">
+              <p className="text-[11px] font-semibold text-muted-foreground">패널</p>
+            </div>
+            <nav className="p-2 space-y-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab("image")}
+                className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-xs ${
+                  activeTab === "image" ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover-elevate"
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <ImageIcon className="h-3.5 w-3.5" />
+                  이미지 선택
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("prompt")}
+                className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-xs ${
+                  activeTab === "prompt" ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover-elevate"
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  프롬프트
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("captions")}
+                className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-xs ${
+                  activeTab === "captions" ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover-elevate"
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <Type className="h-3.5 w-3.5" />
+                  자막 설정
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("bubbles")}
+                className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-xs ${
+                  activeTab === "bubbles" ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover-elevate"
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  말풍선
+                </span>
+              </button>
+            </nav>
+          </div>
+        </div>
+
+        <div className="flex-1 max-w-md space-y-4">
+          {activeTab === "image" && (
+            <>
+              <Card className="p-3">
+                <h3 className="text-sm font-medium mb-3 text-muted-foreground">베이스 이미지 선택</h3>
+                {sourceImage ? (
+                  <div className="relative">
+                    <div className="overflow-hidden rounded-md border">
+                      <img
+                        src={sourceImage}
+                        alt="Base"
+                        className="w-full object-contain max-h-[320px]"
+                        data-testid="img-instatoon-base"
+                      />
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      className="absolute top-2 right-2"
+                      onClick={() => {
+                        setSourceImage(null);
+                        setSelectedGenerationId(null);
+                        setInstatoonImage(null);
+                      }}
+                      data-testid="button-clear-instatoon-base"
+                    >
+                      <ImageIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div
+                    className="flex flex-col items-center justify-center gap-3 rounded-md border-2 border-dashed p-6 cursor-pointer hover-elevate"
+                    onDrop={handleDrop}
+                    onDragOver={(e) => e.preventDefault()}
+                    onClick={() => document.getElementById("instatoon-file-input")?.click()}
+                    data-testid="dropzone-instatoon-base"
+                  >
+                    <Upload className="h-8 w-8 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground text-center">
+                      인스타툰으로 만들 이미지를 드래그하거나 클릭해서 업로드
+                    </p>
+                    <input
+                      id="instatoon-file-input"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleUpload}
+                      data-testid="input-file-instatoon-base"
                     />
                   </div>
-                  <Button
-                    size="icon"
-                    variant="secondary"
-                    className="absolute top-2 right-2"
-                    onClick={() => {
-                      setSourceImage(null);
-                      setSelectedGenerationId(null);
-                      setInstatoonImage(null);
-                    }}
-                    data-testid="button-clear-instatoon-base"
-                  >
-                    <ImageIcon className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <div
-                  className="flex flex-col items-center justify-center gap-3 rounded-md border-2 border-dashed p-6 cursor-pointer hover-elevate"
-                  onDrop={handleDrop}
-                  onDragOver={(e) => e.preventDefault()}
-                  onClick={() => document.getElementById("instatoon-file-input")?.click()}
-                  data-testid="dropzone-instatoon-base"
-                >
-                  <Upload className="h-8 w-8 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground text-center">
-                    인스타툰으로 만들 이미지를 드래그하거나 클릭해서 업로드
-                  </p>
-                  <input
-                    id="instatoon-file-input"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleUpload}
-                    data-testid="input-file-instatoon-base"
-                  />
-                </div>
-              )}
-            </Card>
-
-            {galleryItems && galleryItems.length > 0 && !sourceImage && (
-              <Card className="p-3">
-                <div className="flex items-center justify-between mb-3 gap-2">
-                  <h3 className="text-sm font-medium text-muted-foreground">또는 생성한 캐릭터/장면에서 선택</h3>
-                  <Badge variant="outline" className="text-[10px]">
-                    My Gallery
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-4 gap-2 max-h-[220px] overflow-y-auto">
-                  {galleryLoading
-                    ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="aspect-square rounded-md" />)
-                    : galleryItems.map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setSelectedGenerationId(item.id as number)}
-                          className={`overflow-hidden rounded-md border hover-elevate active-elevate-2 ${
-                            selectedGenerationId === item.id ? "ring-2 ring-primary" : ""
-                          }`}
-                          data-testid={`button-select-instatoon-${item.id}`}
-                        >
-                          <img
-                            src={item.resultImageUrl!}
-                            alt={item.prompt}
-                            className="w-full aspect-square object-cover"
-                          />
-                        </button>
-                      ))}
-                </div>
+                )}
               </Card>
-            )}
 
+              {galleryItems && galleryItems.length > 0 && !sourceImage && (
+                <Card className="p-3">
+                  <div className="flex items-center justify-between mb-3 gap-2">
+                    <h3 className="text-sm font-medium text-muted-foreground">또는 생성한 캐릭터/장면에서 선택</h3>
+                    <Badge variant="outline" className="text-[10px]">
+                      My Gallery
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2 max-h-[220px] overflow-y-auto">
+                    {galleryLoading
+                      ? Array.from({ length: 4 }).map((_, i) => (
+                          <Skeleton key={i} className="aspect-square rounded-md" />
+                        ))
+                      : galleryItems.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => setSelectedGenerationId(item.id as number)}
+                            className={`overflow-hidden rounded-md border hover-elevate active-elevate-2 ${
+                              selectedGenerationId === item.id ? "ring-2 ring-primary" : ""
+                            }`}
+                            data-testid={`button-select-instatoon-${item.id}`}
+                          >
+                            <img
+                              src={item.resultImageUrl!}
+                              alt={item.prompt}
+                              className="w-full aspect-square object-cover"
+                            />
+                          </button>
+                        ))}
+                  </div>
+                </Card>
+              )}
+            </>
+          )}
+
+          {activeTab === "prompt" && (
             <Card className="p-3">
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-2">
@@ -392,7 +459,7 @@ export default function CreateInstatoonPage() {
                   placeholder="예: 비 오는 날 카페 창가에서 멍하니 밖을 보는 장면, 따뜻한 조명과 노란 우산들..."
                   value={scenePrompt}
                   onChange={(e) => setScenePrompt(e.target.value)}
-                  className="min-h-[90px] resize-none"
+                  className="min-h-[120px] resize-none"
                   data-testid="input-instatoon-prompt"
                 />
                 <p className="text-[11px] text-muted-foreground">
@@ -427,7 +494,9 @@ export default function CreateInstatoonPage() {
                 )}
               </div>
             </Card>
+          )}
 
+          {activeTab === "captions" && (
             <Card className="p-3">
               <h3 className="text-sm font-medium mb-3">자막 설정</h3>
               <div className="space-y-4">
@@ -542,7 +611,9 @@ export default function CreateInstatoonPage() {
                 </div>
               </div>
             </Card>
+          )}
 
+          {activeTab === "bubbles" && (
             <Card className="p-3">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
@@ -715,7 +786,7 @@ export default function CreateInstatoonPage() {
                 </div>
               )}
             </Card>
-          </div>
+          )}
         </div>
 
         <div className="flex-1 flex flex-col gap-4">

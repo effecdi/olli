@@ -287,10 +287,10 @@ export default function CreatePage() {
               만든 캐릭터나 이미지를 활용해 배경과 자막이 포함된 인스타툰 컷을 자동으로 만들 수 있어요.
             </p>
           </div>
-          <Button size="sm" variant="outline" onClick={() => navigate("/create-instatoon")}>
+          {/* <Button size="sm" variant="outline" onClick={() => navigate("/create-instatoon")}>
             인스타툰 자동 생성하기
             <ArrowRight className="ml-1.5 h-4 w-4" />
-          </Button>
+          </Button> */}
         </Card>
       </div>
     </div>
