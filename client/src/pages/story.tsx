@@ -3775,7 +3775,7 @@ export default function StoryPage() {
                               <SelectContent>
                                 {availableFonts.map((f) => (
                                   <SelectItem key={f.value} value={f.value} className="text-[11px]">
-                                    {f.label}
+                                    <span style={{ fontFamily: f.family }}>{f.label}</span>
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -3948,7 +3948,7 @@ export default function StoryPage() {
                               <SelectContent>
                                 {availableFonts.map((f) => (
                                   <SelectItem key={f.value} value={f.value} className="text-[11px]">
-                                    {f.label}
+                                    <span style={{ fontFamily: f.family }}>{f.label}</span>
                                   </SelectItem>
                                 ))}
                               </SelectContent>
