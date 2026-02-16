@@ -343,7 +343,7 @@ export default function CreateInstatoonPage() {
           </div>
         </div>
 
-        <div className="flex-1 max-w-md space-y-4">
+        <div className="flex-1 max-w-[18rem] space-y-4">
           {activeTab === "image" && (
             <>
               <Card className="p-3">
