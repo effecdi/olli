@@ -304,7 +304,7 @@ export default function BubblePage() {
   return (
     <div className="flex h-screen w-full flex-col bg-background">
       {/* Top bar */}
-      <header className="flex h-14 items-center justify-between border-b bg-white px-4">
+      <header className="flex h-14 items-center justify-between border-b bg-background px-4">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={() => setLocation("/")}>
             <ArrowRight className="h-4 w-4 rotate-180" />
@@ -422,7 +422,7 @@ export default function BubblePage() {
                   >
                     {/* Page Number Tag */}
                     <div className="absolute -left-12 top-0 flex flex-col gap-2">
-                      <div className={`flex h-8 w-8 items-center justify-center rounded-full font-bold shadow-sm ${activePageIndex === i ? "bg-primary text-white" : "bg-white text-neutral-500"}`}>
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-full font-bold shadow-sm ${activePageIndex === i ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                         {i + 1}
                       </div>
                     </div>
@@ -452,8 +452,8 @@ export default function BubblePage() {
             ))}
 
             <Button variant="outline" className="h-24 w-full max-w-[500px] border-dashed" onClick={addPage}>
-              <FilePlus className="mr-2 h-6 w-6 text-neutral-400" />
-              <span className="text-neutral-500">Add New Page</span>
+              <FilePlus className="mr-2 h-6 w-6 text-muted-foreground/70" />
+              <span className="text-muted-foreground">Add New Page</span>
             </Button>
           </div>
         </div>
@@ -469,10 +469,10 @@ export default function BubblePage() {
             <DialogTitle>캐릭터 불러오기</DialogTitle>
           </DialogHeader>
           <div className="grid max-h-[60vh] grid-cols-3 gap-4 overflow-y-auto sm:grid-cols-4">
-            {galleryItems?.map((item: any) => (
-              <div
-                key={item.id}
-                className="group cursor-pointer overflow-hidden rounded-lg border bg-neutral-100 transition hover:ring-2 hover:ring-primary"
+                {galleryItems?.map((item: any) => (
+                  <div
+                    key={item.id}
+                    className="group cursor-pointer overflow-hidden rounded-lg border bg-card transition hover:ring-2 hover:ring-primary"
                 onClick={() => {
                   // Assuming helper function from original file is adapted inline or we use logic here
                   // For brevity, using inline simplified logic
@@ -510,7 +510,7 @@ export default function BubblePage() {
           </div>
           <div className="grid max-h-[60vh] grid-cols-4 gap-4 overflow-y-auto">
             {BUBBLE_TEMPLATE_CATEGORIES[templateCategoryIdx].ids.map(id => (
-              <div key={id} className="cursor-pointer rounded border p-2 hover:bg-neutral-100" onClick={() => {
+              <div key={id} className="cursor-pointer rounded border bg-card p-2 hover:bg-muted" onClick={() => {
                 // Logic to add template bubble
                 const path = bubblePath(id);
                 const img = new Image(); img.src = path;

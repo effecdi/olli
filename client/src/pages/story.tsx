@@ -35,7 +35,6 @@ import {
   X,
   Type,
   Layers,
-  Settings2,
   ChevronLeft,
   ChevronRight,
   Copy,
@@ -60,7 +59,6 @@ import { EditorOnboarding } from "@/components/editor-onboarding";
 import { getFlowState, clearFlowState } from "@/lib/flow";
 import type { StoryPanelScript, Generation } from "@shared/schema";
 import ReactFlow, { Background, Controls, type Node, type NodeChange, applyNodeChanges } from "reactflow";
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -3279,8 +3277,8 @@ export default function StoryPage() {
     });
   }, [activePanel, activePanelIndex]);
 
-  type LeftTab = "ai" | "panels" | "edit" | "script" | null;
-  const [activeLeftTab, setActiveLeftTab] = useState<LeftTab>("panels");
+  type LeftTab = "ai" | "script" | null;
+  const [activeLeftTab, setActiveLeftTab] = useState<LeftTab>(null);
 
   const toggleLeftTab = (tab: LeftTab) => {
     setActiveLeftTab((prev) => (prev === tab ? null : tab));
@@ -3525,7 +3523,6 @@ export default function StoryPage() {
   const LEFT_TABS: { id: LeftTab; icon: typeof Wand2; label: string }[] = [
     { id: "ai", icon: Wand2, label: "AI 생성" },
     { id: "script", icon: Type, label: "스크립트" },
-    { id: "edit", icon: Settings2, label: "편집" },
   ];
 
   return (
@@ -3548,15 +3545,13 @@ export default function StoryPage() {
         ))}
       </div>
 
-      <ResizablePanelGroup direction="horizontal" className="flex-1 h-full">
+      <div className="flex flex-1 h-full">
         {activeLeftTab && (
-          <>
-            <ResizablePanel defaultSize={20} minSize={14} maxSize={30} order={1}>
-              <div
-                className="h-full w-full bg-card overflow-y-auto"
-                data-testid="left-panel-content"
-              >
-                <div className="p-3 space-y-5">
+          <div
+            className="h-full w-[320px] bg-card overflow-y-auto border-r"
+            data-testid="left-panel-content"
+          >
+            <div className="p-3 space-y-5">
                   {activeLeftTab === "ai" && (
                     <>
                       <div className="flex items-center justify-between gap-2">
@@ -4014,44 +4009,11 @@ export default function StoryPage() {
                     </>
                   )}
 
-                  {activeLeftTab === "edit" && activePanel && (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-2 px-3 pt-3">
-                        <h3 className="text-sm font-semibold">편집</h3>
-                        <button
-                          onClick={() => setActiveLeftTab(null)}
-                          className="text-muted-foreground hover-elevate rounded-md p-1"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                      <div className="px-3 pb-3">
-                        <EditorPanel
-                          key={activePanel.id + "-left"}
-                          panel={activePanel}
-                          index={activePanelIndex}
-                          total={panels.length}
-                          onUpdate={(updated) => updatePanel(activePanelIndex, updated)}
-                          onRemove={() => removePanel(activePanelIndex)}
-                          galleryImages={galleryData || []}
-                          galleryLoading={galleryLoading}
-                          selectedBubbleId={selectedBubbleId}
-                          setSelectedBubbleId={setSelectedBubbleId}
-                          selectedCharId={selectedCharId}
-                          setSelectedCharId={setSelectedCharId}
-                          creatorTier={usageData?.creatorTier ?? 0}
-                          isPro={usageData?.tier === "pro"}
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
-            </ResizablePanel>
-            <ResizableHandle withHandle />
-          </>
-        )}
-        <ResizablePanel defaultSize={52} minSize={40} className="flex flex-col min-w-0 overflow-hidden" order={2}>
+          )}
+
+        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             <div
               className="w-full relative"
@@ -4137,7 +4099,7 @@ export default function StoryPage() {
             {/* Main Canvas Area - List View */}
             <div
               ref={canvasAreaRef}
-              className={`flex-1 min-h-0 overflow-auto flex flex-col items-center bg-muted/20 dark:bg-muted/10 relative ${zoom >= 200 ? "p-0" : "p-8"}`}
+              className={`flex-1 overflow-y-auto bg-muted/20 dark:bg-muted/10 ${zoom >= 200 ? "p-0" : "p-8"}`}
               data-testid="story-canvas-area"
               onMouseDown={(e) => {
                 if (e.target === e.currentTarget) {
@@ -4146,7 +4108,7 @@ export default function StoryPage() {
                 }
               }}
             >
-              <div className="flex flex-col items-center gap-8 pb-32">
+              <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-8 pb-32">
                 {panels.map((panel, i) => (
                   <ContextMenu key={panel.id}>
                     <ContextMenuTrigger>
@@ -4156,7 +4118,7 @@ export default function StoryPage() {
                       >
                         {/* Page Number Tag */}
                         <div className="absolute -left-12 top-0 flex flex-col gap-2">
-                          <div className={`flex h-8 w-8 items-center justify-center rounded-full font-bold shadow-sm ${activePanelIndex === i ? "bg-primary text-white" : "bg-white text-neutral-500"}`}>
+                          <div className={`flex h-8 w-8 items-center justify-center rounded-full font-bold shadow-sm ${activePanelIndex === i ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                             {i + 1}
                           </div>
                         </div>
@@ -4201,8 +4163,8 @@ export default function StoryPage() {
                 ))}
 
                 <Button variant="outline" className="h-24 w-full max-w-[500px] border-dashed" onClick={addPanel} disabled={panels.length >= maxPanels}>
-                  <Plus className="mr-2 h-6 w-6 text-neutral-400" />
-                  <span className="text-neutral-500">Add New Page</span>
+                  <Plus className="mr-2 h-6 w-6 text-muted-foreground/70" />
+                  <span className="text-muted-foreground">Add New Page</span>
                 </Button>
               </div>
             </div>
@@ -4304,8 +4266,7 @@ export default function StoryPage() {
             </Button>
           </div>
         </div>
-      </ResizablePanel>
-    </ResizablePanelGroup>
+      </div>
 
             <Dialog open={aiLimitOpen} onOpenChange={setAiLimitOpen}>
               <DialogContent className="max-w-sm">
