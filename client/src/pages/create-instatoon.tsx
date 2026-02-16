@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Loader2,
@@ -25,8 +26,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { BubbleCanvas } from "@/components/bubble-canvas";
-import type { PageData, SpeechBubble } from "@/lib/bubble-types";
-import { generateId, getDefaultTailTip } from "@/lib/bubble-utils";
+import type { PageData, SpeechBubble, BubbleStyle } from "@/lib/bubble-types";
+import { generateId, getDefaultTailTip, KOREAN_FONTS, STYLE_LABELS } from "@/lib/bubble-utils";
 import type { Generation } from "@shared/schema";
 
 export default function CreateInstatoonPage() {
@@ -56,6 +57,8 @@ export default function CreateInstatoonPage() {
   });
   const isPro = usage?.tier === "pro";
   const isOutOfCredits = !isPro && (usage?.credits ?? 0) <= 0;
+  const canAllFontsInstatoon = isPro || (usage?.creatorTier ?? 0) >= 3;
+  const availableFonts = canAllFontsInstatoon ? KOREAN_FONTS : KOREAN_FONTS.slice(0, 3);
 
   const { data: galleryItems, isLoading: galleryLoading } = useQuery<Generation[]>({
     queryKey: ["/api/gallery"],
@@ -271,277 +274,451 @@ export default function CreateInstatoonPage() {
         캐릭터 만들기로 돌아가기
       </button>
 
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="font-sans text-3xl font-bold tracking-tight">자동화 인스타툰 생성</h1>
         <p className="mt-2 text-muted-foreground">
           업로드한 이미지나 생성된 캐릭터에 배경과 자막을 더해 한 컷 인스타툰을 자동으로 만들어보세요.
         </p>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-2">
-        <div className="flex flex-col gap-4">
-          <Card className="p-4">
-            <h3 className="text-sm font-medium mb-3 text-muted-foreground">베이스 이미지 선택</h3>
-            {sourceImage ? (
-              <div className="relative">
-                <div className="overflow-hidden rounded-md border">
-                  <img
-                    src={sourceImage}
-                    alt="Base"
-                    className="w-full object-contain max-h-[320px]"
-                    data-testid="img-instatoon-base"
+      <div className="flex gap-6">
+        <div className="w-[320px] flex-shrink-0">
+          <div className="space-y-4 border rounded-md bg-background p-4">
+            <Card className="p-3">
+              <h3 className="text-sm font-medium mb-3 text-muted-foreground">베이스 이미지 선택</h3>
+              {sourceImage ? (
+                <div className="relative">
+                  <div className="overflow-hidden rounded-md border">
+                    <img
+                      src={sourceImage}
+                      alt="Base"
+                      className="w-full object-contain max-h-[320px]"
+                      data-testid="img-instatoon-base"
+                    />
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="absolute top-2 right-2"
+                    onClick={() => {
+                      setSourceImage(null);
+                      setSelectedGenerationId(null);
+                      setInstatoonImage(null);
+                    }}
+                    data-testid="button-clear-instatoon-base"
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div
+                  className="flex flex-col items-center justify-center gap-3 rounded-md border-2 border-dashed p-6 cursor-pointer hover-elevate"
+                  onDrop={handleDrop}
+                  onDragOver={(e) => e.preventDefault()}
+                  onClick={() => document.getElementById("instatoon-file-input")?.click()}
+                  data-testid="dropzone-instatoon-base"
+                >
+                  <Upload className="h-8 w-8 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground text-center">
+                    인스타툰으로 만들 이미지를 드래그하거나 클릭해서 업로드
+                  </p>
+                  <input
+                    id="instatoon-file-input"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleUpload}
+                    data-testid="input-file-instatoon-base"
                   />
                 </div>
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  className="absolute top-2 right-2"
-                  onClick={() => {
-                    setSourceImage(null);
-                    setSelectedGenerationId(null);
-                    setInstatoonImage(null);
-                  }}
-                  data-testid="button-clear-instatoon-base"
-                >
-                  <ImageIcon className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <div
-                className="flex flex-col items-center justify-center gap-3 rounded-md border-2 border-dashed p-8 cursor-pointer hover-elevate"
-                onDrop={handleDrop}
-                onDragOver={(e) => e.preventDefault()}
-                onClick={() => document.getElementById("instatoon-file-input")?.click()}
-                data-testid="dropzone-instatoon-base"
-              >
-                <Upload className="h-8 w-8 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground text-center">
-                  인스타툰으로 만들 이미지를 드래그하거나 클릭해서 업로드
-                </p>
-                <input
-                  id="instatoon-file-input"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleUpload}
-                  data-testid="input-file-instatoon-base"
-                />
-              </div>
-            )}
-          </Card>
+              )}
+            </Card>
 
-          {galleryItems && galleryItems.length > 0 && !sourceImage && (
-            <Card className="p-4">
-              <div className="flex items-center justify-between mb-3 gap-2">
-                <h3 className="text-sm font-medium text-muted-foreground">또는 생성한 캐릭터/장면에서 선택</h3>
-                <Badge variant="outline" className="text-[10px]">
-                  My Gallery
-                </Badge>
-              </div>
-              <div className="grid grid-cols-4 gap-2 max-h-[220px] overflow-y-auto">
-                {galleryLoading
-                  ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="aspect-square rounded-md" />)
-                  : galleryItems.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setSelectedGenerationId(item.id as number)}
-                        className={`overflow-hidden rounded-md border hover-elevate active-elevate-2 ${
-                          selectedGenerationId === item.id ? "ring-2 ring-primary" : ""
-                        }`}
-                        data-testid={`button-select-instatoon-${item.id}`}
-                      >
-                        <img
-                          src={item.resultImageUrl!}
-                          alt={item.prompt}
-                          className="w-full aspect-square object-cover"
-                        />
-                      </button>
-                    ))}
+            {galleryItems && galleryItems.length > 0 && !sourceImage && (
+              <Card className="p-3">
+                <div className="flex items-center justify-between mb-3 gap-2">
+                  <h3 className="text-sm font-medium text-muted-foreground">또는 생성한 캐릭터/장면에서 선택</h3>
+                  <Badge variant="outline" className="text-[10px]">
+                    My Gallery
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-4 gap-2 max-h-[220px] overflow-y-auto">
+                  {galleryLoading
+                    ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="aspect-square rounded-md" />)
+                    : galleryItems.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setSelectedGenerationId(item.id as number)}
+                          className={`overflow-hidden rounded-md border hover-elevate active-elevate-2 ${
+                            selectedGenerationId === item.id ? "ring-2 ring-primary" : ""
+                          }`}
+                          data-testid={`button-select-instatoon-${item.id}`}
+                        >
+                          <img
+                            src={item.resultImageUrl!}
+                            alt={item.prompt}
+                            className="w-full aspect-square object-cover"
+                          />
+                        </button>
+                      ))}
+                </div>
+              </Card>
+            )}
+
+            <Card className="p-3">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <h3 className="text-sm font-medium">인스타툰 프롬프트</h3>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => aiPromptMutation.mutate()}
+                    disabled={aiPromptMutation.isPending}
+                    data-testid="button-ai-prompt-instatoon"
+                  >
+                    {aiPromptMutation.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                    ) : (
+                      <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    AI 프롬프트
+                  </Button>
+                </div>
+                <Textarea
+                  placeholder="예: 비 오는 날 카페 창가에서 멍하니 밖을 보는 장면, 따뜻한 조명과 노란 우산들..."
+                  value={scenePrompt}
+                  onChange={(e) => setScenePrompt(e.target.value)}
+                  className="min-h-[90px] resize-none"
+                  data-testid="input-instatoon-prompt"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  장면 분위기, 장소, 시간대, 감정을 짧게 적어주세요. 배경과 소품이 자동으로 추가됩니다.
+                </p>
+                <Button
+                  size="lg"
+                  className="w-full gap-2"
+                  onClick={() => generateMutation.mutate()}
+                  disabled={!canGenerateInstatoon}
+                  data-testid="button-generate-instatoon"
+                >
+                  {generateMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      인스타툰 생성 중...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4" />
+                      인스타툰 생성하기
+                    </>
+                  )}
+                </Button>
+                {!isPro && isOutOfCredits && (
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <p className="text-xs text-muted-foreground">오늘의 무료 생성 횟수를 모두 사용했습니다.</p>
+                    <Button size="sm" variant="secondary" asChild>
+                      <a href="/pricing">Pro 업그레이드</a>
+                    </Button>
+                  </div>
+                )}
               </div>
             </Card>
-          )}
 
-          <Card className="p-4">
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between gap-2">
+            <Card className="p-3">
+              <h3 className="text-sm font-medium mb-3">자막 설정</h3>
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label className="text-xs font-medium flex items-center gap-1">
+                      <Type className="h-3.5 w-3.5" />
+                      상단 자막
+                    </Label>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6"
+                      onClick={() => setTopCaptions((prev) => [...prev, ""])}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {topCaptions.map((value, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <Input
+                          placeholder="예: 월요일 아침, 출근 10분 전..."
+                          value={value}
+                          onChange={(e) =>
+                            setTopCaptions((prev) => prev.map((v, i) => (i === index ? e.target.value : v)))
+                          }
+                          data-testid={`input-caption-top-${index}`}
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          onClick={() =>
+                            setTopCaptions((prev) => prev.filter((_, i) => i !== index))
+                          }
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                        </Button>
+                      </div>
+                    ))}
+                    {topCaptions.length === 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-center gap-1.5 text-xs"
+                        onClick={() => setTopCaptions([""])}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        상단 자막 추가
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label className="text-xs font-medium flex items-center gap-1">
+                      <Type className="h-3.5 w-3.5" />
+                      하단 자막
+                    </Label>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6"
+                      onClick={() => setBottomCaptions((prev) => [...prev, ""])}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {bottomCaptions.map((value, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <Input
+                          placeholder="예: 결국 또 지각각..."
+                          value={value}
+                          onChange={(e) =>
+                            setBottomCaptions((prev) => prev.map((v, i) => (i === index ? e.target.value : v)))
+                          }
+                          data-testid={`input-caption-bottom-${index}`}
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          onClick={() =>
+                            setBottomCaptions((prev) => prev.filter((_, i) => i !== index))
+                          }
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                        </Button>
+                      </div>
+                    ))}
+                    {bottomCaptions.length === 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-center gap-1.5 text-xs"
+                        onClick={() => setBottomCaptions([""])}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        하단 자막 추가
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-3">
+              <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <h3 className="text-sm font-medium">인스타툰 프롬프트</h3>
+                  <MessageCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                  <h3 className="text-sm font-medium text-muted-foreground">말풍선 설정</h3>
                 </div>
                 <Button
-                  size="sm"
                   variant="outline"
-                  onClick={() => aiPromptMutation.mutate()}
-                  disabled={aiPromptMutation.isPending}
-                  data-testid="button-ai-prompt-instatoon"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={addSpeechBubble}
                 >
-                  {aiPromptMutation.isPending ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                  ) : (
-                    <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                  )}
-                  AI 프롬프트
+                  <Plus className="h-3.5 w-3.5" />
                 </Button>
               </div>
-              <Textarea
-                placeholder="예: 비 오는 날 카페 창가에서 멍하니 밖을 보는 장면, 따뜻한 조명과 노란 우산들..."
-                value={scenePrompt}
-                onChange={(e) => setScenePrompt(e.target.value)}
-                className="min-h-[90px] resize-none"
-                data-testid="input-instatoon-prompt"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                장면 분위기, 장소, 시간대, 감정을 짧게 적어주세요. 배경과 소품이 자동으로 추가됩니다.
-              </p>
-              <Button
-                size="lg"
-                className="w-full gap-2"
-                onClick={() => generateMutation.mutate()}
-                disabled={!canGenerateInstatoon}
-                data-testid="button-generate-instatoon"
-              >
-                {generateMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    인스타툰 생성 중...
-                  </>
+
+              <div className="space-y-1.5 mb-3">
+                {bubblePage.bubbles.length === 0 ? (
+                  <p className="text-[11px] text-muted-foreground">
+                    말풍선을 추가하고 캔버스에서 자유롭게 움직여보세요.
+                  </p>
                 ) : (
-                  <>
-                    <Sparkles className="h-4 w-4" />
-                    인스타툰 생성하기
-                  </>
+                  bubblePage.bubbles.map((b, index) => (
+                    <div
+                      key={b.id}
+                      className={`flex items-center justify-between rounded-md px-2 py-1.5 cursor-pointer text-xs ${
+                        selectedBubbleId === b.id ? "bg-primary/10" : "hover:bg-muted"
+                      }`}
+                      onClick={() => setSelectedBubbleId(b.id)}
+                    >
+                      <span className="truncate">
+                        말풍선 {index + 1}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setBubblePage((prev) => ({
+                            ...prev,
+                            bubbles: prev.bubbles.filter((x) => x.id !== b.id),
+                          }));
+                          if (selectedBubbleId === b.id) {
+                            setSelectedBubbleId(null);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                      </Button>
+                    </div>
+                  ))
                 )}
-              </Button>
-              {!isPro && isOutOfCredits && (
-                <div className="mt-1 flex items-center justify-between gap-2">
-                  <p className="text-xs text-muted-foreground">오늘의 무료 생성 횟수를 모두 사용했습니다.</p>
-                  <Button size="sm" variant="secondary" asChild>
-                    <a href="/pricing">Pro 업그레이드</a>
-                  </Button>
+              </div>
+
+              {selectedBubbleId && (
+                <div className="mt-2 space-y-3 border-t pt-3">
+                  {(() => {
+                    const selected = bubblePage.bubbles.find((b) => b.id === selectedBubbleId);
+                    if (!selected) return null;
+                    return (
+                      <>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">말풍선 텍스트</Label>
+                          <Textarea
+                            value={selected.text}
+                            onChange={(e) =>
+                              updateSpeechBubble(selected.id, { text: e.target.value })
+                            }
+                            className="h-20 text-xs"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-xs">폰트</Label>
+                          <Select
+                            value={selected.fontKey}
+                            onValueChange={(v) =>
+                              updateSpeechBubble(selected.id, { fontKey: v })
+                            }
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableFonts.map((f) => (
+                                <SelectItem key={f.value} value={f.value}>
+                                  <span style={{ fontFamily: f.family }}>{f.label}</span>
+                                </SelectItem>
+                              ))}
+                              {!canAllFontsInstatoon && (
+                                <div className="px-3 py-2 text-[11px] text-muted-foreground border-t">
+                                  Pro 멤버십 또는 프로 연재러(30회+) 등급에서 전체 폰트 해금
+                                </div>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <Label className="text-xs">글자 크기</Label>
+                            <span className="text-[11px] text-muted-foreground">
+                              {selected.fontSize}px
+                            </span>
+                          </div>
+                          <Slider
+                            value={[selected.fontSize]}
+                            onValueChange={([v]) =>
+                              updateSpeechBubble(selected.id, { fontSize: v })
+                            }
+                            min={8}
+                            max={40}
+                            step={1}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-[11px]">스타일</Label>
+                            <Select
+                              value={selected.style}
+                              onValueChange={(v) =>
+                                updateSpeechBubble(selected.id, {
+                                  style: v as BubbleStyle,
+                                  seed: Math.floor(Math.random() * 1000000),
+                                })
+                              }
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(STYLE_LABELS).map(([k, v]) => (
+                                  <SelectItem key={k} value={k}>
+                                    {v}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[11px]">꼬리 방향</Label>
+                            <Select
+                              value={selected.tailDirection}
+                              onValueChange={(v: any) =>
+                                updateSpeechBubble(selected.id, { tailDirection: v })
+                              }
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="bottom">아래</SelectItem>
+                                <SelectItem value="top">위</SelectItem>
+                                <SelectItem value="left">왼쪽</SelectItem>
+                                <SelectItem value="right">오른쪽</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        <p className="text-[11px] text-muted-foreground">
+                          캔버스에서 말풍선 테두리와 꼬리 끝을 드래그하면 크기와 꼬리를 조절할 수 있습니다.
+                        </p>
+                      </>
+                    );
+                  })()}
                 </div>
               )}
-            </div>
-          </Card>
-
-          <Card className="p-4">
-            <h3 className="text-sm font-medium mb-3">자막 설정</h3>
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <Label className="text-xs font-medium flex items-center gap-1">
-                    <Type className="h-3.5 w-3.5" />
-                    상단 자막
-                  </Label>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6"
-                    onClick={() => setTopCaptions((prev) => [...prev, ""])}
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-                <div className="space-y-2">
-                  {topCaptions.map((value, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <Input
-                        placeholder="예: 월요일 아침, 출근 10분 전..."
-                        value={value}
-                        onChange={(e) =>
-                          setTopCaptions((prev) => prev.map((v, i) => (i === index ? e.target.value : v)))
-                        }
-                        data-testid={`input-caption-top-${index}`}
-                      />
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7"
-                        onClick={() =>
-                          setTopCaptions((prev) => prev.filter((_, i) => i !== index))
-                        }
-                      >
-                        <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                      </Button>
-                    </div>
-                  ))}
-                  {topCaptions.length === 0 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="w-full justify-center gap-1.5 text-xs"
-                      onClick={() => setTopCaptions([""])}
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      상단 자막 추가
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <Label className="text-xs font-medium flex items-center gap-1">
-                    <Type className="h-3.5 w-3.5" />
-                    하단 자막
-                  </Label>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6"
-                    onClick={() => setBottomCaptions((prev) => [...prev, ""])}
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-                <div className="space-y-2">
-                  {bottomCaptions.map((value, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <Input
-                        placeholder="예: 결국 또 지각각..."
-                        value={value}
-                        onChange={(e) =>
-                          setBottomCaptions((prev) => prev.map((v, i) => (i === index ? e.target.value : v)))
-                        }
-                        data-testid={`input-caption-bottom-${index}`}
-                      />
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7"
-                        onClick={() =>
-                          setBottomCaptions((prev) => prev.filter((_, i) => i !== index))
-                        }
-                      >
-                        <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                      </Button>
-                    </div>
-                  ))}
-                  {bottomCaptions.length === 0 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="w-full justify-center gap-1.5 text-xs"
-                      onClick={() => setBottomCaptions([""])}
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      하단 자막 추가
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-            </div>
-          </Card>
+            </Card>
+          </div>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex-1 flex flex-col gap-4">
           <Card className="flex-1 p-4 flex flex-col items-center justify-center min-h-[500px]">
             {generateMutation.isPending && !baseImageForCanvas ? (
               <div className="flex flex-col items-center gap-4 w-full">
@@ -553,128 +730,22 @@ export default function CreateInstatoonPage() {
               </div>
             ) : baseImageForCanvas ? (
               <div className="flex flex-col gap-3 w-full">
-                <div className="flex gap-4 items-stretch">
-                  <div className="w-[260px] border rounded-md bg-muted/40 p-3 flex flex-col gap-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <MessageCircle className="h-3.5 w-3.5 text-muted-foreground" />
-                        <h3 className="text-xs font-medium text-muted-foreground">말풍선 패널</h3>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={addSpeechBubble}
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      {bubblePage.bubbles.length === 0 ? (
-                        <p className="text-[11px] text-muted-foreground">
-                          말풍선을 추가하고 캔버스에서 자유롭게 움직여보세요.
-                        </p>
-                      ) : (
-                        bubblePage.bubbles.map((b, index) => (
-                          <div
-                            key={b.id}
-                            className={`flex items-center justify-between rounded-md px-2 py-1.5 cursor-pointer text-xs ${
-                              selectedBubbleId === b.id ? "bg-primary/10" : "hover:bg-muted"
-                            }`}
-                            onClick={() => setSelectedBubbleId(b.id)}
-                          >
-                            <span className="truncate">
-                              말풍선 {index + 1}
-                            </span>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setBubblePage((prev) => ({
-                                  ...prev,
-                                  bubbles: prev.bubbles.filter((x) => x.id !== b.id),
-                                }));
-                                if (selectedBubbleId === b.id) {
-                                  setSelectedBubbleId(null);
-                                }
-                              }}
-                            >
-                              <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                            </Button>
-                          </div>
-                        ))
-                      )}
-                    </div>
-
-                    {selectedBubbleId && (
-                      <div className="mt-2 space-y-3 border-t pt-3">
-                        {(() => {
-                          const selected = bubblePage.bubbles.find((b) => b.id === selectedBubbleId);
-                          if (!selected) return null;
-                          return (
-                            <>
-                              <div className="space-y-1.5">
-                                <Label className="text-xs">말풍선 텍스트</Label>
-                                <Textarea
-                                  value={selected.text}
-                                  onChange={(e) =>
-                                    updateSpeechBubble(selected.id, { text: e.target.value })
-                                  }
-                                  className="h-20 text-xs"
-                                />
-                              </div>
-                              <div className="grid grid-cols-2 gap-2">
-                                <div className="space-y-1">
-                                  <Label className="text-[11px]">꼬리 방향</Label>
-                                  <Select
-                                    value={selected.tailDirection}
-                                    onValueChange={(v: any) =>
-                                      updateSpeechBubble(selected.id, { tailDirection: v })
-                                    }
-                                  >
-                                    <SelectTrigger className="h-8 text-xs">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="bottom">아래</SelectItem>
-                                      <SelectItem value="top">위</SelectItem>
-                                      <SelectItem value="left">왼쪽</SelectItem>
-                                      <SelectItem value="right">오른쪽</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              </div>
-                              <p className="text-[11px] text-muted-foreground">
-                                캔버스에서 말풍선을 드래그하면 위치를, 꼬리 끝을 드래그하면 꼬리를 조절할 수 있어요.
-                              </p>
-                            </>
-                          );
-                        })()}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex-1 overflow-hidden rounded-md border bg-white">
-                    <BubbleCanvas
-                      page={bubblePage}
-                      isActive
-                      zoom={zoom}
-                      onUpdateBubble={(id, u) => updateSpeechBubble(id, u)}
-                      onUpdateChar={() => {}}
-                      onSelectBubble={(id) => setSelectedBubbleId(id)}
-                      onSelectChar={() => {}}
-                      selectedBubbleId={selectedBubbleId}
-                      selectedCharId={null}
-                      onCanvasRef={(el) => {
-                        canvasRef.current = el;
-                      }}
-                      showWatermark={false}
-                    />
-                  </div>
+                <div className="overflow-hidden rounded-md border bg-white w-full">
+                  <BubbleCanvas
+                    page={bubblePage}
+                    isActive
+                    zoom={zoom}
+                    onUpdateBubble={(id, u) => updateSpeechBubble(id, u)}
+                    onUpdateChar={() => {}}
+                    onSelectBubble={(id) => setSelectedBubbleId(id)}
+                    onSelectChar={() => {}}
+                    selectedBubbleId={selectedBubbleId}
+                    selectedCharId={null}
+                    onCanvasRef={(el) => {
+                      canvasRef.current = el;
+                    }}
+                    showWatermark={false}
+                  />
                 </div>
                 <div className="flex gap-2">
                   <Button
