@@ -90,8 +90,6 @@ export default function PosePage() {
     onSuccess: (data) => {
       setGeneratedImage(data.imageUrl);
       setGenerationCount((c) => c + 1);
-      setShowBgPanel(false);
-      setBgResultImage(null);
       queryClient.invalidateQueries({ queryKey: ["/api/usage"] });
       if (isFlow) setFlowState({ lastPoseImageUrl: data.imageUrl });
       toast({ title: "포즈 완성!", description: "캐릭터 포즈가 성공적으로 생성되었습니다." });
