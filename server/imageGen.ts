@@ -179,6 +179,8 @@ export async function generatePoseImage(
 
 ${noTextRule}
 
+IMPORTANT: Generate the image in 3:4 portrait aspect ratio (width:height = 3:4). The image must be taller than it is wide.
+
 Generate a new pose of the same character described below. Keep the character looking EXACTLY the same - same style, same features, same colors. Only change the pose and expression.
 
 Original character description: ${character.prompt}
@@ -201,6 +203,8 @@ Keep the SAME style. Single character. Do NOT write any text or words in the ima
         text: `${config.instruction}
 
 ${noTextRule}
+
+IMPORTANT: Generate the image in 3:4 portrait aspect ratio (width:height = 3:4). The image must be taller than it is wide.
 
 Look at this reference character image. Generate the EXACT SAME character in a different pose. Keep it in the same style - same line thickness, same level of detail, same colors.
 
@@ -265,6 +269,8 @@ IMPORTANT RULES:
 - Draw the background in a style that matches the character (simple, cute, instatoon style)
 - The background should complement the character, not overwhelm it
 - Keep the overall style simple and cute, matching Korean Instagram webtoon (instatoon) aesthetics
+
+IMPORTANT: Generate the image in 3:4 portrait aspect ratio (width:height = 3:4). The image must be taller than it is wide.
 
 Background scene: ${backgroundPrompt}
 ${itemsInstruction}
