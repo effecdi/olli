@@ -297,7 +297,7 @@ export default function PosePage() {
             size="lg"
             className="w-full gap-2"
             onClick={() => generateMutation.mutate()}
-            disabled={prompt.trim().length < 3 || !referenceImage || !characterId || generateMutation.isPending || isOutOfCredits || generationCount >= 3}
+            disabled={prompt.trim().length === 0 || !referenceImage || !characterId || generateMutation.isPending || isOutOfCredits || generationCount >= 3}
             data-testid="button-generate-pose"
           >
             {generateMutation.isPending ? (

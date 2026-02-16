@@ -517,6 +517,7 @@ export default function BubblePage() {
                       selectedCharId={activePageIndex === i ? selectedCharId : null}
                       onCanvasRef={(el) => { if (el) canvasRefs.current.set(page.id, el); else canvasRefs.current.delete(page.id); }}
                       onEditBubble={(id) => { }}
+                      showWatermark={!isPro}
                     />
                   </div>
                 </ContextMenuTrigger>

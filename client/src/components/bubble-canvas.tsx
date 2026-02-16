@@ -14,6 +14,7 @@ interface BubbleCanvasProps {
     selectedCharId: string | null;
     onCanvasRef?: (el: HTMLCanvasElement | null) => void;
     onEditBubble?: (id: string) => void;
+    showWatermark?: boolean;
 }
 
 export function BubbleCanvas({
@@ -28,6 +29,7 @@ export function BubbleCanvas({
     selectedCharId,
     onCanvasRef,
     onEditBubble,
+    showWatermark = false,
 }: BubbleCanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const dragModeRef = useRef<DragMode>(null);
@@ -215,6 +217,21 @@ export function BubbleCanvas({
     useEffect(() => {
         redraw();
     }, [redraw]);
+
+    useEffect(() => {
+        if (!showWatermark) return;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.save();
+        ctx.font = "12px sans-serif";
+        ctx.fillStyle = "rgba(0,0,0,0.4)";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "bottom";
+        ctx.fillText("OLLI Free", canvas.width - 8, canvas.height - 8);
+        ctx.restore();
+    }, [showWatermark, page]);
 
     const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
         if (!isActive) return;

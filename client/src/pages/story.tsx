@@ -1887,6 +1887,13 @@ function PanelCanvas({
             onDoubleClick={handleDoubleClick}
             data-testid="panel-canvas"
           />
+          {!isPro && (
+            <div className="pointer-events-none absolute inset-0 flex items-end justify-end p-2">
+              <span className="rounded bg-black/50 px-2 py-1 text-[10px] font-semibold text-white">
+                OLLI Free
+              </span>
+            </div>
+          )}
           {editingBubbleId &&
             (() => {
               const eb = panel.bubbles.find((b) => b.id === editingBubbleId);
