@@ -3969,8 +3969,34 @@ export default function StoryPage() {
               )}
 
               {activeLeftTab === "edit" && activePanel && (
-                <div className="p-3 text-xs text-muted-foreground">
-                  우측 패널에서 편집하세요
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-2 px-3 pt-3">
+                    <h3 className="text-sm font-semibold">편집</h3>
+                    <button
+                      onClick={() => setActiveLeftTab(null)}
+                      className="text-muted-foreground hover-elevate rounded-md p-1"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <div className="px-3 pb-3">
+                    <RightSidebar
+                      key={activePanel.id + "-left"}
+                      panel={activePanel}
+                      index={activePanelIndex}
+                      total={panels.length}
+                      onUpdate={(updated) => updatePanel(activePanelIndex, updated)}
+                      onRemove={() => removePanel(activePanelIndex)}
+                      galleryImages={galleryData || []}
+                      galleryLoading={galleryLoading}
+                      selectedBubbleId={selectedBubbleId}
+                      setSelectedBubbleId={setSelectedBubbleId}
+                      selectedCharId={selectedCharId}
+                      setSelectedCharId={setSelectedCharId}
+                      creatorTier={usageData?.creatorTier ?? 0}
+                      isPro={usageData?.tier === "pro"}
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -4157,6 +4183,9 @@ export default function StoryPage() {
         </div>
         <Dialog open={showDesignEditor} onOpenChange={setShowDesignEditor}>
           <DialogContent className="max-w-[1200px] w-[1200px] p-0">
+            <DialogHeader className="sr-only">
+              <DialogTitle>디자인 에디터</DialogTitle>
+            </DialogHeader>
             <FabricEditor />
           </DialogContent>
         </Dialog>
@@ -4219,22 +4248,28 @@ export default function StoryPage() {
 
       <ResizablePanel defaultSize={30} minSize={20} maxSize={36} className="w-[300px] shrink-0 border-l border-border overflow-y-auto p-4 space-y-4 hidden lg:block">
         {activePanel ? (
-          <RightSidebar
-            key={activePanel.id}
-            panel={activePanel}
-            index={activePanelIndex}
-            total={panels.length}
-            onUpdate={(updated) => updatePanel(activePanelIndex, updated)}
-            onRemove={() => removePanel(activePanelIndex)}
-            galleryImages={galleryData || []}
-            galleryLoading={galleryLoading}
-            selectedBubbleId={selectedBubbleId}
-            setSelectedBubbleId={setSelectedBubbleId}
-            selectedCharId={selectedCharId}
-            setSelectedCharId={setSelectedCharId}
-            creatorTier={usageData?.creatorTier ?? 0}
-            isPro={usageData?.tier === "pro"}
-          />
+          activeLeftTab === "edit" ? (
+            <div className="text-xs text-muted-foreground">
+              좌측 패널에서 말풍선과 캐릭터를 편집하세요
+            </div>
+          ) : (
+            <RightSidebar
+              key={activePanel.id}
+              panel={activePanel}
+              index={activePanelIndex}
+              total={panels.length}
+              onUpdate={(updated) => updatePanel(activePanelIndex, updated)}
+              onRemove={() => removePanel(activePanelIndex)}
+              galleryImages={galleryData || []}
+              galleryLoading={galleryLoading}
+              selectedBubbleId={selectedBubbleId}
+              setSelectedBubbleId={setSelectedBubbleId}
+              selectedCharId={selectedCharId}
+              setSelectedCharId={setSelectedCharId}
+              creatorTier={usageData?.creatorTier ?? 0}
+              isPro={usageData?.tier === "pro"}
+            />
+          )
         ) : null}
       </ResizablePanel>
 

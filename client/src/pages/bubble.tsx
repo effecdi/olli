@@ -1920,6 +1920,9 @@ export default function BubblePage() {
       </div>
       <Dialog open={showDesignEditor} onOpenChange={setShowDesignEditor}>
         <DialogContent className="max-w-[1200px] w-[1200px] p-0">
+          <DialogHeader className="sr-only">
+            <DialogTitle>디자인 에디터</DialogTitle>
+          </DialogHeader>
           <FabricEditor />
         </DialogContent>
       </Dialog>
