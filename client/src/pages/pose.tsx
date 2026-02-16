@@ -162,6 +162,10 @@ export default function PosePage() {
     setItemsPrompt(preset.items);
   };
 
+  const { data: characters } = useQuery<Character[]>({
+    queryKey: ["/api/characters"],
+  });
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       {isFlow && <FlowStepper currentStep={2} />}
@@ -217,14 +221,14 @@ export default function PosePage() {
           </Card>
 
           <Card
-            className="p-4 border-dashed"
+            className="p-4 border-dashed space-y-4"
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
           >
-            <h3 className="text-sm font-medium mb-3">캐릭터 업로드</h3>
+            <h3 className="text-sm font-medium mb-3">레퍼런스 이미지</h3>
             {referenceImage ? (
               <div className="relative">
-                <img src={referenceImage} alt="Uploaded character" className="w-full rounded-md object-contain max-h-40" />
+                <img src={referenceImage} alt="Reference" className="w-full rounded-md object-contain max-h-40" />
                 <Button
                   size="icon"
                   variant="secondary"
@@ -236,11 +240,52 @@ export default function PosePage() {
                 </Button>
               </div>
             ) : (
-              <label className="flex flex-col items-center gap-2 py-6 cursor-pointer text-muted-foreground rounded-md border border-dashed hover-elevate">
-                <Upload className="h-6 w-6" />
-                <span className="text-sm">캐릭터 이미지를 끌어오거나 클릭하여 업로드</span>
-                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} data-testid="input-reference-upload" />
-              </label>
+              <>
+                <label className="flex flex-col items-center gap-2 py-6 cursor-pointer text-muted-foreground rounded-md border border-dashed hover-elevate">
+                  <Upload className="h-6 w-6" />
+                  <span className="text-sm">이미지를 끌어오거나 클릭하여 업로드</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} data-testid="input-reference-upload" />
+                </label>
+                <div className="border-t border-dashed pt-3">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="text-xs font-medium text-muted-foreground">내 캐릭터에서 선택</span>
+                    {characters && characters.length > 0 && (
+                      <span className="text-[11px] text-muted-foreground">
+                        {characters.length}개
+                      </span>
+                    )}
+                  </div>
+                  {characters && characters.length > 0 ? (
+                    <div className="grid grid-cols-4 gap-1.5 max-h-[120px] overflow-y-auto">
+                      {characters.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className="aspect-square rounded-md overflow-hidden border border-border hover-elevate"
+                          onClick={() => setReferenceImage(c.imageUrl || "")}
+                          data-testid={`button-pose-character-${c.id}`}
+                        >
+                          {c.imageUrl ? (
+                            <img
+                              src={c.imageUrl}
+                              alt={c.prompt || ""}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">
+                              캐릭터
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      생성된 캐릭터가 없습니다. 먼저 캐릭터를 만들어주세요.
+                    </p>
+                  )}
+                </div>
+              </>
             )}
           </Card>
 

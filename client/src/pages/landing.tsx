@@ -179,27 +179,36 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.45 }}
-            className="flex items-center gap-2 max-w-xl mx-auto mb-6 px-2"
+            className="max-w-xl mx-auto mb-6 px-2"
             data-testid="section-hero-prompt"
           >
-            <Input
-              value={promptText}
-              onChange={(e) => setPromptText(e.target.value)}
-              placeholder="내 인스타툰을 완성시킬 캐릭터를 생성해서 완성하세요."
-              className="flex-1"
-              data-testid="input-hero-prompt"
-            />
-            <Button
-              size="lg"
-              className="gap-2"
-              asChild
-              data-testid="button-hero-send"
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const trimmed = promptText.trim();
+                if (!trimmed) return;
+                window.location.href = `/create?prompt=${encodeURIComponent(trimmed)}`;
+              }}
             >
-              <a href={`/create?prompt=${encodeURIComponent(promptText.trim())}`}>
-                보내기
-                <ArrowRight className="h-4 w-4" />
-              </a>
-            </Button>
+              <div className="flex items-center">
+                <div className="relative flex-1">
+                  <Input
+                    value={promptText}
+                    onChange={(e) => setPromptText(e.target.value)}
+                    placeholder="내 인스타툰을 완성시킬 캐릭터를 생성해서 완성하세요."
+                    className="w-full pr-12 py-[18px] text-base"
+                    data-testid="input-hero-prompt"
+                  />
+                  <button
+                    type="submit"
+                    className="absolute inset-y-0 right-0 flex items-center pr-4 text-primary"
+                    aria-label="캐릭터 생성"
+                  >
+                    <ArrowRight className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            </form>
           </motion.div>
 
           <motion.div

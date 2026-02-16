@@ -2053,7 +2053,7 @@ export default function BubblePage() {
           <DialogHeader className="sr-only">
             <DialogTitle>디자인 에디터</DialogTitle>
           </DialogHeader>
-          <FabricEditor />
+          <FabricEditor isPro={isPro} />
         </DialogContent>
       </Dialog>
 

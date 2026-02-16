@@ -5,12 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 type Mode = "idle" | "crop";
 
-export default function FabricEditor() {
+export default function FabricEditor({ isPro = false }: { isPro?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fabricRef = useRef<Canvas | null>(null);
+  const { toast } = useToast();
   const [mode, setMode] = useState<Mode>("idle");
   const [strokeColor, setStrokeColor] = useState("#000000");
   const [strokeWidth, setStrokeWidth] = useState(0);
@@ -374,6 +376,14 @@ export default function FabricEditor() {
   };
 
   const removeBgApprox = () => {
+    if (!isPro) {
+      toast({
+        title: "Pro 전용 기능",
+        description: "배경 제거는 Pro 멤버십 전용 기능입니다.",
+        variant: "destructive",
+      });
+      return;
+    }
     const c = fabricRef.current;
     if (!c) return;
     const obj = c.getActiveObject();

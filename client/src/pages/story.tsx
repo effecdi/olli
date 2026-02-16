@@ -4285,7 +4285,7 @@ export default function StoryPage() {
 
         <div
           ref={canvasAreaRef}
-          className="flex-1 min-h-0 overflow-auto flex items-center justify-center p-6 bg-muted/20 dark:bg-muted/10 relative"
+          className={`flex-1 min-h-0 overflow-auto flex items-center justify-center bg-muted/20 dark:bg-muted/10 relative ${zoom >= 200 ? "p-0" : "p-6"}`}
           data-testid="story-canvas-area"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) {
@@ -4326,6 +4326,36 @@ export default function StoryPage() {
               }}
               style={{ cursor: "grab" }}
             />
+          )}
+          {activePanel && !flowMode && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30">
+              <div className="flex items-center gap-2 rounded-full border bg-background/95 px-3 py-1.5 shadow-md">
+                <button
+                  className={`text-xs px-2 py-1 rounded-full ${activeLeftTab === "edit" ? "bg-muted font-medium" : "hover:bg-muted"}`}
+                  onClick={() => toggleLeftTab("edit")}
+                >
+                  편집
+                </button>
+                <div className="h-4 w-px bg-border" />
+                <button
+                  className="flex items-center gap-1 text-xs px-2 py-1 rounded-full hover:bg-muted"
+                  onClick={() => {
+                    if (!isPro) {
+                      toast({
+                        title: "Pro 전용 기능",
+                        description: "배경 제거는 Pro 멤버십 전용 기능입니다.",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    setShowDesignEditor(true);
+                  }}
+                >
+                  <span>배경 제거</span>
+                  {!isPro && <Crown className="h-3 w-3 text-amber-500" />}
+                </button>
+              </div>
+            </div>
           )}
           {captureActive && (
             <div className="absolute inset-0 z-50 bg-black/60 text-white grid place-items-center">
@@ -4373,6 +4403,51 @@ export default function StoryPage() {
               </div>
             )
           )}
+        </div>
+        <div className="border-t border-border bg-background/80 px-4 py-3">
+          <div className="flex items-center gap-3 overflow-x-auto" data-testid="story-page-strip">
+            {panels.map((panel, i) => (
+              <button
+                key={panel.id}
+                onClick={() => {
+                  setActivePanelIndex(i);
+                  setSelectedBubbleId(null);
+                  setSelectedCharId(null);
+                }}
+                className={`flex-shrink-0 rounded-lg border transition-colors bg-muted/10 hover:border-primary/40 ${i === activePanelIndex ? "border-primary/60 bg-primary/5" : "border-border"}`}
+              >
+                <div className="flex items-center justify-between px-2 pt-1">
+                  <span className="text-[11px] text-muted-foreground font-medium">
+                    페이지 {i + 1}
+                  </span>
+                </div>
+                <div className="w-[120px] h-[80px] p-1.5 pointer-events-none">
+                  <PanelCanvas
+                    key={panel.id + "-strip"}
+                    panel={panel}
+                    onUpdate={(updated) => updatePanel(i, updated)}
+                    selectedBubbleId={null}
+                    onSelectBubble={() => {}}
+                    selectedCharId={null}
+                    onSelectChar={() => {}}
+                    canvasRef={() => {}}
+                    fontsReady={fontsReady}
+                  />
+                </div>
+              </button>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-shrink-0 h-[80px] min-w-[120px] flex flex-col items-center justify-center text-xs"
+              onClick={addPanel}
+              disabled={panels.length >= maxPanels}
+              data-testid="button-add-panel-bottom"
+            >
+              <Plus className="h-3.5 w-3.5 mb-1" />
+              페이지 추가
+            </Button>
+          </div>
         </div>
         <Dialog open={showDesignEditor} onOpenChange={setShowDesignEditor}>
           <DialogContent className="max-w-[1200px] w-[1200px] p-0">

@@ -345,7 +345,7 @@
 
 body {
   background-color: black;
-  color: grey;
+  color: hsl(var(--foreground));
 }
 
 ::-webkit-scrollbar {
