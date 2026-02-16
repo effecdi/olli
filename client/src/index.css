@@ -346,7 +346,6 @@
 body {
   background-color: black;
   color: grey;
-  padding: 20px;
 }
 
 ::-webkit-scrollbar {
