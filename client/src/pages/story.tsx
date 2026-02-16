@@ -67,6 +67,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { FONT_CSS } from "@/lib/bubble-utils";
 
 function bubblePath(n: number) {
   return `/assets/bubbles/bubble_${String(n).padStart(3, "0")}.png`;
@@ -2808,6 +2809,17 @@ export default function StoryPage() {
     return () => {
       document.body.style.overflow = prev;
     };
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const id = "story-font-css";
+    if (!document.getElementById(id)) {
+      const style = document.createElement("style");
+      style.id = id;
+      style.textContent = FONT_CSS;
+      document.head.appendChild(style);
+    }
   }, []);
 
   const clonePanels = useCallback((src: PanelData[]): PanelData[] => {

@@ -49,6 +49,7 @@ export default function BubblePage() {
   const [location, setLocation] = useLocation();
   const searchParams = new URLSearchParams(window.location.search);
   const loadProjectId = searchParams.get("id");
+  const from = searchParams.get("from");
   const canvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map());
 
   const [pages, setPages] = useState<PageData[]>([
@@ -86,6 +87,8 @@ export default function BubblePage() {
   const canAllFonts = isPro || (usage?.creatorTier ?? 0) >= 3;
   const availableFonts = canAllFonts ? KOREAN_FONTS : KOREAN_FONTS.slice(0, 3);
 
+  const showBackButton = from === "story";
+
   // State helpers
   const updatePage = useCallback((index: number, updates: Partial<PageData>) => {
     setPages(prev => prev.map((p, i) => i === index ? { ...p, ...updates } : p));
@@ -107,6 +110,73 @@ export default function BubblePage() {
       characters: activePage.characters.map(c => c.id === charId ? { ...c, ...updates } : c)
     });
   }, [activePage, updateActivePage]);
+
+  const layerItems = useMemo(() => {
+    const items: Array<
+      | { type: "char"; id: string; z: number; label: string; thumb?: string }
+      | { type: "bubble"; id: string; z: number; label: string; thumb?: string }
+    > = [
+      ...activePage.characters.map((c) => ({
+        type: "char" as const,
+        id: c.id,
+        z: c.zIndex ?? 0,
+        label: "캐릭터",
+        thumb: c.imageUrl,
+      })),
+      ...activePage.bubbles.map((b, i) => ({
+        type: "bubble" as const,
+        id: b.id,
+        z: b.zIndex ?? 10,
+        label: b.text || STYLE_LABELS[b.style] || `말풍선 ${i + 1}`,
+      })),
+    ];
+    return items.sort((a, b) => b.z - a.z);
+  }, [activePage.characters, activePage.bubbles]);
+
+  const [dragLayerIdx, setDragLayerIdx] = useState<number | null>(null);
+
+  const applyLayerOrder = useCallback((ordered: Array<{ type: "char" | "bubble"; id: string }>) => {
+    updateActivePage({
+      characters: activePage.characters.map((c) => {
+        const idx = ordered.findIndex((it) => it.type === "char" && it.id === c.id);
+        return idx >= 0 ? { ...c, zIndex: idx } : c;
+      }),
+      bubbles: activePage.bubbles.map((b) => {
+        const idx = ordered.findIndex((it) => it.type === "bubble" && it.id === b.id);
+        return idx >= 0 ? { ...b, zIndex: idx } : b;
+      }),
+    });
+  }, [activePage, updateActivePage]);
+
+  const moveLayer = (index: number, direction: "up" | "down") => {
+    const items = layerItems;
+    if (direction === "up" && index <= 0) return;
+    if (direction === "down" && index >= items.length - 1) return;
+    const aIdx = index;
+    const bIdx = direction === "up" ? index - 1 : index + 1;
+    const a = items[aIdx];
+    const b = items[bIdx];
+    const newAz = b.z;
+    const newBz = a.z;
+    if (a.type === "char") {
+      updateActivePage({
+        characters: activePage.characters.map((c) => (c.id === a.id ? { ...c, zIndex: newAz } : c)),
+      });
+    } else {
+      updateActivePage({
+        bubbles: activePage.bubbles.map((bb) => (bb.id === a.id ? { ...bb, zIndex: newAz } : bb)),
+      });
+    }
+    if (b.type === "char") {
+      updateActivePage({
+        characters: activePage.characters.map((c) => (c.id === b.id ? { ...c, zIndex: newBz } : c)),
+      });
+    } else {
+      updateActivePage({
+        bubbles: activePage.bubbles.map((bb) => (bb.id === b.id ? { ...bb, zIndex: newBz } : bb)),
+      });
+    }
+  };
 
   const addBubble = () => {
     const newBubble: SpeechBubble = {
@@ -372,9 +442,11 @@ export default function BubblePage() {
       <header className="flex h-14 items-center border-b bg-background px-4" data-testid="bubble-toolbar">
         <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => setLocation("/")}>
-              <ArrowRight className="h-4 w-4 rotate-180" />
-            </Button>
+            {showBackButton && (
+              <Button variant="ghost" size="icon" onClick={() => setLocation("/story")}>
+                <ArrowRight className="h-4 w-4 rotate-180" />
+              </Button>
+            )}
             <h1 className="text-base font-semibold">말풍선 편집기</h1>
             {isPro && (
               <Badge variant="secondary" className="gap-1">
@@ -447,6 +519,120 @@ export default function BubblePage() {
       <div className="flex flex-1 overflow-hidden" data-testid="bubble-canvas-area">
 
         <div className="w-[320px] overflow-y-auto border-r bg-background p-4" data-testid="bubble-right-panel">
+          {(activePage.characters.length > 0 || activePage.bubbles.length > 0) && (
+            <div className="space-y-1.5 mb-4">
+              <div className="flex items-center gap-2">
+                <Layers className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-[13px] font-medium text-muted-foreground">
+                  레이어 목록 ({layerItems.length})
+                </span>
+              </div>
+              {layerItems.map((item, i) => (
+                <div
+                  key={`${item.type}:${item.id}`}
+                  className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${
+                    item.type === "char"
+                      ? selectedCharId === item.id
+                        ? "bg-primary/10"
+                        : "hover-elevate"
+                      : selectedBubbleId === item.id
+                        ? "bg-primary/10"
+                        : "hover-elevate"
+                  }`}
+                  onClick={() => {
+                    if (item.type === "char") {
+                      setSelectedCharId(item.id);
+                      setSelectedBubbleId(null);
+                    } else {
+                      setSelectedBubbleId(item.id);
+                      setSelectedCharId(null);
+                    }
+                  }}
+                  draggable
+                  onDragStart={() => setDragLayerIdx(i)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={() => {
+                    if (dragLayerIdx === null || dragLayerIdx === i) return;
+                    const base = layerItems.map((li) => ({ type: li.type, id: li.id }));
+                    const moved = base[dragLayerIdx];
+                    const rest = base.filter((_, idx) => idx !== dragLayerIdx);
+                    const newOrder = [...rest.slice(0, i), moved, ...rest.slice(i)];
+                    applyLayerOrder(newOrder);
+                    setDragLayerIdx(null);
+                  }}
+                  data-testid={`row-layer-${i}`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded overflow-hidden shrink-0 border border-border bg-muted">
+                      {item.thumb ? (
+                        <img src={item.thumb} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[10px]">
+                          {item.type === "bubble" ? "B" : "C"}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-xs truncate">{item.label}</span>
+                  </div>
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      disabled={i === 0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        moveLayer(i, "up");
+                      }}
+                      title="앞으로"
+                      data-testid={`button-moveup-layer-${i}`}
+                    >
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      disabled={i === layerItems.length - 1}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        moveLayer(i, "down");
+                      }}
+                      title="뒤로"
+                      data-testid={`button-movedown-layer-${i}`}
+                    >
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (item.type === "char") {
+                          updateActivePage({
+                            characters: activePage.characters.filter((c) => c.id !== item.id),
+                          });
+                          if (selectedCharId === item.id) {
+                            setSelectedCharId(null);
+                          }
+                        } else {
+                          updateActivePage({
+                            bubbles: activePage.bubbles.filter((b) => b.id !== item.id),
+                          });
+                          if (selectedBubbleId === item.id) {
+                            setSelectedBubbleId(null);
+                          }
+                        }
+                      }}
+                      data-testid={`button-delete-layer-${i}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           {/* Text/Bubble Controls when selected */}
           {selectedBubble ? (
             <div className="space-y-4">
