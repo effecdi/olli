@@ -82,10 +82,8 @@ export default function PosePage() {
   const generateMutation = useMutation({
     mutationFn: async () => {
       const finalPrompt = prompt.trim();
-      if (!characterId) {
-        throw new Error("캐릭터를 먼저 선택해주세요.");
-      }
-      const body: any = { prompt: finalPrompt, characterId };
+      const body: any = { prompt: finalPrompt };
+      if (characterId) body.characterId = characterId;
       if (referenceImage) body.referenceImageData = referenceImage;
       const res = await apiRequest("POST", "/api/generate-pose", body);
       return res.json();
@@ -297,7 +295,7 @@ export default function PosePage() {
             size="lg"
             className="w-full gap-2"
             onClick={() => generateMutation.mutate()}
-            disabled={prompt.trim().length === 0 || !referenceImage || !characterId || generateMutation.isPending || isOutOfCredits || generationCount >= 3}
+            disabled={prompt.trim().length === 0 || !referenceImage || generateMutation.isPending || isOutOfCredits || generationCount >= 3}
             data-testid="button-generate-pose"
           >
             {generateMutation.isPending ? (

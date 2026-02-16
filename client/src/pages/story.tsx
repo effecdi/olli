@@ -1022,6 +1022,7 @@ function PanelCanvas({
   canvasRef: externalCanvasRef,
   zoom,
   fontsReady,
+  isPro,
 }: {
   panel: PanelData;
   onUpdate: (updated: PanelData) => void;
@@ -1032,6 +1033,7 @@ function PanelCanvas({
   canvasRef?: (el: HTMLCanvasElement | null) => void;
   zoom?: number;
   fontsReady?: boolean;
+  isPro: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
@@ -1157,7 +1159,16 @@ function PanelCanvas({
       drawScriptOverlay(ctx, p.topScript, "top", CANVAS_W, CANVAS_H);
     if (p.bottomScript)
       drawScriptOverlay(ctx, p.bottomScript, "bottom", CANVAS_W, CANVAS_H);
-  }, []);
+    if (!isPro) {
+      ctx.save();
+      ctx.font = "12px sans-serif";
+      ctx.fillStyle = "rgba(0,0,0,0.4)";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
+      ctx.fillText("OLLI Free", CANVAS_W - 8, CANVAS_H - 8);
+      ctx.restore();
+    }
+  }, [isPro]);
 
   redrawRef.current = redraw;
 
@@ -1887,13 +1898,6 @@ function PanelCanvas({
             onDoubleClick={handleDoubleClick}
             data-testid="panel-canvas"
           />
-          {!isPro && (
-            <div className="pointer-events-none absolute inset-0 flex items-end justify-end p-2">
-              <span className="rounded bg-black/50 px-2 py-1 text-[10px] font-semibold text-white">
-                OLLI Free
-              </span>
-            </div>
-          )}
           {editingBubbleId &&
             (() => {
               const eb = panel.bubbles.find((b) => b.id === editingBubbleId);
@@ -3237,52 +3241,6 @@ export default function StoryPage() {
   const [selectedBubbleId, setSelectedBubbleId] = useState<string | null>(null);
   const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
   const panelCanvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map());
-  const [flowMode, setFlowMode] = useState(false);
-  const [flowNodes, setFlowNodes] = useState<Node[]>([]);
-  useEffect(() => {
-    if (!flowMode || !activePanel) return;
-    const nodes: Node[] = [
-      ...activePanel.characters.map((ch) => ({
-        id: `char:${ch.id}`,
-        position: { x: ch.x, y: ch.y },
-        data: { label: "캐릭터" },
-        style: { width: 100, height: 40, border: "1px solid hsl(150,80%,40%)", borderRadius: 8, background: "white", fontSize: 12 },
-        draggable: true,
-      })),
-      ...activePanel.bubbles.map((b, i) => ({
-        id: `bubble:${b.id}`,
-        position: { x: b.x, y: b.y },
-        data: { label: b.text ? b.text.slice(0, 12) : `말풍선 ${i + 1}` },
-        style: { width: 120, height: 40, border: "1px solid hsl(200,70%,40%)", borderRadius: 8, background: "white", fontSize: 12 },
-        draggable: true,
-      })),
-    ];
-    setFlowNodes(nodes);
-  }, [flowMode, activePanel]);
-  const onFlowNodesChange = useCallback((changes: NodeChange[]) => {
-    setFlowNodes((nds) => applyNodeChanges(changes, nds));
-    if (!activePanel) return;
-    changes.forEach((ch) => {
-      if (ch.type === "position" && ch.id && ch.position) {
-        const [kind, entityId] = ch.id.split(":");
-        if (kind === "bubble") {
-          const p = activePanel;
-          const updated = {
-            ...p,
-            bubbles: p.bubbles.map((b) => (b.id === entityId ? { ...b, x: ch.position!.x, y: ch.position!.y } : b)),
-          };
-          updatePanel(activePanelIndex, updated);
-        } else if (kind === "char") {
-          const p = activePanel;
-          const updated = {
-            ...p,
-            characters: p.characters.map((c) => (c.id === entityId ? { ...c, x: ch.position!.x, y: ch.position!.y } : c)),
-          };
-          updatePanel(activePanelIndex, updated);
-        }
-      }
-    });
-  }, [activePanel, activePanelIndex]);
 
   type LeftTab = "ai" | "script" | "panel" | null;
   const [activeLeftTab, setActiveLeftTab] = useState<LeftTab>(null);
@@ -4095,10 +4053,6 @@ export default function StoryPage() {
                     <Plus className="h-3 w-3" />
                     추가
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => setFlowMode((v) => !v)} className="gap-1 h-7 text-xs px-2" data-testid="button-toggle-flow-mode">
-                    {flowMode ? <LayoutGrid className="h-3 w-3" /> : <LayoutGrid className="h-3 w-3" />}
-                    Flow 모드
-                  </Button>
                   <div className="flex items-center gap-0.5">
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={undo} disabled={historyRef.current.length === 0} title="실행 취소 (Ctrl+Z)" data-testid="button-undo">
                       <Undo2 className="h-3.5 w-3.5" />
@@ -4192,6 +4146,7 @@ export default function StoryPage() {
                           }}
                           zoom={zoom}
                           fontsReady={fontsReady}
+                          isPro={isPro}
                         />
                       </div>
                     </ContextMenuTrigger>
@@ -4268,6 +4223,7 @@ export default function StoryPage() {
                       onSelectChar={() => { }}
                       canvasRef={() => { }}
                       fontsReady={fontsReady}
+                      isPro={isPro}
                     />
                   </div>
                 </div>

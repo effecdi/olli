@@ -303,10 +303,73 @@ export default function BubblePage() {
   const selectedBubble = activePage.bubbles.find(b => b.id === selectedBubbleId);
   const selectedChar = activePage.characters.find(c => c.id === selectedCharId);
 
+  const startBubbleTour = useCallback(() => {
+    const ensureDriver = () =>
+      new Promise<void>((resolve) => {
+        const hasDriver = (window as any)?.driver?.js?.driver;
+        if (hasDriver) {
+          resolve();
+          return;
+        }
+        const cssId = "driverjs-css";
+        if (!document.getElementById(cssId)) {
+          const link = document.createElement("link");
+          link.id = cssId;
+          link.rel = "stylesheet";
+          link.href = "https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css";
+          document.head.appendChild(link);
+        }
+        const scriptId = "driverjs-script";
+        if (!document.getElementById(scriptId)) {
+          const script = document.createElement("script");
+          script.id = scriptId;
+          script.src = "https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js";
+          script.onload = () => resolve();
+          document.body.appendChild(script);
+        } else {
+          resolve();
+        }
+      });
+    ensureDriver().then(() => {
+      const driver = (window as any).driver.js.driver;
+      const driverObj = driver({
+        overlayColor: "rgba(0,0,0,0.6)",
+        showProgress: true,
+        steps: [
+          {
+            element: '[data-testid="bubble-toolbar"]',
+            popover: { title: "말풍선 툴바", description: "다운로드, 배경 이미지, 저장 등을 할 수 있어요." },
+          },
+          {
+            element: '[data-testid="button-download-bubble"]',
+            popover: { title: "다운로드", description: "현재 페이지를 이미지로 저장합니다." },
+          },
+          {
+            element: '[data-testid="button-upload-bubble-bg"]',
+            popover: { title: "배경 이미지", description: "말풍선 뒤에 깔릴 배경 이미지를 설정합니다." },
+          },
+          {
+            element: '[data-testid="button-save-bubble-project"]',
+            popover: { title: "프로젝트 저장", description: "작업을 프로젝트로 저장해두고 다시 불러올 수 있어요." },
+          },
+          {
+            element: '[data-testid="bubble-canvas-area"]',
+            popover: { title: "캔버스", description: "말풍선과 캐릭터를 배치하고 크기를 조절해보세요." },
+          },
+          {
+            element: '[data-testid="bubble-right-panel"]',
+            popover: { title: "속성 패널", description: "텍스트, 폰트, 꼬리 방향 등 세부 옵션을 바꿉니다." },
+          },
+        ],
+      });
+      driverObj.drive();
+    });
+  }, []);
+
   return (
     <div className="flex h-screen w-full flex-col bg-background">
       {/* Top bar - Story 스타일과 통일 */}
-      <header className="flex h-14 items-center border-b bg-background px-4">
+      <header className="flex h-14 items-center border-b bg-background px-4" data-testid="bubble-toolbar">
         <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={() => setLocation("/")}>
@@ -361,6 +424,16 @@ export default function BubblePage() {
               size="icon"
               variant="ghost"
               className="h-8 w-8"
+              onClick={startBubbleTour}
+              title="도움말"
+              data-testid="button-bubble-help"
+            >
+              <Lightbulb className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
               onClick={() => setLocation("/edits")}
               title="내 편집"
               data-testid="button-bubble-my-edits"
@@ -371,9 +444,9 @@ export default function BubblePage() {
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden" data-testid="bubble-canvas-area">
 
-        <div className="w-[320px] overflow-y-auto border-r bg-background p-4">
+        <div className="w-[320px] overflow-y-auto border-r bg-background p-4" data-testid="bubble-right-panel">
           {/* Text/Bubble Controls when selected */}
           {selectedBubble ? (
             <div className="space-y-4">

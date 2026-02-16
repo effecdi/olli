@@ -212,26 +212,21 @@ export function BubbleCanvas({
             }
         });
 
-    }, [page, isActive, selectedBubbleId, selectedCharId, drawCharOverlaySelection]);
+        if (showWatermark) {
+            ctx.save();
+            ctx.font = "12px sans-serif";
+            ctx.fillStyle = "rgba(0,0,0,0.4)";
+            ctx.textAlign = "right";
+            ctx.textBaseline = "bottom";
+            ctx.fillText("OLLI Free", canvas.width - 8, canvas.height - 8);
+            ctx.restore();
+        }
+
+    }, [page, isActive, selectedBubbleId, selectedCharId, drawCharOverlaySelection, showWatermark]);
 
     useEffect(() => {
         redraw();
     }, [redraw]);
-
-    useEffect(() => {
-        if (!showWatermark) return;
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-        ctx.save();
-        ctx.font = "12px sans-serif";
-        ctx.fillStyle = "rgba(0,0,0,0.4)";
-        ctx.textAlign = "right";
-        ctx.textBaseline = "bottom";
-        ctx.fillText("OLLI Free", canvas.width - 8, canvas.height - 8);
-        ctx.restore();
-    }, [showWatermark, page]);
 
     const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
         if (!isActive) return;
