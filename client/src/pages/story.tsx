@@ -223,38 +223,6 @@ const KOREAN_FONTS = [
   { value: "MemomentKkukkukk", label: "미모먼트 꾸꾸꾸", family: "'MemomentKkukkukk', sans-serif" },
 ];
 
-const FONT_CSS = `
-@font-face { font-family: 'OnglippDaelong'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2507-2@1.0/Ownglyph_daelong-Rg.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
-@font-face { font-family: 'OngleipParkDahyeon'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2411-3@1.0/Ownglyph_ParkDaHyun.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
-@font-face { font-family: 'OngleipStudyWell'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2411-3@1.0/Ownglyph_StudyHard-Rg.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
-@font-face { font-family: 'NostalgicCocochoitoon'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2601-1@1.0/Griun_Cocochoitoon-Rg.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
-@font-face { font-family: 'GeekbleMalrangiche'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302_01@1.0/GeekbleMalang2WOFF2.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Gyeombalbal'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_11-01@1.0/insungitCutelivelyjisu.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
-@font-face { font-family: 'IsYun'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2202-2@1.0/LeeSeoyun.woff') format('woff'); font-weight: normal; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Cafe24Surround'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/Cafe24Ssurround.woff') format('woff'); font-weight: normal; font-style: normal; font-display: swap; }
-@font-face { font-family: 'GMarketSans'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansLight.woff') format('woff'); font-weight: 300; font-style: normal; font-display: swap; }
-@font-face { font-family: 'GMarketSans'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.woff') format('woff'); font-weight: 500; font-style: normal; font-display: swap; }
-@font-face { font-family: 'GMarketSans'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansBold.woff') format('woff'); font-weight: 700; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-1Thin.woff2') format('woff2'); font-weight: 100; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-2ExtraLight.woff2') format('woff2'); font-weight: 200; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-3Light.woff2') format('woff2'); font-weight: 300; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-4Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-5Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-6SemiBold.woff2') format('woff2'); font-weight: 600; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-8ExtraBold.woff2') format('woff2'); font-weight: 800; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Paperozi'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-9Black.woff2') format('woff2'); font-weight: 900; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Thin.woff2') format('woff2'); font-weight: 100; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-ExtraLight.woff2') format('woff2'); font-weight: 200; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Light.woff2') format('woff2'); font-weight: 300; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-SemiBold.woff2') format('woff2'); font-weight: 600; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-ExtraBold.woff2') format('woff2'); font-weight: 800; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Pretendard'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Black.woff2') format('woff2'); font-weight: 900; font-style: normal; font-display: swap; }
-@font-face { font-family: 'MemomentKkukkukk'; src: url('/fonts/MemomentKkukkukk.woff') format('woff'); font-weight: normal; font-style: normal; font-display: swap; }
-`;
 
 interface SpeechBubble {
   id: string;
@@ -586,8 +554,8 @@ function getDefaultTailTip(b: SpeechBubble) {
     cy = b.y + b.height / 2;
   const styleLen =
     b.tailStyle === "long" ||
-    b.tailStyle === "dots_handwritten" ||
-    b.tailStyle === "dots_linedrawing"
+      b.tailStyle === "dots_handwritten" ||
+      b.tailStyle === "dots_linedrawing"
       ? 50
       : 25;
   const tailLen = b.tailLength ?? styleLen;
@@ -1126,17 +1094,17 @@ function PanelCanvas({
       | { type: "char"; z: number; ch: CharacterPlacement }
       | { type: "bubble"; z: number; b: SpeechBubble }
     > = [
-      ...p.characters.map((ch) => ({
-        type: "char" as const,
-        z: ch.zIndex ?? 0,
-        ch,
-      })),
-      ...p.bubbles.map((b) => ({
-        type: "bubble" as const,
-        z: b.zIndex ?? 10,
-        b,
-      })),
-    ];
+        ...p.characters.map((ch) => ({
+          type: "char" as const,
+          z: ch.zIndex ?? 0,
+          ch,
+        })),
+        ...p.bubbles.map((b) => ({
+          type: "bubble" as const,
+          z: b.zIndex ?? 10,
+          b,
+        })),
+      ];
     drawables.sort((a, b) => a.z - b.z);
     drawables.forEach((d) => {
       if (d.type === "char") {
@@ -1339,9 +1307,9 @@ function PanelCanvas({
           | { type: "char"; z: number; ch: CharacterPlacement }
           | { type: "bubble"; z: number; b: SpeechBubble }
         > = [
-          ...p.characters.map((ch) => ({ type: "char" as const, z: ch.zIndex ?? 0, ch })),
-          ...p.bubbles.map((b) => ({ type: "bubble" as const, z: b.zIndex ?? 10, b })),
-        ];
+            ...p.characters.map((ch) => ({ type: "char" as const, z: ch.zIndex ?? 0, ch })),
+            ...p.bubbles.map((b) => ({ type: "bubble" as const, z: b.zIndex ?? 10, b })),
+          ];
         drawables.sort((a, b) => a.z - b.z);
         for (let i = drawables.length - 1; i >= 0; i--) {
           const d = drawables[i];
@@ -1480,9 +1448,9 @@ function PanelCanvas({
             | { type: "char"; z: number; ch: CharacterPlacement }
             | { type: "bubble"; z: number; b: SpeechBubble }
           > = [
-            ...p.characters.map((ch) => ({ type: "char" as const, z: ch.zIndex ?? 0, ch })),
-            ...p.bubbles.map((b) => ({ type: "bubble" as const, z: b.zIndex ?? 10, b })),
-          ];
+              ...p.characters.map((ch) => ({ type: "char" as const, z: ch.zIndex ?? 0, ch })),
+              ...p.bubbles.map((b) => ({ type: "bubble" as const, z: b.zIndex ?? 10, b })),
+            ];
           drawables.sort((a, b) => a.z - b.z);
           for (let i = drawables.length - 1; i >= 0; i--) {
             const d = drawables[i];
@@ -1886,9 +1854,9 @@ function PanelCanvas({
           style={
             hasZoom
               ? {
-                  width: CANVAS_W * zoomScale,
-                  height: CANVAS_H * zoomScale,
-                }
+                width: CANVAS_W * zoomScale,
+                height: CANVAS_H * zoomScale,
+              }
               : undefined
           }
         >
@@ -1902,17 +1870,17 @@ function PanelCanvas({
             style={
               hasZoom
                 ? {
-                    width: "100%",
-                    height: "100%",
-                    display: "block",
-                    touchAction: "none",
-                  }
+                  width: "100%",
+                  height: "100%",
+                  display: "block",
+                  touchAction: "none",
+                }
                 : {
-                    maxWidth: "100%",
-                    height: "auto",
-                    display: "block",
-                    touchAction: "none",
-                  }
+                  maxWidth: "100%",
+                  height: "auto",
+                  display: "block",
+                  touchAction: "none",
+                }
             }
             className="rounded-md border border-border"
             onPointerDown={handlePointerDown}
@@ -1971,7 +1939,7 @@ function PanelCanvas({
         <ContextMenuItem onSelect={handleSendToBack}>맨 뒤로 보내기</ContextMenuItem>
         <ContextMenuItem onSelect={handleLock}>
           {selectedBubbleId && panel.bubbles.find(b => b.id === selectedBubbleId)?.locked ? "잠금 해제" :
-           selectedCharId && panel.characters.find(c => c.id === selectedCharId)?.locked ? "잠금 해제" : "잠금"}
+            selectedCharId && panel.characters.find(c => c.id === selectedCharId)?.locked ? "잠금 해제" : "잠금"}
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem className="text-destructive" onSelect={handleDeleteSelection}>
@@ -1982,7 +1950,7 @@ function PanelCanvas({
   );
 }
 
-function RightSidebar({
+function EditorPanel({
   panel,
   index,
   total,
@@ -2159,21 +2127,21 @@ function RightSidebar({
       | { type: "char"; id: string; z: number; label: string; thumb?: string }
       | { type: "bubble"; id: string; z: number; label: string; thumb?: string }
     > = [
-      ...panel.characters.map((c) => ({
-        type: "char" as const,
-        id: c.id,
-        z: c.zIndex ?? 0,
-        label: "캐릭터",
-        thumb: c.imageUrl,
-      })),
-      ...panel.bubbles.map((b, i) => ({
-        type: "bubble" as const,
-        id: b.id,
-        z: b.zIndex ?? 10,
-        label: b.text || STYLE_LABELS[b.style] || `말풍선 ${i + 1}`,
-        thumb: b.style === "image" && (b as any).templateSrc ? (b as any).templateSrc : undefined,
-      })),
-    ];
+        ...panel.characters.map((c) => ({
+          type: "char" as const,
+          id: c.id,
+          z: c.zIndex ?? 0,
+          label: "캐릭터",
+          thumb: c.imageUrl,
+        })),
+        ...panel.bubbles.map((b, i) => ({
+          type: "bubble" as const,
+          id: b.id,
+          z: b.zIndex ?? 10,
+          label: b.text || STYLE_LABELS[b.style] || `말풍선 ${i + 1}`,
+          thumb: b.style === "image" && (b as any).templateSrc ? (b as any).templateSrc : undefined,
+        })),
+      ];
     return items.sort((a, b) => b.z - a.z);
   }, [panel.characters, panel.bubbles]);
 
@@ -2332,15 +2300,14 @@ function RightSidebar({
           {layerItems.map((item, i) => (
             <div
               key={`${item.type}:${item.id}`}
-              className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${
-                item.type === "char"
+              className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${item.type === "char"
                   ? selectedCharId === item.id
                     ? "bg-primary/10"
                     : "hover-elevate"
                   : selectedBubbleId === item.id
-                  ? "bg-primary/10"
-                  : "hover-elevate"
-              }`}
+                    ? "bg-primary/10"
+                    : "hover-elevate"
+                }`}
               onClick={() => {
                 if (item.type === "char") {
                   setSelectedCharId(item.id);
@@ -2813,7 +2780,7 @@ export default function StoryPage() {
   const [topic, setTopic] = useState("");
   const [panels, setPanelsRaw] = useState<PanelData[]>([createPanel()]);
   const [activePanelIndex, setActivePanelIndex] = useState(0);
-  const [fontsInjected, setFontsInjected] = useState(false);
+  const [fontsReady, setFontsReady] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showDesignEditor, setShowDesignEditor] = useState(false);
   const [projectName, setProjectName] = useState("");
@@ -3021,7 +2988,7 @@ export default function StoryPage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [fitToView]);
- 
+
   useEffect(() => {
     const onBlur = () => {
       if (blockCapture) setCaptureActive(true);
@@ -3044,25 +3011,17 @@ export default function StoryPage() {
 
   const { data: usageData } = useQuery<UsageData>({ queryKey: ["/api/usage"] });
   const maxPanels = usageData?.maxStoryPanels ?? 3;
-  const [fontsReady, setFontsReady] = useState(false);
-
   useEffect(() => {
-    if (!fontsInjected) {
-      const style = document.createElement("style");
-      style.textContent = FONT_CSS;
-      document.head.appendChild(style);
-      setFontsInjected(true);
-      if (document.fonts && typeof document.fonts.ready?.then === "function") {
-        document.fonts.ready.then(() => {
-          setFontsReady(true);
-        }).catch(() => {
-          setFontsReady(true);
-        });
-      } else {
-        setFontsReady(true);
-      }
+    if (typeof document === "undefined" || !document.fonts || typeof document.fonts.ready?.then !== "function") {
+      setFontsReady(true);
+      return;
     }
-  }, [fontsInjected]);
+    document.fonts.ready.then(() => {
+      setFontsReady(true);
+    }).catch(() => {
+      setFontsReady(true);
+    });
+  }, []);
 
   const { data: galleryData, isLoading: galleryLoading } = useQuery<
     Generation[]
@@ -3575,440 +3534,440 @@ export default function StoryPage() {
       <EditorOnboarding editor="story" />
       <ResizablePanelGroup direction="horizontal" className="flex w-full h-full">
         <ResizablePanel defaultSize={18} minSize={14} maxSize={26}>
-      <div
-        className="flex shrink-0 bg-card dark:bg-card"
-        data-testid="left-icon-sidebar"
-      >
-        <div className="flex flex-col items-center py-3 px-1.5 gap-5 w-[56px]">
-          {LEFT_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => toggleLeftTab(tab.id)}
-              className={`flex flex-col items-center justify-center w-11 h-11 rounded-lg text-[10px] gap-0.5 transition-colors ${activeLeftTab === tab.id ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover-elevate"}`}
-              data-testid={`button-left-tab-${tab.id}`}
-            >
-              <tab.icon className="h-[18px] w-[18px]" />
-              <span>{tab.label}</span>
-            </button>
-          ))}
-        </div>
-
-        {activeLeftTab && (
           <div
-            className="w-[260px] bg-card overflow-y-auto"
-            data-testid="left-panel-content"
+            className="flex shrink-0 bg-card dark:bg-card"
+            data-testid="left-icon-sidebar"
           >
-            <div className="p-3 space-y-5">
-              {activeLeftTab === "ai" && (
-                <>
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-sm font-semibold">AI 자막 생성</h3>
-                    <button
-                      onClick={() => setActiveLeftTab(null)}
-                      className="text-muted-foreground hover-elevate rounded-md p-1"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                  <div className="flex gap-2">
-                    <Input
-                      value={topic}
-                      onChange={(e) => setTopic(e.target.value)}
-                      placeholder="주제 입력 (예: 월요일 출근길)"
-                      className="text-sm"
-                      data-testid="input-story-topic"
-                    />
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={() => suggestMutation.mutate()}
-                      disabled={suggestMutation.isPending}
-                      data-testid="button-suggest-topic"
-                    >
-                      {suggestMutation.isPending ? (
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                      ) : (
-                        <Lightbulb className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                  <Button
-                    className="w-full"
-                    size="sm"
-                  onClick={() => {
-                    const used = getDailyCount("story-ai");
-                    if (used >= 3) {
-                      setAiLimitOpen(true);
-                      return;
-                    }
-                    generateMutation.mutate();
-                  }}
-                    disabled={!topic.trim() || generateMutation.isPending}
-                    data-testid="button-generate-scripts"
-                  >
-                    {generateMutation.isPending ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent mr-2" />
-                    ) : (
-                      <Wand2 className="h-4 w-4 mr-2" />
-                    )}
-                    AI 자막 생성
-                  </Button>
-                </>
-              )}
+            <div className="flex flex-col items-center py-3 px-1.5 gap-5 w-[56px]">
+              {LEFT_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => toggleLeftTab(tab.id)}
+                  className={`flex flex-col items-center justify-center w-11 h-11 rounded-lg text-[10px] gap-0.5 transition-colors ${activeLeftTab === tab.id ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover-elevate"}`}
+                  data-testid={`button-left-tab-${tab.id}`}
+                >
+                  <tab.icon className="h-[18px] w-[18px]" />
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
 
-              {activeLeftTab === "panels" && (
-                <>
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-sm font-semibold">패널 목록</h3>
-                    <div className="flex items-center gap-1">
-                      <Badge
-                        variant="secondary"
-                        className="text-[11px]"
-                        data-testid="badge-story-panel-count"
-                      >
-                        {panels.length}개
-                      </Badge>
-                      <button
-                        onClick={() => setActiveLeftTab(null)}
-                        className="text-muted-foreground hover-elevate rounded-md p-1"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    {panels.map((panel, i) => (
-                      <div
-                        key={panel.id}
-                        className={`rounded-lg border-2 transition-colors cursor-pointer overflow-hidden ${i === activePanelIndex ? "border-primary/50" : "border-border hover-elevate"}`}
-                        onClick={() => {
-                          setActivePanelIndex(i);
-                          setSelectedBubbleId(null);
-                          setSelectedCharId(null);
-                        }}
-                        data-testid={`panel-card-${i}`}
-                      >
-                        <div className="flex items-center justify-between px-2 py-1 bg-muted/50">
-                          <span className="text-[11px] text-muted-foreground font-medium">
-                            {i + 1}
-                          </span>
-                          <div className="flex items-center gap-0.5">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                downloadPanel(i);
-                              }}
-                              data-testid={`button-download-panel-${i}`}
-                            >
-                              <Download className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                duplicatePanel(i);
-                              }}
-                              disabled={panels.length >= maxPanels}
-                              data-testid={`button-duplicate-panel-${i}`}
-                            >
-                              <Copy className="h-3 w-3" />
-                            </Button>
-                            {panels.length > 1 && (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  removePanel(i);
-                                }}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                        <div className="p-1.5">
-                          <PanelCanvas
-                            key={panel.id + "-thumb"}
-                            panel={panel}
-                            onUpdate={(updated) => updatePanel(i, updated)}
-                            selectedBubbleId={null}
-                            onSelectBubble={() => {}}
-                            selectedCharId={null}
-                            onSelectChar={() => {}}
-                            canvasRef={() => {}}
-            fontsReady={fontsReady}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={addPanel}
-                    disabled={panels.length >= maxPanels}
-                    data-testid="button-add-panel"
-                  >
-                    <Plus className="h-3.5 w-3.5 mr-1" />
-                    페이지 추가 ({panels.length}/{maxPanels})
-                  </Button>
-                </>
-              )}
-
-              {activeLeftTab === "script" && activePanel && (
-                <>
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-sm font-semibold">스크립트</h3>
-                    <button
-                      onClick={() => setActiveLeftTab(null)}
-                      className="text-muted-foreground hover-elevate rounded-md p-1"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    패널 {activePanelIndex + 1}의 상단/하단 스크립트를
-                    설정합니다.
-                  </p>
-
-                <div className="flex gap-1 flex-wrap">
-                    <Button
-                      size="sm"
-                    variant={activeScriptSection === "top" ? "secondary" : "outline"}
-                      onClick={() => {
-                      const p = activePanel;
-                      updatePanel(activePanelIndex, {
-                        ...p,
-                        topScript:
-                          p.topScript ?? { text: "", style: "no-bg", color: "yellow" },
-                      });
-                      setActiveScriptSection("top");
-                      }}
-                      data-testid={`button-toggle-top-script-${activePanelIndex}`}
-                    >
-                      <AlignVerticalJustifyStart className="h-3.5 w-3.5 mr-1" />
-                      상단
-                    </Button>
-                    <Button
-                      size="sm"
-                    variant={activeScriptSection === "bottom" ? "secondary" : "outline"}
-                      onClick={() => {
-                      const p = activePanel;
-                      updatePanel(activePanelIndex, {
-                        ...p,
-                        bottomScript:
-                          p.bottomScript ?? { text: "", style: "no-bg", color: "sky" },
-                      });
-                      setActiveScriptSection("bottom");
-                      }}
-                      data-testid={`button-toggle-bottom-script-${activePanelIndex}`}
-                    >
-                      <AlignVerticalJustifyEnd className="h-3.5 w-3.5 mr-1" />
-                      하단
-                    </Button>
-                  </div>
-
-                {activeScriptSection === "top" && activePanel.topScript && (
-                    <div className="space-y-2 rounded-md bg-muted/30 p-2">
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant="secondary"
-                          className="text-[11px] shrink-0 bg-yellow-400/20 text-yellow-700 dark:text-yellow-400"
+            {activeLeftTab && (
+              <div
+                className="w-[260px] bg-card overflow-y-auto"
+                data-testid="left-panel-content"
+              >
+                <div className="p-3 space-y-5">
+                  {activeLeftTab === "ai" && (
+                    <>
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="text-sm font-semibold">AI 자막 생성</h3>
+                        <button
+                          onClick={() => setActiveLeftTab(null)}
+                          className="text-muted-foreground hover-elevate rounded-md p-1"
                         >
-                          상단
-                        </Badge>
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          value={topic}
+                          onChange={(e) => setTopic(e.target.value)}
+                          placeholder="주제 입력 (예: 월요일 출근길)"
+                          className="text-sm"
+                          data-testid="input-story-topic"
+                        />
                         <Button
                           size="icon"
-                          variant="ghost"
-                          className="h-6 w-6"
-                          title="상단 스크립트 삭제"
-                          onClick={() => {
-                            const p = activePanel;
-                            updatePanel(activePanelIndex, { ...p, topScript: null });
-                          }}
-                          data-testid={`button-delete-top-script-${activePanelIndex}`}
+                          variant="outline"
+                          onClick={() => suggestMutation.mutate()}
+                          disabled={suggestMutation.isPending}
+                          data-testid="button-suggest-topic"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          {suggestMutation.isPending ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                          ) : (
+                            <Lightbulb className="h-4 w-4" />
+                          )}
                         </Button>
                       </div>
-                      <Textarea
-                        value={activePanel.topScript.text}
-                        onChange={(e) => {
-                          const p = activePanel;
-                          updatePanel(activePanelIndex, {
-                            ...p,
-                            topScript: {
-                              ...p.topScript!,
-                              text: e.target.value,
-                            },
-                          });
+                      <Button
+                        className="w-full"
+                        size="sm"
+                        onClick={() => {
+                          const used = getDailyCount("story-ai");
+                          if (used >= 3) {
+                            setAiLimitOpen(true);
+                            return;
+                          }
+                          generateMutation.mutate();
                         }}
-                        placeholder="상단 스크립트..."
-                        className="text-sm min-h-[150px] resize-none"
-                        data-testid={`input-panel-${activePanelIndex}-top`}
-                      />
-                      <div className="flex gap-1 flex-wrap">
-                        {SCRIPT_STYLE_OPTIONS.map((opt) => (
+                        disabled={!topic.trim() || generateMutation.isPending}
+                        data-testid="button-generate-scripts"
+                      >
+                        {generateMutation.isPending ? (
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent mr-2" />
+                        ) : (
+                          <Wand2 className="h-4 w-4 mr-2" />
+                        )}
+                        AI 자막 생성
+                      </Button>
+                    </>
+                  )}
+
+                  {activeLeftTab === "panels" && (
+                    <>
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="text-sm font-semibold">패널 목록</h3>
+                        <div className="flex items-center gap-1">
+                          <Badge
+                            variant="secondary"
+                            className="text-[11px]"
+                            data-testid="badge-story-panel-count"
+                          >
+                            {panels.length}개
+                          </Badge>
                           <button
-                            key={opt.value}
+                            onClick={() => setActiveLeftTab(null)}
+                            className="text-muted-foreground hover-elevate rounded-md p-1"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        {panels.map((panel, i) => (
+                          <div
+                            key={panel.id}
+                            className={`rounded-lg border-2 transition-colors cursor-pointer overflow-hidden ${i === activePanelIndex ? "border-primary/50" : "border-border hover-elevate"}`}
                             onClick={() => {
+                              setActivePanelIndex(i);
+                              setSelectedBubbleId(null);
+                              setSelectedCharId(null);
+                            }}
+                            data-testid={`panel-card-${i}`}
+                          >
+                            <div className="flex items-center justify-between px-2 py-1 bg-muted/50">
+                              <span className="text-[11px] text-muted-foreground font-medium">
+                                {i + 1}
+                              </span>
+                              <div className="flex items-center gap-0.5">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    downloadPanel(i);
+                                  }}
+                                  data-testid={`button-download-panel-${i}`}
+                                >
+                                  <Download className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    duplicatePanel(i);
+                                  }}
+                                  disabled={panels.length >= maxPanels}
+                                  data-testid={`button-duplicate-panel-${i}`}
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                                {panels.length > 1 && (
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      removePanel(i);
+                                    }}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                            <div className="p-1.5">
+                              <PanelCanvas
+                                key={panel.id + "-thumb"}
+                                panel={panel}
+                                onUpdate={(updated) => updatePanel(i, updated)}
+                                selectedBubbleId={null}
+                                onSelectBubble={() => { }}
+                                selectedCharId={null}
+                                onSelectChar={() => { }}
+                                canvasRef={() => { }}
+                                fontsReady={fontsReady}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={addPanel}
+                        disabled={panels.length >= maxPanels}
+                        data-testid="button-add-panel"
+                      >
+                        <Plus className="h-3.5 w-3.5 mr-1" />
+                        페이지 추가 ({panels.length}/{maxPanels})
+                      </Button>
+                    </>
+                  )}
+
+                  {activeLeftTab === "script" && activePanel && (
+                    <>
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="text-sm font-semibold">스크립트</h3>
+                        <button
+                          onClick={() => setActiveLeftTab(null)}
+                          className="text-muted-foreground hover-elevate rounded-md p-1"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        패널 {activePanelIndex + 1}의 상단/하단 스크립트를
+                        설정합니다.
+                      </p>
+
+                      <div className="flex gap-1 flex-wrap">
+                        <Button
+                          size="sm"
+                          variant={activeScriptSection === "top" ? "secondary" : "outline"}
+                          onClick={() => {
+                            const p = activePanel;
+                            updatePanel(activePanelIndex, {
+                              ...p,
+                              topScript:
+                                p.topScript ?? { text: "", style: "no-bg", color: "yellow" },
+                            });
+                            setActiveScriptSection("top");
+                          }}
+                          data-testid={`button-toggle-top-script-${activePanelIndex}`}
+                        >
+                          <AlignVerticalJustifyStart className="h-3.5 w-3.5 mr-1" />
+                          상단
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={activeScriptSection === "bottom" ? "secondary" : "outline"}
+                          onClick={() => {
+                            const p = activePanel;
+                            updatePanel(activePanelIndex, {
+                              ...p,
+                              bottomScript:
+                                p.bottomScript ?? { text: "", style: "no-bg", color: "sky" },
+                            });
+                            setActiveScriptSection("bottom");
+                          }}
+                          data-testid={`button-toggle-bottom-script-${activePanelIndex}`}
+                        >
+                          <AlignVerticalJustifyEnd className="h-3.5 w-3.5 mr-1" />
+                          하단
+                        </Button>
+                      </div>
+
+                      {activeScriptSection === "top" && activePanel.topScript && (
+                        <div className="space-y-2 rounded-md bg-muted/30 p-2">
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant="secondary"
+                              className="text-[11px] shrink-0 bg-yellow-400/20 text-yellow-700 dark:text-yellow-400"
+                            >
+                              상단
+                            </Badge>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                              title="상단 스크립트 삭제"
+                              onClick={() => {
+                                const p = activePanel;
+                                updatePanel(activePanelIndex, { ...p, topScript: null });
+                              }}
+                              data-testid={`button-delete-top-script-${activePanelIndex}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                          <Textarea
+                            value={activePanel.topScript.text}
+                            onChange={(e) => {
                               const p = activePanel;
                               updatePanel(activePanelIndex, {
                                 ...p,
                                 topScript: {
                                   ...p.topScript!,
-                                  style: opt.value,
+                                  text: e.target.value,
                                 },
                               });
                             }}
-                            className={`px-2 py-0.5 text-[11px] rounded-md border transition-colors ${activePanel.topScript!.style === opt.value ? "border-foreground/40 bg-foreground/10 font-semibold" : "border-border hover-elevate"}`}
-                            data-testid={`button-top-script-style-${opt.value}-${activePanelIndex}`}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="flex gap-1 flex-wrap items-center">
-                        <span className="text-[11px] text-muted-foreground mr-0.5">
-                          색상
-                        </span>
-                        {SCRIPT_COLOR_OPTIONS.map((c) => (
-                          <button
-                            key={c.value}
-                            onClick={() => {
-                              const p = activePanel;
-                              updatePanel(activePanelIndex, {
-                                ...p,
-                                topScript: { ...p.topScript!, color: c.value },
-                              });
-                            }}
-                            className={`w-5 h-5 rounded-full border-2 transition-transform ${activePanel.topScript!.color === c.value ? "border-foreground scale-110" : "border-transparent"}`}
-                            style={{ backgroundColor: c.bg }}
-                            title={c.label}
-                            data-testid={`button-top-script-color-${c.value}-${activePanelIndex}`}
+                            placeholder="상단 스크립트..."
+                            className="text-sm min-h-[150px] resize-none"
+                            data-testid={`input-panel-${activePanelIndex}-top`}
                           />
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-muted-foreground shrink-0">
-                          글씨 크기
-                        </span>
-                        <Slider
-                          min={8}
-                          max={36}
-                          step={1}
-                          value={[activePanel.topScript.fontSize || 20]}
-                          onValueChange={([v]) => {
-                            const p = activePanel;
-                            updatePanel(activePanelIndex, {
-                              ...p,
-                              topScript: { ...p.topScript!, fontSize: v },
-                            });
-                          }}
-                          className="flex-1"
-                          data-testid={`slider-top-script-fontsize-${activePanelIndex}`}
-                        />
-                        <span className="text-[11px] text-muted-foreground w-6 text-right">
-                          {activePanel.topScript.fontSize || 20}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-muted-foreground shrink-0">
-                          글꼴
-                        </span>
-                        <Select
-                          value={activePanel.topScript.fontKey || "default"}
-                          onValueChange={(v) => {
-                            const p = activePanel;
-                            updatePanel(activePanelIndex, {
-                              ...p,
-                              topScript: { ...p.topScript!, fontKey: v },
-                            });
-                          }}
-                        >
-                          <SelectTrigger className="h-7 text-[11px] flex-1" data-testid={`select-top-script-font-${activePanelIndex}`}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {KOREAN_FONTS.map((f) => (
-                              <SelectItem key={f.value} value={f.value} className="text-[11px]">
-                                {f.label}
-                              </SelectItem>
+                          <div className="flex gap-1 flex-wrap">
+                            {SCRIPT_STYLE_OPTIONS.map((opt) => (
+                              <button
+                                key={opt.value}
+                                onClick={() => {
+                                  const p = activePanel;
+                                  updatePanel(activePanelIndex, {
+                                    ...p,
+                                    topScript: {
+                                      ...p.topScript!,
+                                      style: opt.value,
+                                    },
+                                  });
+                                }}
+                                className={`px-2 py-0.5 text-[11px] rounded-md border transition-colors ${activePanel.topScript!.style === opt.value ? "border-foreground/40 bg-foreground/10 font-semibold" : "border-border hover-elevate"}`}
+                                data-testid={`button-top-script-style-${opt.value}-${activePanelIndex}`}
+                              >
+                                {opt.label}
+                              </button>
                             ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex gap-1 flex-wrap items-center">
-                        <span className="text-[11px] text-muted-foreground mr-0.5">
-                          글자색
-                        </span>
-                        {SCRIPT_TEXT_COLORS.map((c) => (
-                          <button
-                            key={c.value || "auto"}
-                            onClick={() => {
-                              const p = activePanel;
-                              updatePanel(activePanelIndex, {
-                                ...p,
-                                topScript: { ...p.topScript!, textColor: c.value },
-                              });
-                            }}
-                            className={`w-5 h-5 rounded-full border-2 transition-transform ${(activePanel.topScript!.textColor || "") === c.value ? "border-foreground scale-110" : "border-transparent"}`}
-                            style={{ backgroundColor: c.hex || "transparent", backgroundImage: c.hex ? undefined : "linear-gradient(135deg, #ccc 25%, transparent 25%, transparent 50%, #ccc 50%, #ccc 75%, transparent 75%)", backgroundSize: c.hex ? undefined : "6px 6px" }}
-                            title={c.label}
-                            data-testid={`button-top-script-textcolor-${c.value || "auto"}-${activePanelIndex}`}
-                          />
-                        ))}
-                        <button
-                          onClick={() => {
-                            const p = activePanel;
-                            updatePanel(activePanelIndex, {
-                              ...p,
-                              topScript: { ...p.topScript!, bold: !(p.topScript!.bold !== false) },
-                            });
-                          }}
-                          className={`px-1.5 py-0.5 text-[11px] rounded-md border transition-colors font-bold ${activePanel.topScript!.bold !== false ? "border-foreground/40 bg-foreground/10" : "border-border hover-elevate"}`}
-                          data-testid={`button-top-script-bold-${activePanelIndex}`}
-                        >
-                          B
-                        </button>
-                      </div>
-                      <p className="text-[10px] text-muted-foreground">
-                        캔버스에서 드래그하여 위치를 이동할 수 있습니다
-                      </p>
-                    </div>
-                )}
+                          </div>
+                          <div className="flex gap-1 flex-wrap items-center">
+                            <span className="text-[11px] text-muted-foreground mr-0.5">
+                              색상
+                            </span>
+                            {SCRIPT_COLOR_OPTIONS.map((c) => (
+                              <button
+                                key={c.value}
+                                onClick={() => {
+                                  const p = activePanel;
+                                  updatePanel(activePanelIndex, {
+                                    ...p,
+                                    topScript: { ...p.topScript!, color: c.value },
+                                  });
+                                }}
+                                className={`w-5 h-5 rounded-full border-2 transition-transform ${activePanel.topScript!.color === c.value ? "border-foreground scale-110" : "border-transparent"}`}
+                                style={{ backgroundColor: c.bg }}
+                                title={c.label}
+                                data-testid={`button-top-script-color-${c.value}-${activePanelIndex}`}
+                              />
+                            ))}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-muted-foreground shrink-0">
+                              글씨 크기
+                            </span>
+                            <Slider
+                              min={8}
+                              max={36}
+                              step={1}
+                              value={[activePanel.topScript.fontSize || 20]}
+                              onValueChange={([v]) => {
+                                const p = activePanel;
+                                updatePanel(activePanelIndex, {
+                                  ...p,
+                                  topScript: { ...p.topScript!, fontSize: v },
+                                });
+                              }}
+                              className="flex-1"
+                              data-testid={`slider-top-script-fontsize-${activePanelIndex}`}
+                            />
+                            <span className="text-[11px] text-muted-foreground w-6 text-right">
+                              {activePanel.topScript.fontSize || 20}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-muted-foreground shrink-0">
+                              글꼴
+                            </span>
+                            <Select
+                              value={activePanel.topScript.fontKey || "default"}
+                              onValueChange={(v) => {
+                                const p = activePanel;
+                                updatePanel(activePanelIndex, {
+                                  ...p,
+                                  topScript: { ...p.topScript!, fontKey: v },
+                                });
+                              }}
+                            >
+                              <SelectTrigger className="h-7 text-[11px] flex-1" data-testid={`select-top-script-font-${activePanelIndex}`}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {KOREAN_FONTS.map((f) => (
+                                  <SelectItem key={f.value} value={f.value} className="text-[11px]">
+                                    {f.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex gap-1 flex-wrap items-center">
+                            <span className="text-[11px] text-muted-foreground mr-0.5">
+                              글자색
+                            </span>
+                            {SCRIPT_TEXT_COLORS.map((c) => (
+                              <button
+                                key={c.value || "auto"}
+                                onClick={() => {
+                                  const p = activePanel;
+                                  updatePanel(activePanelIndex, {
+                                    ...p,
+                                    topScript: { ...p.topScript!, textColor: c.value },
+                                  });
+                                }}
+                                className={`w-5 h-5 rounded-full border-2 transition-transform ${(activePanel.topScript!.textColor || "") === c.value ? "border-foreground scale-110" : "border-transparent"}`}
+                                style={{ backgroundColor: c.hex || "transparent", backgroundImage: c.hex ? undefined : "linear-gradient(135deg, #ccc 25%, transparent 25%, transparent 50%, #ccc 50%, #ccc 75%, transparent 75%)", backgroundSize: c.hex ? undefined : "6px 6px" }}
+                                title={c.label}
+                                data-testid={`button-top-script-textcolor-${c.value || "auto"}-${activePanelIndex}`}
+                              />
+                            ))}
+                            <button
+                              onClick={() => {
+                                const p = activePanel;
+                                updatePanel(activePanelIndex, {
+                                  ...p,
+                                  topScript: { ...p.topScript!, bold: !(p.topScript!.bold !== false) },
+                                });
+                              }}
+                              className={`px-1.5 py-0.5 text-[11px] rounded-md border transition-colors font-bold ${activePanel.topScript!.bold !== false ? "border-foreground/40 bg-foreground/10" : "border-border hover-elevate"}`}
+                              data-testid={`button-top-script-bold-${activePanelIndex}`}
+                            >
+                              B
+                            </button>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">
+                            캔버스에서 드래그하여 위치를 이동할 수 있습니다
+                          </p>
+                        </div>
+                      )}
 
-                {activeScriptSection === "bottom" && activePanel.bottomScript && (
-                    <div className="space-y-2 rounded-md bg-muted/30 p-2">
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant="secondary"
-                          className="text-[11px] shrink-0 bg-sky-400/20 text-sky-700 dark:text-sky-400"
-                        >
-                          하단
-                        </Badge>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6"
-                          title="하단 스크립트 삭제"
-                          onClick={() => {
-                            const p = activePanel;
-                            updatePanel(activePanelIndex, { ...p, bottomScript: null });
-                          }}
-                          data-testid={`button-delete-bottom-script-${activePanelIndex}`}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+                      {activeScriptSection === "bottom" && activePanel.bottomScript && (
+                        <div className="space-y-2 rounded-md bg-muted/30 p-2">
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant="secondary"
+                              className="text-[11px] shrink-0 bg-sky-400/20 text-sky-700 dark:text-sky-400"
+                            >
+                              하단
+                            </Badge>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                              title="하단 스크립트 삭제"
+                              onClick={() => {
+                                const p = activePanel;
+                                updatePanel(activePanelIndex, { ...p, bottomScript: null });
+                              }}
+                              data-testid={`button-delete-bottom-script-${activePanelIndex}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                           <Textarea
                             value={activePanel.bottomScript.text}
                             onChange={(e) => {
@@ -4025,492 +3984,492 @@ export default function StoryPage() {
                             className="text-sm min-h-[150px] resize-none"
                             data-testid={`input-panel-${activePanelIndex}-bottom`}
                           />
-                      <div className="flex gap-1 flex-wrap">
-                        {SCRIPT_STYLE_OPTIONS.map((opt) => (
-                          <button
-                            key={opt.value}
-                            onClick={() => {
-                              const p = activePanel;
-                              updatePanel(activePanelIndex, {
-                                ...p,
-                                bottomScript: {
-                                  ...p.bottomScript!,
-                                  style: opt.value,
-                                },
-                              });
-                            }}
-                            className={`px-2 py-0.5 text-[11px] rounded-md border transition-colors ${activePanel.bottomScript!.style === opt.value ? "border-foreground/40 bg-foreground/10 font-semibold" : "border-border hover-elevate"}`}
-                            data-testid={`button-bottom-script-style-${opt.value}-${activePanelIndex}`}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="flex gap-1 flex-wrap items-center">
-                        <span className="text-[11px] text-muted-foreground mr-0.5">
-                          색상
-                        </span>
-                        {SCRIPT_COLOR_OPTIONS.map((c) => (
-                          <button
-                            key={c.value}
-                            onClick={() => {
-                              const p = activePanel;
-                              updatePanel(activePanelIndex, {
-                                ...p,
-                                bottomScript: {
-                                  ...p.bottomScript!,
-                                  color: c.value,
-                                },
-                              });
-                            }}
-                            className={`w-5 h-5 rounded-full border-2 transition-transform ${activePanel.bottomScript!.color === c.value ? "border-foreground scale-110" : "border-transparent"}`}
-                            style={{ backgroundColor: c.bg }}
-                            title={c.label}
-                            data-testid={`button-bottom-script-color-${c.value}-${activePanelIndex}`}
-                          />
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-muted-foreground shrink-0">
-                          글씨 크기
-                        </span>
-                        <Slider
-                          min={8}
-                          max={36}
-                          step={1}
-                          value={[activePanel.bottomScript.fontSize || 20]}
-                          onValueChange={([v]) => {
-                            const p = activePanel;
-                            updatePanel(activePanelIndex, {
-                              ...p,
-                              bottomScript: { ...p.bottomScript!, fontSize: v },
-                            });
-                          }}
-                          className="flex-1"
-                          data-testid={`slider-bottom-script-fontsize-${activePanelIndex}`}
-                        />
-                        <span className="text-[11px] text-muted-foreground w-6 text-right">
-                          {activePanel.bottomScript.fontSize || 20}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-muted-foreground shrink-0">
-                          글꼴
-                        </span>
-                        <Select
-                          value={activePanel.bottomScript.fontKey || "default"}
-                          onValueChange={(v) => {
-                            const p = activePanel;
-                            updatePanel(activePanelIndex, {
-                              ...p,
-                              bottomScript: { ...p.bottomScript!, fontKey: v },
-                            });
-                          }}
-                        >
-                          <SelectTrigger className="h-7 text-[11px] flex-1" data-testid={`select-bottom-script-font-${activePanelIndex}`}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {KOREAN_FONTS.map((f) => (
-                              <SelectItem key={f.value} value={f.value} className="text-[11px]">
-                                {f.label}
-                              </SelectItem>
+                          <div className="flex gap-1 flex-wrap">
+                            {SCRIPT_STYLE_OPTIONS.map((opt) => (
+                              <button
+                                key={opt.value}
+                                onClick={() => {
+                                  const p = activePanel;
+                                  updatePanel(activePanelIndex, {
+                                    ...p,
+                                    bottomScript: {
+                                      ...p.bottomScript!,
+                                      style: opt.value,
+                                    },
+                                  });
+                                }}
+                                className={`px-2 py-0.5 text-[11px] rounded-md border transition-colors ${activePanel.bottomScript!.style === opt.value ? "border-foreground/40 bg-foreground/10 font-semibold" : "border-border hover-elevate"}`}
+                                data-testid={`button-bottom-script-style-${opt.value}-${activePanelIndex}`}
+                              >
+                                {opt.label}
+                              </button>
                             ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex gap-1 flex-wrap items-center">
-                        <span className="text-[11px] text-muted-foreground mr-0.5">
-                          글자색
-                        </span>
-                        {SCRIPT_TEXT_COLORS.map((c) => (
-                          <button
-                            key={c.value || "auto"}
-                            onClick={() => {
-                              const p = activePanel;
-                              updatePanel(activePanelIndex, {
-                                ...p,
-                                bottomScript: { ...p.bottomScript!, textColor: c.value },
-                              });
-                            }}
-                            className={`w-5 h-5 rounded-full border-2 transition-transform ${(activePanel.bottomScript!.textColor || "") === c.value ? "border-foreground scale-110" : "border-transparent"}`}
-                            style={{ backgroundColor: c.hex || "transparent", backgroundImage: c.hex ? undefined : "linear-gradient(135deg, #ccc 25%, transparent 25%, transparent 50%, #ccc 50%, #ccc 75%, transparent 75%)", backgroundSize: c.hex ? undefined : "6px 6px" }}
-                            title={c.label}
-                            data-testid={`button-bottom-script-textcolor-${c.value || "auto"}-${activePanelIndex}`}
-                          />
-                        ))}
+                          </div>
+                          <div className="flex gap-1 flex-wrap items-center">
+                            <span className="text-[11px] text-muted-foreground mr-0.5">
+                              색상
+                            </span>
+                            {SCRIPT_COLOR_OPTIONS.map((c) => (
+                              <button
+                                key={c.value}
+                                onClick={() => {
+                                  const p = activePanel;
+                                  updatePanel(activePanelIndex, {
+                                    ...p,
+                                    bottomScript: {
+                                      ...p.bottomScript!,
+                                      color: c.value,
+                                    },
+                                  });
+                                }}
+                                className={`w-5 h-5 rounded-full border-2 transition-transform ${activePanel.bottomScript!.color === c.value ? "border-foreground scale-110" : "border-transparent"}`}
+                                style={{ backgroundColor: c.bg }}
+                                title={c.label}
+                                data-testid={`button-bottom-script-color-${c.value}-${activePanelIndex}`}
+                              />
+                            ))}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-muted-foreground shrink-0">
+                              글씨 크기
+                            </span>
+                            <Slider
+                              min={8}
+                              max={36}
+                              step={1}
+                              value={[activePanel.bottomScript.fontSize || 20]}
+                              onValueChange={([v]) => {
+                                const p = activePanel;
+                                updatePanel(activePanelIndex, {
+                                  ...p,
+                                  bottomScript: { ...p.bottomScript!, fontSize: v },
+                                });
+                              }}
+                              className="flex-1"
+                              data-testid={`slider-bottom-script-fontsize-${activePanelIndex}`}
+                            />
+                            <span className="text-[11px] text-muted-foreground w-6 text-right">
+                              {activePanel.bottomScript.fontSize || 20}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-muted-foreground shrink-0">
+                              글꼴
+                            </span>
+                            <Select
+                              value={activePanel.bottomScript.fontKey || "default"}
+                              onValueChange={(v) => {
+                                const p = activePanel;
+                                updatePanel(activePanelIndex, {
+                                  ...p,
+                                  bottomScript: { ...p.bottomScript!, fontKey: v },
+                                });
+                              }}
+                            >
+                              <SelectTrigger className="h-7 text-[11px] flex-1" data-testid={`select-bottom-script-font-${activePanelIndex}`}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {KOREAN_FONTS.map((f) => (
+                                  <SelectItem key={f.value} value={f.value} className="text-[11px]">
+                                    {f.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex gap-1 flex-wrap items-center">
+                            <span className="text-[11px] text-muted-foreground mr-0.5">
+                              글자색
+                            </span>
+                            {SCRIPT_TEXT_COLORS.map((c) => (
+                              <button
+                                key={c.value || "auto"}
+                                onClick={() => {
+                                  const p = activePanel;
+                                  updatePanel(activePanelIndex, {
+                                    ...p,
+                                    bottomScript: { ...p.bottomScript!, textColor: c.value },
+                                  });
+                                }}
+                                className={`w-5 h-5 rounded-full border-2 transition-transform ${(activePanel.bottomScript!.textColor || "") === c.value ? "border-foreground scale-110" : "border-transparent"}`}
+                                style={{ backgroundColor: c.hex || "transparent", backgroundImage: c.hex ? undefined : "linear-gradient(135deg, #ccc 25%, transparent 25%, transparent 50%, #ccc 50%, #ccc 75%, transparent 75%)", backgroundSize: c.hex ? undefined : "6px 6px" }}
+                                title={c.label}
+                                data-testid={`button-bottom-script-textcolor-${c.value || "auto"}-${activePanelIndex}`}
+                              />
+                            ))}
+                            <button
+                              onClick={() => {
+                                const p = activePanel;
+                                updatePanel(activePanelIndex, {
+                                  ...p,
+                                  bottomScript: { ...p.bottomScript!, bold: !(p.bottomScript!.bold !== false) },
+                                });
+                              }}
+                              className={`px-1.5 py-0.5 text-[11px] rounded-md border transition-colors font-bold ${activePanel.bottomScript!.bold !== false ? "border-foreground/40 bg-foreground/10" : "border-border hover-elevate"}`}
+                              data-testid={`button-bottom-script-bold-${activePanelIndex}`}
+                            >
+                              B
+                            </button>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">
+                            캔버스에서 드래그하여 위치를 이동할 수 있습니다
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {activeLeftTab === "edit" && activePanel && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2 px-3 pt-3">
+                        <h3 className="text-sm font-semibold">편집</h3>
                         <button
-                          onClick={() => {
-                            const p = activePanel;
-                            updatePanel(activePanelIndex, {
-                              ...p,
-                              bottomScript: { ...p.bottomScript!, bold: !(p.bottomScript!.bold !== false) },
-                            });
-                          }}
-                          className={`px-1.5 py-0.5 text-[11px] rounded-md border transition-colors font-bold ${activePanel.bottomScript!.bold !== false ? "border-foreground/40 bg-foreground/10" : "border-border hover-elevate"}`}
-                          data-testid={`button-bottom-script-bold-${activePanelIndex}`}
+                          onClick={() => setActiveLeftTab(null)}
+                          className="text-muted-foreground hover-elevate rounded-md p-1"
                         >
-                          B
+                          <X className="h-3.5 w-3.5" />
                         </button>
                       </div>
-                      <p className="text-[10px] text-muted-foreground">
-                        캔버스에서 드래그하여 위치를 이동할 수 있습니다
-                      </p>
+                      <div className="px-3 pb-3">
+                        <EditorPanel
+                          key={activePanel.id + "-left"}
+                          panel={activePanel}
+                          index={activePanelIndex}
+                          total={panels.length}
+                          onUpdate={(updated) => updatePanel(activePanelIndex, updated)}
+                          onRemove={() => removePanel(activePanelIndex)}
+                          galleryImages={galleryData || []}
+                          galleryLoading={galleryLoading}
+                          selectedBubbleId={selectedBubbleId}
+                          setSelectedBubbleId={setSelectedBubbleId}
+                          selectedCharId={selectedCharId}
+                          setSelectedCharId={setSelectedCharId}
+                          creatorTier={usageData?.creatorTier ?? 0}
+                          isPro={usageData?.tier === "pro"}
+                        />
+                      </div>
                     </div>
                   )}
-                </>
-              )}
-
-              {activeLeftTab === "edit" && activePanel && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-2 px-3 pt-3">
-                    <h3 className="text-sm font-semibold">편집</h3>
-                    <button
-                      onClick={() => setActiveLeftTab(null)}
-                      className="text-muted-foreground hover-elevate rounded-md p-1"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                  <div className="px-3 pb-3">
-                    <RightSidebar
-                      key={activePanel.id + "-left"}
-                      panel={activePanel}
-                      index={activePanelIndex}
-                      total={panels.length}
-                      onUpdate={(updated) => updatePanel(activePanelIndex, updated)}
-                      onRemove={() => removePanel(activePanelIndex)}
-                      galleryImages={galleryData || []}
-                      galleryLoading={galleryLoading}
-                      selectedBubbleId={selectedBubbleId}
-                      setSelectedBubbleId={setSelectedBubbleId}
-                      selectedCharId={selectedCharId}
-                      setSelectedCharId={setSelectedCharId}
-                      creatorTier={usageData?.creatorTier ?? 0}
-                      isPro={usageData?.tier === "pro"}
-                    />
-                  </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel defaultSize={52} minSize={40} className="flex flex-col min-w-0 overflow-hidden">
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <div
-          className="w-full relative"
-          data-testid="canvas-toolbar"
-        >
-          <div
-            className="flex items-center justify-between gap-3 px-5 py-2 w-full flex-wrap bg-background/60 dark:bg-background/40"
-            style={{ backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}
-          >
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex items-center gap-1.5 mr-1">
-                <div className="w-6 h-6 rounded-md bg-[hsl(173_100%_35%)] flex items-center justify-center">
-                  <BookOpen className="h-3.5 w-3.5 text-white" />
-                </div>
-                <span className="text-sm font-bold tracking-tight" data-testid="text-story-title">스토리</span>
-              </div>
-              <div className="flex items-center gap-0.5 bg-muted/40 dark:bg-muted/20 rounded-md px-0.5 py-0.5">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6"
-                  onClick={() => setActivePanelIndex(Math.max(0, activePanelIndex - 1))}
-                  disabled={activePanelIndex === 0}
-                  data-testid="button-prev-panel"
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                </Button>
-                <span className="text-[11px] font-medium tabular-nums px-1 min-w-[2.5rem] text-center" data-testid="text-panel-indicator">
-                  {activePanelIndex + 1} / {panels.length}
-                </span>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6"
-                  onClick={() => setActivePanelIndex(Math.min(panels.length - 1, activePanelIndex + 1))}
-                  disabled={activePanelIndex >= panels.length - 1}
-                  data-testid="button-next-panel"
-                >
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-              <Button size="sm" variant="ghost" onClick={addPanel} disabled={panels.length >= maxPanels} className="gap-1 h-7 text-xs px-2" data-testid="button-add-panel">
-                <Plus className="h-3 w-3" />
-                추가
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setFlowMode((v) => !v)} className="gap-1 h-7 text-xs px-2" data-testid="button-toggle-flow-mode">
-                {flowMode ? <LayoutGrid className="h-3 w-3" /> : <LayoutGrid className="h-3 w-3" />}
-                Flow 모드
-              </Button>
-              <div className="flex items-center gap-0.5">
-                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={undo} disabled={historyRef.current.length === 0} title="실행 취소 (Ctrl+Z)" data-testid="button-undo">
-                  <Undo2 className="h-3.5 w-3.5" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={redo} disabled={futureRef.current.length === 0} title="다시 실행 (Ctrl+Shift+Z)" data-testid="button-redo">
-                  <Redo2 className="h-3.5 w-3.5" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={resetAll} title="초기화" data-testid="button-reset-story">
-                  <RotateCcw className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-            <div className="flex items-center gap-1 flex-wrap">
-              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={startStoryTour} title="도움말" data-testid="button-story-help">
-                <Lightbulb className="h-3.5 w-3.5" />
-              </Button>
-              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => downloadPanel(activePanelIndex)} title="다운로드" data-testid="button-download-panel">
-                <Download className="h-3.5 w-3.5" />
-              </Button>
-              <Button size="sm" variant="outline" className="gap-1 h-7 text-xs px-2" onClick={() => setShowDesignEditor(true)}>
-                디자인 에디터
-              </Button>
-              <Button size="sm" onClick={() => setShowSaveModal(true)} className="gap-1 h-7 text-xs px-2.5 bg-[hsl(173_100%_35%)] text-white border-[hsl(173_100%_35%)]" data-testid="button-save-story-project">
-                <Save className="h-3 w-3" />
-                저장
-                {isPro && <Crown className="h-2.5 w-2.5 ml-0.5" />}
-              </Button>
-              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setLocation("/edits")} title="내 편집" data-testid="button-story-my-edits">
-                <FolderOpen className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </div>
-          <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-[hsl(173_100%_35%)] to-transparent opacity-60" />
-        </div>
-
-        <div
-          ref={canvasAreaRef}
-          className={`flex-1 min-h-0 overflow-auto flex items-center justify-center bg-muted/20 dark:bg-muted/10 relative ${zoom >= 200 ? "p-0" : "p-6"}`}
-          data-testid="story-canvas-area"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) {
-              setSelectedBubbleId(null);
-              setSelectedCharId(null);
-            }
-          }}
-        >
-          {panMode && (
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             <div
-              className="absolute inset-0 z-40"
-              onPointerDown={(e) => {
-                const area = canvasAreaRef.current;
-                if (!area) return;
-                (e.currentTarget as any).setPointerCapture(e.pointerId);
-                panDraggingRef.current = true;
-                panStartRef.current = { x: e.clientX, y: e.clientY };
-                panScrollStartRef.current = { left: area.scrollLeft, top: area.scrollTop };
-                area.style.cursor = "grabbing";
-              }}
-              onPointerMove={(e) => {
-                if (!panDraggingRef.current) return;
-                const area = canvasAreaRef.current;
-                if (!area || !panStartRef.current || !panScrollStartRef.current) return;
-                const dx = e.clientX - panStartRef.current.x;
-                const dy = e.clientY - panStartRef.current.y;
-                area.scrollLeft = panScrollStartRef.current.left - dx;
-                area.scrollTop = panScrollStartRef.current.top - dy;
-              }}
-              onPointerUp={() => {
-                panDraggingRef.current = false;
-                const area = canvasAreaRef.current;
-                if (area) area.style.cursor = "grab";
-              }}
-              onClick={() => {
-                setSelectedBubbleId(null);
-                setSelectedCharId(null);
-              }}
-              style={{ cursor: "grab" }}
-            />
-          )}
-          {activePanel && !flowMode && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30">
-              <div className="flex items-center gap-2 rounded-full border bg-background/95 px-3 py-1.5 shadow-md">
-                <button
-                  className={`text-xs px-2 py-1 rounded-full ${activeLeftTab === "edit" ? "bg-muted font-medium" : "hover:bg-muted"}`}
-                  onClick={() => toggleLeftTab("edit")}
-                >
-                  편집
-                </button>
-                <div className="h-4 w-px bg-border" />
-                <button
-                  className="flex items-center gap-1 text-xs px-2 py-1 rounded-full hover:bg-muted"
-                  onClick={() => {
-                    if (!isPro) {
-                      toast({
-                        title: "Pro 전용 기능",
-                        description: "배경 제거는 Pro 멤버십 전용 기능입니다.",
-                        variant: "destructive",
-                      });
-                      return;
-                    }
-                    setShowDesignEditor(true);
-                  }}
-                >
-                  <span>배경 제거</span>
-                  {!isPro && <Crown className="h-3 w-3 text-amber-500" />}
-                </button>
-              </div>
-            </div>
-          )}
-          {captureActive && (
-            <div className="absolute inset-0 z-50 bg-black/60 text-white grid place-items-center">
-              <div className="px-3 py-1.5 rounded bg-white/10 text-xs font-medium">스크린캡쳐 방지 중</div>
-            </div>
-          )}
-          {activePanel && (
-            flowMode ? (
+              className="w-full relative"
+              data-testid="canvas-toolbar"
+            >
               <div
-                className="border border-border rounded-md overflow-hidden relative shrink-0 bg-white"
-                style={{ width: CANVAS_W * flowZoomScale, height: CANVAS_H * flowZoomScale }}
+                className="flex items-center justify-between gap-3 px-5 py-2 w-full flex-wrap bg-background/60 dark:bg-background/40"
+                style={{ backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}
               >
-                <ReactFlow
-                  nodes={flowNodes}
-                  edges={[]}
-                  onNodesChange={onFlowNodesChange}
-                  fitView
-                >
-                  <Background />
-                  <Controls />
-                </ReactFlow>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 mr-1">
+                    <div className="w-6 h-6 rounded-md bg-[hsl(173_100%_35%)] flex items-center justify-center">
+                      <BookOpen className="h-3.5 w-3.5 text-white" />
+                    </div>
+                    <span className="text-sm font-bold tracking-tight" data-testid="text-story-title">스토리</span>
+                  </div>
+                  <div className="flex items-center gap-0.5 bg-muted/40 dark:bg-muted/20 rounded-md px-0.5 py-0.5">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6"
+                      onClick={() => setActivePanelIndex(Math.max(0, activePanelIndex - 1))}
+                      disabled={activePanelIndex === 0}
+                      data-testid="button-prev-panel"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                    </Button>
+                    <span className="text-[11px] font-medium tabular-nums px-1 min-w-[2.5rem] text-center" data-testid="text-panel-indicator">
+                      {activePanelIndex + 1} / {panels.length}
+                    </span>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6"
+                      onClick={() => setActivePanelIndex(Math.min(panels.length - 1, activePanelIndex + 1))}
+                      disabled={activePanelIndex >= panels.length - 1}
+                      data-testid="button-next-panel"
+                    >
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  <Button size="sm" variant="ghost" onClick={addPanel} disabled={panels.length >= maxPanels} className="gap-1 h-7 text-xs px-2" data-testid="button-add-panel">
+                    <Plus className="h-3 w-3" />
+                    추가
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setFlowMode((v) => !v)} className="gap-1 h-7 text-xs px-2" data-testid="button-toggle-flow-mode">
+                    {flowMode ? <LayoutGrid className="h-3 w-3" /> : <LayoutGrid className="h-3 w-3" />}
+                    Flow 모드
+                  </Button>
+                  <div className="flex items-center gap-0.5">
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={undo} disabled={historyRef.current.length === 0} title="실행 취소 (Ctrl+Z)" data-testid="button-undo">
+                      <Undo2 className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={redo} disabled={futureRef.current.length === 0} title="다시 실행 (Ctrl+Shift+Z)" data-testid="button-redo">
+                      <Redo2 className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={resetAll} title="초기화" data-testid="button-reset-story">
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 flex-wrap">
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={startStoryTour} title="도움말" data-testid="button-story-help">
+                    <Lightbulb className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => downloadPanel(activePanelIndex)} title="다운로드" data-testid="button-download-panel">
+                    <Download className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="sm" variant="outline" className="gap-1 h-7 text-xs px-2" onClick={() => setShowDesignEditor(true)}>
+                    디자인 에디터
+                  </Button>
+                  <Button size="sm" onClick={() => setShowSaveModal(true)} className="gap-1 h-7 text-xs px-2.5 bg-[hsl(173_100%_35%)] text-white border-[hsl(173_100%_35%)]" data-testid="button-save-story-project">
+                    <Save className="h-3 w-3" />
+                    저장
+                    {isPro && <Crown className="h-2.5 w-2.5 ml-0.5" />}
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setLocation("/edits")} title="내 편집" data-testid="button-story-my-edits">
+                    <FolderOpen className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
-            ) : (
-              <div className="shrink-0" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)", borderRadius: "12px" }}>
-                <PanelCanvas
-                  key={activePanel.id + "-main"}
-                  panel={activePanel}
-                  onUpdate={(updated) => updatePanel(activePanelIndex, updated)}
-                  selectedBubbleId={selectedBubbleId}
-                  onSelectBubble={(id) => {
-                    setSelectedBubbleId(id);
-                    setSelectedCharId(null);
-                  }}
-                  selectedCharId={selectedCharId}
-                  onSelectChar={(id) => {
-                    setSelectedCharId(id);
-                    setSelectedBubbleId(null);
-                  }}
-                  canvasRef={(el) => {
-                    if (el) panelCanvasRefs.current.set(activePanel.id, el);
-                  }}
-                  zoom={zoom}
-                  fontsReady={fontsReady}
-                />
-              </div>
-            )
-          )}
-        </div>
-        <div className="border-t border-border bg-background/80 px-4 py-3">
-          <div className="flex items-center gap-3 overflow-x-auto" data-testid="story-page-strip">
-            {panels.map((panel, i) => (
-              <button
-                key={panel.id}
-                onClick={() => {
-                  setActivePanelIndex(i);
+              <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-[hsl(173_100%_35%)] to-transparent opacity-60" />
+            </div>
+
+            <div
+              ref={canvasAreaRef}
+              className={`flex-1 min-h-0 overflow-auto flex items-center justify-center bg-muted/20 dark:bg-muted/10 relative ${zoom >= 200 ? "p-0" : "p-6"}`}
+              data-testid="story-canvas-area"
+              onMouseDown={(e) => {
+                if (e.target === e.currentTarget) {
                   setSelectedBubbleId(null);
                   setSelectedCharId(null);
-                }}
-                className={`flex-shrink-0 rounded-lg border transition-colors bg-muted/10 hover:border-primary/40 ${i === activePanelIndex ? "border-primary/60 bg-primary/5" : "border-border"}`}
-              >
-                <div className="flex items-center justify-between px-2 pt-1">
-                  <span className="text-[11px] text-muted-foreground font-medium">
-                    페이지 {i + 1}
-                  </span>
-                </div>
-                <div className="w-[120px] h-[80px] p-1.5 pointer-events-none">
-                  <PanelCanvas
-                    key={panel.id + "-strip"}
-                    panel={panel}
-                    onUpdate={(updated) => updatePanel(i, updated)}
-                    selectedBubbleId={null}
-                    onSelectBubble={() => {}}
-                    selectedCharId={null}
-                    onSelectChar={() => {}}
-                    canvasRef={() => {}}
-                    fontsReady={fontsReady}
-                  />
-                </div>
-              </button>
-            ))}
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-shrink-0 h-[80px] min-w-[120px] flex flex-col items-center justify-center text-xs"
-              onClick={addPanel}
-              disabled={panels.length >= maxPanels}
-              data-testid="button-add-panel-bottom"
+                }
+              }}
             >
-              <Plus className="h-3.5 w-3.5 mb-1" />
-              페이지 추가
-            </Button>
-          </div>
-        </div>
-        <Dialog open={showDesignEditor} onOpenChange={setShowDesignEditor}>
-          <DialogContent className="max-w-[1200px] w-[1200px] p-0">
-            <DialogHeader className="sr-only">
-              <DialogTitle>디자인 에디터</DialogTitle>
-            </DialogHeader>
-            <FabricEditor />
-          </DialogContent>
-        </Dialog>
+              {panMode && (
+                <div
+                  className="absolute inset-0 z-40"
+                  onPointerDown={(e) => {
+                    const area = canvasAreaRef.current;
+                    if (!area) return;
+                    (e.currentTarget as any).setPointerCapture(e.pointerId);
+                    panDraggingRef.current = true;
+                    panStartRef.current = { x: e.clientX, y: e.clientY };
+                    panScrollStartRef.current = { left: area.scrollLeft, top: area.scrollTop };
+                    area.style.cursor = "grabbing";
+                  }}
+                  onPointerMove={(e) => {
+                    if (!panDraggingRef.current) return;
+                    const area = canvasAreaRef.current;
+                    if (!area || !panStartRef.current || !panScrollStartRef.current) return;
+                    const dx = e.clientX - panStartRef.current.x;
+                    const dy = e.clientY - panStartRef.current.y;
+                    area.scrollLeft = panScrollStartRef.current.left - dx;
+                    area.scrollTop = panScrollStartRef.current.top - dy;
+                  }}
+                  onPointerUp={() => {
+                    panDraggingRef.current = false;
+                    const area = canvasAreaRef.current;
+                    if (area) area.style.cursor = "grab";
+                  }}
+                  onClick={() => {
+                    setSelectedBubbleId(null);
+                    setSelectedCharId(null);
+                  }}
+                  style={{ cursor: "grab" }}
+                />
+              )}
+              {activePanel && !flowMode && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30">
+                  <div className="flex items-center gap-2 rounded-full border bg-background/95 px-3 py-1.5 shadow-md">
+                    <button
+                      className={`text-xs px-2 py-1 rounded-full ${activeLeftTab === "edit" ? "bg-muted font-medium" : "hover:bg-muted"}`}
+                      onClick={() => toggleLeftTab("edit")}
+                    >
+                      편집
+                    </button>
+                    <div className="h-4 w-px bg-border" />
+                    <button
+                      className="flex items-center gap-1 text-xs px-2 py-1 rounded-full hover:bg-muted"
+                      onClick={() => {
+                        if (!isPro) {
+                          toast({
+                            title: "Pro 전용 기능",
+                            description: "배경 제거는 Pro 멤버십 전용 기능입니다.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        setShowDesignEditor(true);
+                      }}
+                    >
+                      <span>배경 제거</span>
+                      {!isPro && <Crown className="h-3 w-3 text-amber-500" />}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {captureActive && (
+                <div className="absolute inset-0 z-50 bg-black/60 text-white grid place-items-center">
+                  <div className="px-3 py-1.5 rounded bg-white/10 text-xs font-medium">스크린캡쳐 방지 중</div>
+                </div>
+              )}
+              {activePanel && (
+                flowMode ? (
+                  <div
+                    className="border border-border rounded-md overflow-hidden relative shrink-0 bg-white"
+                    style={{ width: CANVAS_W * flowZoomScale, height: CANVAS_H * flowZoomScale }}
+                  >
+                    <ReactFlow
+                      nodes={flowNodes}
+                      edges={[]}
+                      onNodesChange={onFlowNodesChange}
+                      fitView
+                    >
+                      <Background />
+                      <Controls />
+                    </ReactFlow>
+                  </div>
+                ) : (
+                  <div className="shrink-0" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)", borderRadius: "12px" }}>
+                    <PanelCanvas
+                      key={activePanel.id + "-main"}
+                      panel={activePanel}
+                      onUpdate={(updated) => updatePanel(activePanelIndex, updated)}
+                      selectedBubbleId={selectedBubbleId}
+                      onSelectBubble={(id) => {
+                        setSelectedBubbleId(id);
+                        setSelectedCharId(null);
+                      }}
+                      selectedCharId={selectedCharId}
+                      onSelectChar={(id) => {
+                        setSelectedCharId(id);
+                        setSelectedBubbleId(null);
+                      }}
+                      canvasRef={(el) => {
+                        if (el) panelCanvasRefs.current.set(activePanel.id, el);
+                      }}
+                      zoom={zoom}
+                      fontsReady={fontsReady}
+                    />
+                  </div>
+                )
+              )}
+            </div>
+            <div className="border-t border-border bg-background/80 px-4 py-3">
+              <div className="flex items-center gap-3 overflow-x-auto" data-testid="story-page-strip">
+                {panels.map((panel, i) => (
+                  <button
+                    key={panel.id}
+                    onClick={() => {
+                      setActivePanelIndex(i);
+                      setSelectedBubbleId(null);
+                      setSelectedCharId(null);
+                    }}
+                    className={`flex-shrink-0 rounded-lg border transition-colors bg-muted/10 hover:border-primary/40 ${i === activePanelIndex ? "border-primary/60 bg-primary/5" : "border-border"}`}
+                  >
+                    <div className="flex items-center justify-between px-2 pt-1">
+                      <span className="text-[11px] text-muted-foreground font-medium">
+                        페이지 {i + 1}
+                      </span>
+                    </div>
+                    <div className="w-[120px] h-[80px] p-1.5 pointer-events-none">
+                      <PanelCanvas
+                        key={panel.id + "-strip"}
+                        panel={panel}
+                        onUpdate={(updated) => updatePanel(i, updated)}
+                        selectedBubbleId={null}
+                        onSelectBubble={() => { }}
+                        selectedCharId={null}
+                        onSelectChar={() => { }}
+                        canvasRef={() => { }}
+                        fontsReady={fontsReady}
+                      />
+                    </div>
+                  </button>
+                ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-shrink-0 h-[80px] min-w-[120px] flex flex-col items-center justify-center text-xs"
+                  onClick={addPanel}
+                  disabled={panels.length >= maxPanels}
+                  data-testid="button-add-panel-bottom"
+                >
+                  <Plus className="h-3.5 w-3.5 mb-1" />
+                  페이지 추가
+                </Button>
+              </div>
+            </div>
+            <Dialog open={showDesignEditor} onOpenChange={setShowDesignEditor}>
+              <DialogContent className="max-w-[1200px] w-[1200px] p-0">
+                <DialogHeader className="sr-only">
+                  <DialogTitle>디자인 에디터</DialogTitle>
+                </DialogHeader>
+                <FabricEditor isPro={usageData?.tier === "pro"} />
+              </DialogContent>
+            </Dialog>
 
-        <div className="flex items-center justify-center gap-3 px-4 py-2 border-t border-border bg-background shrink-0" data-testid="story-bottom-toolbar">
-          <div className="flex items-center gap-1.5">
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => setZoom((z) => Math.max(20, z - 10))}
-              disabled={zoom <= 20}
-              data-testid="button-story-zoom-out"
-            >
-              <ZoomOut className="h-3.5 w-3.5" />
-            </Button>
-            <Slider
-              min={20}
-              max={200}
-              step={5}
-              value={[zoom]}
-              onValueChange={([v]) => setZoom(v)}
-              className="w-28"
-              data-testid="slider-story-zoom"
-            />
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => setZoom((z) => Math.min(200, z + 10))}
-              disabled={zoom >= 200}
-              data-testid="button-story-zoom-in"
-            >
-              <ZoomIn className="h-3.5 w-3.5" />
-            </Button>
-            <span className="text-xs text-muted-foreground tabular-nums w-9 text-right" data-testid="text-story-zoom-value">{zoom}%</span>
+            <div className="flex items-center justify-center gap-3 px-4 py-2 border-t border-border bg-background shrink-0" data-testid="story-bottom-toolbar">
+              <div className="flex items-center gap-1.5">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setZoom((z) => Math.max(20, z - 10))}
+                  disabled={zoom <= 20}
+                  data-testid="button-story-zoom-out"
+                >
+                  <ZoomOut className="h-3.5 w-3.5" />
+                </Button>
+                <Slider
+                  min={20}
+                  max={200}
+                  step={5}
+                  value={[zoom]}
+                  onValueChange={([v]) => setZoom(v)}
+                  className="w-28"
+                  data-testid="slider-story-zoom"
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setZoom((z) => Math.min(200, z + 10))}
+                  disabled={zoom >= 200}
+                  data-testid="button-story-zoom-in"
+                >
+                  <ZoomIn className="h-3.5 w-3.5" />
+                </Button>
+                <span className="text-xs text-muted-foreground tabular-nums w-9 text-right" data-testid="text-story-zoom-value">{zoom}%</span>
+              </div>
+              <div className="h-4 w-px bg-border" />
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={fitToView}
+                title="화면에 맞추기"
+                data-testid="button-story-fit-to-view"
+              >
+                <Minimize2 className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setZoom(200)}
+                title="전체 화면"
+                data-testid="button-story-fullscreen"
+              >
+                <Maximize className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
-          <div className="h-4 w-px bg-border" />
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={fitToView}
-            title="화면에 맞추기"
-            data-testid="button-story-fit-to-view"
-          >
-            <Minimize2 className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => setZoom(200)}
-            title="전체 화면"
-            data-testid="button-story-fullscreen"
-          >
-            <Maximize className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </div>
-      </ResizablePanel>
+        </ResizablePanel>
       </ResizablePanelGroup>
 
       <Dialog open={aiLimitOpen} onOpenChange={setAiLimitOpen}>
@@ -4551,7 +4510,7 @@ export default function StoryPage() {
                   {savingProject ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                   {currentProjectId ? "업데이트" : "저장하기"}
                 </Button>
-                
+
               </div>
               {currentProjectId && (
                 <p className="text-[11px] text-muted-foreground text-center">
@@ -4575,7 +4534,7 @@ export default function StoryPage() {
                     Pro 업그레이드
                   </a>
                 </Button>
-                
+
               </div>
             </div>
           )}
