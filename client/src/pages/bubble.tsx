@@ -83,6 +83,8 @@ export default function BubblePage() {
   });
 
   const isPro = usage?.tier === "pro";
+  const canAllFonts = isPro || (usage?.creatorTier ?? 0) >= 3;
+  const availableFonts = canAllFonts ? KOREAN_FONTS : KOREAN_FONTS.slice(0, 3);
 
   // State helpers
   const updatePage = useCallback((index: number, updates: Partial<PageData>) => {
@@ -303,27 +305,69 @@ export default function BubblePage() {
 
   return (
     <div className="flex h-screen w-full flex-col bg-background">
-      {/* Top bar */}
-      <header className="flex h-14 items-center justify-between border-b bg-background px-4">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => setLocation("/")}>
-            <ArrowRight className="h-4 w-4 rotate-180" />
-          </Button>
-          <h1 className="font-semibold">말풍선 편집기</h1>
-          {isPro && <Badge variant="secondary" className="gap-1"><Crown className="h-3 w-3 text-yellow-500" /> Pro</Badge>}
-        </div>
-        <div className="flex items-center gap-2">
-
-          <Button variant="outline" size="sm" onClick={() => document.getElementById("bg-upload")?.click()}>
-            <Upload className="mr-2 h-4 w-4" /> 이미지 업로드
-          </Button>
-          <input type="file" id="bg-upload" className="hidden" accept="image/*" onChange={handleImageUpload} />
-          <Button variant="outline" size="sm" onClick={() => setShowSaveModal(true)}>
-            <Save className="mr-2 h-4 w-4" /> 프로젝트 저장
-          </Button>
-          <Button onClick={handleDownload} size="sm">
-            <Download className="mr-2 h-4 w-4" /> 다운로드
-          </Button>
+      {/* Top bar - Story 스타일과 통일 */}
+      <header className="flex h-14 items-center border-b bg-background px-4">
+        <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => setLocation("/")}>
+              <ArrowRight className="h-4 w-4 rotate-180" />
+            </Button>
+            <h1 className="text-base font-semibold">말풍선 편집기</h1>
+            {isPro && (
+              <Badge variant="secondary" className="gap-1">
+                <Crown className="h-3 w-3 text-yellow-500" /> Pro
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              onClick={handleDownload}
+              title="다운로드"
+              data-testid="button-download-bubble"
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 h-8 text-xs px-2.5"
+              onClick={() => document.getElementById("bg-upload")?.click()}
+              data-testid="button-upload-bubble-bg"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              배경 이미지
+            </Button>
+            <input
+              type="file"
+              id="bg-upload"
+              className="hidden"
+              accept="image/*"
+              onChange={handleImageUpload}
+            />
+            <Button
+              size="sm"
+              onClick={() => setShowSaveModal(true)}
+              className="gap-1.5 h-8 text-xs px-2.5 bg-[hsl(173_100%_35%)] text-white border-[hsl(173_100%_35%)]"
+              data-testid="button-save-bubble-project"
+            >
+              <Save className="h-3.5 w-3.5" />
+              저장
+              {isPro && <Crown className="h-3 w-3 ml-0.5" />}
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              onClick={() => setLocation("/edits")}
+              title="내 편집"
+              data-testid="button-bubble-my-edits"
+            >
+              <FolderOpen className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -346,15 +390,38 @@ export default function BubblePage() {
                   onChange={(e) => updateBubble(selectedBubble.id, { text: e.target.value })}
                 />
               </div>
-              {/* ... More controls (Font, Style, Tail, etc) ... */}
               <div className="space-y-2">
                 <Label>폰트</Label>
                 <Select value={selectedBubble.fontKey} onValueChange={(v) => updateBubble(selectedBubble.id, { fontKey: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {KOREAN_FONTS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+                    {availableFonts.map(f => (
+                      <SelectItem key={f.value} value={f.value}>
+                        <span style={{ fontFamily: f.family }}>{f.label}</span>
+                      </SelectItem>
+                    ))}
+                    {!canAllFonts && (
+                      <div className="px-3 py-2 text-[11px] text-muted-foreground border-t">
+                        Pro 멤버십 또는 프로 연재러(30회+) 등급에서 전체 폰트 해금
+                      </div>
+                    )}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-xs">글자 크기</Label>
+                  <span className="text-[11px] text-muted-foreground">
+                    {selectedBubble.fontSize}px
+                  </span>
+                </div>
+                <Slider
+                  value={[selectedBubble.fontSize]}
+                  onValueChange={([v]) => updateBubble(selectedBubble.id, { fontSize: v })}
+                  min={8}
+                  max={40}
+                  step={1}
+                />
               </div>
               <div className="space-y-2">
                 <Label>스타일</Label>
@@ -420,12 +487,23 @@ export default function BubblePage() {
                     onClick={() => setActivePageIndex(i)}
                     className={`relative shadow-lg transition-all ${activePageIndex === i ? "ring-4 ring-primary ring-offset-2" : "opacity-90 hover:opacity-100"}`}
                   >
-                    {/* Page Number Tag */}
                     <div className="absolute -left-12 top-0 flex flex-col gap-2">
                       <div className={`flex h-8 w-8 items-center justify-center rounded-full font-bold shadow-sm ${activePageIndex === i ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                         {i + 1}
                       </div>
                     </div>
+                    {pages.length > 1 && (
+                      <button
+                        className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-red-500 shadow hover:bg-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deletePage(i);
+                        }}
+                        type="button"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
 
                     <BubbleCanvas
                       page={page}
@@ -438,7 +516,7 @@ export default function BubblePage() {
                       selectedBubbleId={activePageIndex === i ? selectedBubbleId : null}
                       selectedCharId={activePageIndex === i ? selectedCharId : null}
                       onCanvasRef={(el) => { if (el) canvasRefs.current.set(page.id, el); else canvasRefs.current.delete(page.id); }}
-                      onEditBubble={(id) => { /* Handle double click edit if needed */ }}
+                      onEditBubble={(id) => { }}
                     />
                   </div>
                 </ContextMenuTrigger>

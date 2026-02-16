@@ -81,9 +81,11 @@ export default function PosePage() {
 
   const generateMutation = useMutation({
     mutationFn: async () => {
-      const finalPrompt = prompt.trim() || "follow the reference pose";
-      const body: any = { prompt: finalPrompt };
-      if (characterId) body.characterId = characterId;
+      const finalPrompt = prompt.trim();
+      if (!characterId) {
+        throw new Error("캐릭터를 먼저 선택해주세요.");
+      }
+      const body: any = { prompt: finalPrompt, characterId };
       if (referenceImage) body.referenceImageData = referenceImage;
       const res = await apiRequest("POST", "/api/generate-pose", body);
       return res.json();
@@ -227,6 +229,7 @@ export default function PosePage() {
             onDrop={handleDrop}
           >
             <h3 className="text-sm font-medium mb-3">레퍼런스 이미지</h3>
+            <p className="mb-2 text-xs text-muted-foreground">캐릭터를 선택하고 이미지까지 준비한 뒤 포즈를 설명해주세요.</p>
             {referenceImage ? (
               <div className="relative">
                 <img src={referenceImage} alt="Reference" className="w-full rounded-md object-contain max-h-40" />
@@ -293,16 +296,8 @@ export default function PosePage() {
           <Button
             size="lg"
             className="w-full gap-2"
-            onClick={() => {
-              if (!prompt.trim()) {
-                setPrompt("follow the reference pose");
-              }
-              // Use setTimeout to ensure state update processes or just let the mutation handle it
-              // Actually, better to just pass the prompt to mutate if possible, but generateMutation uses state.
-              // Let's update the mutation to use the current prompt or a default.
-              generateMutation.mutate();
-            }}
-            disabled={(!prompt.trim() && !referenceImage) || !characterId || generateMutation.isPending || isOutOfCredits || generationCount >= 3}
+            onClick={() => generateMutation.mutate()}
+            disabled={prompt.trim().length < 3 || !referenceImage || !characterId || generateMutation.isPending || isOutOfCredits || generationCount >= 3}
             data-testid="button-generate-pose"
           >
             {generateMutation.isPending ? (
@@ -394,7 +389,7 @@ export default function PosePage() {
                 </div>
                 <h3 className="font-medium">생성된 포즈가 여기에 표시됩니다</h3>
                 <p className="text-sm text-muted-foreground max-w-xs">
-                  포즈를 설명하거나 프리셋을 선택한 후 생성하세요
+                  캐릭터와 레퍼런스를 선택하고 포즈를 설명한 뒤 생성하세요
                 </p>
               </div>
             )}

@@ -99,14 +99,15 @@ export default function PricingPage() {
       name: "무료",
       price: "₩0",
       period: "영구 무료",
-      description: "OLLI를 체험해보세요",
+      description: "첫 가입 후 3회까지 무료로 체험해보세요",
       icon: Sparkles,
       features: [
-        { text: "매월 3회 캐릭터 생성", included: true },
+        { text: "첫 가입 후 3회 캐릭터 생성", included: true },
         { text: "3가지 스타일 (심플 라인)", included: true },
-        { text: "포즈 & 배경 기본 제공", included: true },
-        { text: "말풍선 편집기 (매월 3회)", included: true },
-        { text: "스토리 에디터 (매월 3회)", included: true },
+        { text: "기본 및 일부 무료 폰트 제공", included: true },
+        { text: "포즈 & 배경 생성", included: false },
+        { text: "말풍선 편집기", included: false },
+        { text: "스토리 에디터", included: false },
         { text: "갤러리 조회만 가능", included: true },
         { text: "워터마크 포함", included: true },
         { text: "프리미엄 스타일", included: false },
@@ -124,6 +125,7 @@ export default function PricingPage() {
       features: [
         { text: "무제한 캐릭터 생성", included: true },
         { text: "모든 스타일 사용 가능", included: true },
+        { text: "모든 폰트 제공", included: true },
         { text: "포즈 & 배경 무제한 생성", included: true },
         { text: "말풍선 & 스토리 에디터 무제한", included: true },
         { text: "워터마크 제거", included: true },
@@ -222,8 +224,10 @@ export default function PricingPage() {
       </div>
 
       <div className="mt-12 text-center text-sm text-muted-foreground">
-        <p>무료 플랜은 매월 1일에 사용 횟수가 초기화됩니다.</p>
-        <p className="mt-1">Pro 멤버십은 채팅 이미지 메이커, AI 광고주 매칭을 포함합니다.</p>
+        <p>무료 플랜은 첫 가입 후 캐릭터 생성 3회를 제공합니다.</p>
+        <p className="mt-1">
+          Pro 멤버십은 포즈/배경 생성, 말풍선·스토리 에디터, 채팅 이미지 메이커, AI 광고주 매칭 등을 포함합니다.
+        </p>
       </div>
     </div>
   );

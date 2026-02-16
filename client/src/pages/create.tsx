@@ -133,9 +133,22 @@ export default function CreatePage() {
               </div>
               <h2 className="text-base font-semibold">그림 스타일</h2>
             </div>
-            <Button size="sm" variant="outline" onClick={() => setShowStyleDialog(true)} data-testid="button-open-style-dialog">
-              그림 스타일
-            </Button>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowStyleDialog(true)}
+                data-testid="button-open-style-dialog"
+              >
+                그림 스타일 선택
+              </Button>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="px-2 py-1 rounded-full bg-muted text-[11px]">
+                  {styles.find((s) => s.value === style)?.label || "심플 라인"}
+                </span>
+                <span>스타일 적용 중</span>
+              </div>
+            </div>
           </Card>
 
           <Dialog open={showStyleDialog} onOpenChange={setShowStyleDialog}>

@@ -415,15 +415,26 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col items-end gap-0.5">
+                    <div className="flex items-center gap-2">
+                      {usage?.tier === "pro" ? (
+                        <Badge variant="default" className="text-[11px]" data-testid="badge-plan">Pro</Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-[11px]" data-testid="badge-plan">Free</Badge>
+                      )}
+                      <span className="text-xs text-muted-foreground" data-testid="text-credits">
+                        {usage?.tier === "pro" ? "무제한" : `${usage?.credits ?? 0}/${tier.dailyCredits}회`}
+                      </span>
+                    </div>
                     {usage?.tier === "pro" ? (
-                      <Badge variant="default" className="text-[11px]" data-testid="badge-plan">Pro</Badge>
+                      <span className="text-[11px] text-muted-foreground">
+                        모든 기능과 모든 폰트 제공
+                      </span>
                     ) : (
-                      <Badge variant="secondary" className="text-[11px]" data-testid="badge-plan">Free</Badge>
+                      <span className="text-[11px] text-muted-foreground">
+                        기본 및 일부 무료 폰트 제공
+                      </span>
                     )}
-                    <span className="text-xs text-muted-foreground" data-testid="text-credits">
-                      {usage?.tier === "pro" ? "무제한" : `${usage?.credits ?? 0}/${tier.dailyCredits}회`}
-                    </span>
                   </div>
                 </div>
               </div>
@@ -577,7 +588,7 @@ export default function HomePage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-sm">Pro로 업그레이드</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">무제한 생성 & 모든 기능 해제</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">무제한 생성 & 모든 기능·모든 폰트 해제</p>
                     </div>
                     <ArrowRight className="h-4 w-4 text-primary shrink-0" />
                   </div>

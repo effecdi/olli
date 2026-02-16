@@ -2464,7 +2464,7 @@ function EditorPanel({
                   ))}
                   {!canAllFonts && (
                     <div className="px-3 py-2 text-[11px] text-muted-foreground border-t">
-                      프로 연재러(30회+) 등급에서 전체 폰트 해금
+                      Pro 멤버십 또는 프로 연재러(30회+) 등급에서 전체 폰트 해금
                     </div>
                   )}
                 </SelectContent>
@@ -3277,7 +3277,7 @@ export default function StoryPage() {
     });
   }, [activePanel, activePanelIndex]);
 
-  type LeftTab = "ai" | "script" | null;
+  type LeftTab = "ai" | "script" | "panel" | null;
   const [activeLeftTab, setActiveLeftTab] = useState<LeftTab>(null);
 
   const toggleLeftTab = (tab: LeftTab) => {
@@ -3453,6 +3453,8 @@ export default function StoryPage() {
   }, [loadedProject]);
 
   const isPro = usageData?.tier === "pro";
+  const canAllFontsStory = isPro || (usageData?.creatorTier ?? 0) >= 3;
+  const availableFonts = canAllFontsStory ? KOREAN_FONTS : KOREAN_FONTS.slice(0, 3);
 
   const startStoryTour = useCallback(() => {
     const ensureDriver = () =>
@@ -3522,6 +3524,7 @@ export default function StoryPage() {
   }, []);
   const LEFT_TABS: { id: LeftTab; icon: typeof Wand2; label: string }[] = [
     { id: "ai", icon: Wand2, label: "AI 생성" },
+    { id: "panel", icon: Layers, label: "패널" },
     { id: "script", icon: Type, label: "스크립트" },
   ];
 
@@ -3608,8 +3611,34 @@ export default function StoryPage() {
                       </Button>
                     </>
                   )}
-
-
+                  {activeLeftTab === "panel" && activePanel && (
+                    <>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <h3 className="text-sm font-semibold">패널 도구</h3>
+                        <button
+                          onClick={() => setActiveLeftTab(null)}
+                          className="text-muted-foreground hover-elevate rounded-md p-1"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <EditorPanel
+                        panel={activePanel}
+                        index={activePanelIndex}
+                        total={panels.length}
+                        onUpdate={(updated) => updatePanel(activePanelIndex, updated)}
+                        onRemove={() => removePanel(activePanelIndex)}
+                        galleryImages={galleryData ?? []}
+                        galleryLoading={galleryLoading}
+                        selectedBubbleId={selectedBubbleId}
+                        setSelectedBubbleId={setSelectedBubbleId}
+                        selectedCharId={selectedCharId}
+                        setSelectedCharId={setSelectedCharId}
+                        creatorTier={usageData?.creatorTier ?? 0}
+                        isPro={isPro}
+                      />
+                    </>
+                  )}
 
                   {activeLeftTab === "script" && activePanel && (
                     <>
@@ -3786,7 +3815,7 @@ export default function StoryPage() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                {KOREAN_FONTS.map((f) => (
+                                {availableFonts.map((f) => (
                                   <SelectItem key={f.value} value={f.value} className="text-[11px]">
                                     {f.label}
                                   </SelectItem>
@@ -3959,7 +3988,7 @@ export default function StoryPage() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                {KOREAN_FONTS.map((f) => (
+                                {availableFonts.map((f) => (
                                   <SelectItem key={f.value} value={f.value} className="text-[11px]">
                                     {f.label}
                                   </SelectItem>
@@ -4116,12 +4145,23 @@ export default function StoryPage() {
                         onClick={() => setActivePanelIndex(i)}
                         className={`relative shadow-lg transition-all ${activePanelIndex === i ? "ring-4 ring-primary ring-offset-2" : "opacity-90 hover:opacity-100"}`}
                       >
-                        {/* Page Number Tag */}
                         <div className="absolute -left-12 top-0 flex flex-col gap-2">
                           <div className={`flex h-8 w-8 items-center justify-center rounded-full font-bold shadow-sm ${activePanelIndex === i ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                             {i + 1}
                           </div>
                         </div>
+                        {panels.length > 1 && (
+                          <button
+                            type="button"
+                            className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-red-500 shadow hover:bg-white"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removePanel(i);
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
 
                         <PanelCanvas
                           key={panel.id + "-main"}
@@ -4151,13 +4191,27 @@ export default function StoryPage() {
                     <ContextMenuContent>
                       <ContextMenuLabel>Page {i + 1}</ContextMenuLabel>
                       <ContextMenuSeparator />
-                      <ContextMenuItem onClick={() => {
-                        const newPanel = { ...panel, id: generateId(), bubbles: panel.bubbles.map(b => ({ ...b, id: generateId() })), characters: panel.characters.map(c => ({ ...c, id: generateId() })) };
-                        const newPanels = [...panels];
-                        newPanels.splice(i + 1, 0, newPanel);
-                        setPanels(newPanels);
-                      }}><Copy className="mr-2 h-4 w-4" /> Duplicate Page</ContextMenuItem>
-                      <ContextMenuItem onClick={() => removePanel(i)} className="text-red-500"><Trash2 className="mr-2 h-4 w-4" /> Delete Page</ContextMenuItem>
+                      <ContextMenuItem
+                        onClick={() => {
+                          const newPanel = {
+                            ...panel,
+                            id: generateId(),
+                            bubbles: panel.bubbles.map((b) => ({ ...b, id: generateId() })),
+                            characters: panel.characters.map((c) => ({ ...c, id: generateId() })),
+                          };
+                          const newPanels = [...panels];
+                          newPanels.splice(i + 1, 0, newPanel);
+                          setPanels(newPanels);
+                        }}
+                      >
+                        <Copy className="mr-2 h-4 w-4" /> Duplicate Page
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        onClick={() => removePanel(i)}
+                        className="text-red-500"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete Page
+                      </ContextMenuItem>
                     </ContextMenuContent>
                   </ContextMenu>
                 ))}
@@ -4170,19 +4224,31 @@ export default function StoryPage() {
             </div>
             <div className="flex items-center gap-3 overflow-x-auto" data-testid="story-page-strip">
               {panels.map((panel, i) => (
-                <button
+                <div
                   key={panel.id}
                   onClick={() => {
                     setActivePanelIndex(i);
                     setSelectedBubbleId(null);
                     setSelectedCharId(null);
                   }}
-                  className={`flex-shrink-0 rounded-lg border transition-colors bg-muted/10 hover:border-primary/40 ${i === activePanelIndex ? "border-primary/60 bg-primary/5" : "border-border"}`}
+                  className={`flex-shrink-0 rounded-lg border transition-colors bg-muted/10 hover:border-primary/40 cursor-pointer ${i === activePanelIndex ? "border-primary/60 bg-primary/5" : "border-border"}`}
                 >
                   <div className="flex items-center justify-between px-2 pt-1">
                     <span className="text-[11px] text-muted-foreground font-medium">
                       페이지 {i + 1}
                     </span>
+                    {panels.length > 1 && (
+                      <button
+                        type="button"
+                        className="ml-1 text-[10px] text-red-500 hover:text-red-600"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removePanel(i);
+                        }}
+                      >
+                        삭제
+                      </button>
+                    )}
                   </div>
                   <div className="w-[120px] h-[80px] p-1.5 pointer-events-none">
                     <PanelCanvas
@@ -4197,7 +4263,7 @@ export default function StoryPage() {
                       fontsReady={fontsReady}
                     />
                   </div>
-                </button>
+                </div>
               ))}
               <Button
                 variant="outline"
