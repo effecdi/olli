@@ -1,0 +1,35 @@
+name: Auto update -> PR
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 18 * * *"  # 매일 03:00 KST (한국시간). (GitHub는 UTC 기준이라 이렇게 맞춤)
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  autopatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+
+      # 자동으로 바뀌는 작업이 있을 때만 의미가 있습니다(예: 포맷팅/생성 스크립트).
+      - run: npm run format --if-present
+      - run: npm run gen --if-present
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v8
+        with:
+          commit-message: "chore: automated update"
+          title: "chore: automated update"
+          body: "자동 작업 결과 반영 PR입니다."
+          branch: "bot/auto-update"
+          base: "main"
