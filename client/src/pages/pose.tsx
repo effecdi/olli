@@ -10,18 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import {
-  Loader2,
-  Download,
-  RotateCcw,
-  Upload,
-  X,
-  Image as ImageIcon,
-  ArrowLeft,
-  ArrowRight,
-  Bot,
-  Sparkles,
-} from "lucide-react";
+import { Loader2, Download, RotateCcw, Upload, X, ArrowLeft, ArrowRight, Bot, Sparkles } from "lucide-react";
 import { FlowStepper } from "@/components/flow-stepper";
 import { setFlowState } from "@/lib/flow";
 import type { Generation } from "@shared/schema";
@@ -45,7 +34,6 @@ export default function PosePage() {
 
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null);
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
-  const [expressionPrompt, setExpressionPrompt] = useState("");
   const [posePrompt, setPosePrompt] = useState("");
   const [poseResultImage, setPoseResultImage] = useState<string | null>(null);
 
@@ -87,14 +75,12 @@ export default function PosePage() {
         throw new Error("캐릭터를 먼저 선택해주세요.");
       }
       const pose = posePrompt.trim();
-      const expr = expressionPrompt.trim();
-      if (!pose && !expr) {
+      if (!pose) {
         throw new Error("표정 또는 포즈 설명을 입력해주세요.");
       }
-      const finalPrompt = expr && pose ? `${expr}, ${pose}` : pose || expr;
       const res = await apiRequest("POST", "/api/generate-pose", {
         characterId: selectedCharacterId,
-        prompt: finalPrompt,
+        prompt: pose,
         referenceImageData: referenceImage || undefined,
       });
       return res.json();
@@ -156,7 +142,7 @@ export default function PosePage() {
 
   const canGenerate =
     !!selectedCharacterId &&
-    !!(posePrompt.trim() || expressionPrompt.trim()) &&
+    !!posePrompt.trim() &&
     !generateMutation.isPending &&
     !isOutOfCredits;
 
@@ -294,24 +280,11 @@ export default function PosePage() {
             <div className="flex flex-col gap-4">
               <div>
                 <Label className="text-sm font-medium mb-2 flex items-center gap-1">
-                  <ImageIcon className="h-3.5 w-3.5" />
-                  표정 설명
-                </Label>
-                <Textarea
-                  placeholder="예: 눈웃음, 입꼬리가 살짝 올라간 행복한 표정..."
-                  value={expressionPrompt}
-                  onChange={(e) => setExpressionPrompt(e.target.value)}
-                  className="min-h-[70px] resize-none"
-                  data-testid="input-expression-prompt"
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium mb-2 flex items-center gap-1">
                   <Sparkles className="h-3.5 w-3.5" />
-                  포즈 설명
+                  포즈/표정 설명
                 </Label>
                 <Textarea
-                  placeholder="예: 한 손을 들어 인사하는 포즈, 살짝 몸을 기울이기..."
+                  placeholder="예: 눈웃음으로 한 손을 들어 인사하는 포즈..."
                   value={posePrompt}
                   onChange={(e) => setPosePrompt(e.target.value)}
                   className="min-h-[70px] resize-none"
@@ -402,7 +375,6 @@ export default function PosePage() {
                     onClick={() => {
                       setPoseResultImage(null);
                       setPosePrompt("");
-                      setExpressionPrompt("");
                     }}
                     data-testid="button-new-pose"
                   >
