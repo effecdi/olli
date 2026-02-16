@@ -214,11 +214,13 @@ export function BubbleCanvas({
 
         if (showWatermark) {
             ctx.save();
-            ctx.font = "12px sans-serif";
-            ctx.fillStyle = "rgba(0,0,0,0.4)";
-            ctx.textAlign = "right";
-            ctx.textBaseline = "bottom";
-            ctx.fillText("OLLI Free", canvas.width - 8, canvas.height - 8);
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate(-Math.PI / 8);
+            ctx.font = "36px sans-serif";
+            ctx.fillStyle = "rgba(0,0,0,0.06)";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("OLLI Free", 0, 0);
             ctx.restore();
         }
 

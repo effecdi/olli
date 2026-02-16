@@ -82,8 +82,11 @@ export default function PosePage() {
   const generateMutation = useMutation({
     mutationFn: async () => {
       const finalPrompt = prompt.trim();
-      const body: any = { prompt: finalPrompt };
-      if (characterId) body.characterId = characterId;
+      const effectiveCharacterId = characterId ?? character?.id ?? null;
+      if (!effectiveCharacterId) {
+        throw new Error("캐릭터를 먼저 선택해주세요.");
+      }
+      const body: any = { prompt: finalPrompt, characterId: effectiveCharacterId };
       if (referenceImage) body.referenceImageData = referenceImage;
       const res = await apiRequest("POST", "/api/generate-pose", body);
       return res.json();

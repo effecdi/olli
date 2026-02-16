@@ -67,7 +67,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { FONT_CSS } from "@/lib/bubble-utils";
+import { KOREAN_FONTS, FONT_CSS, getFontFamily } from "@/lib/bubble-utils";
 
 function bubblePath(n: number) {
   return `/assets/bubbles/bubble_${String(n).padStart(3, "0")}.png`;
@@ -205,23 +205,7 @@ const SCRIPT_TEXT_COLORS = [
   { value: "#ea580c", label: "주황", hex: "#ea580c" },
 ];
 
-const KOREAN_FONTS = [
-  { value: "default", label: "기본 고딕", family: "'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" },
-  { value: "OnglippDaelong", label: "온글잎 대롱", family: "'OnglippDaelong', cursive" },
-  { value: "OngleipParkDahyeon", label: "온글잎 박다현", family: "'OngleipParkDahyeon', cursive" },
-  { value: "OngleipStudyWell", label: "온글잎 공부열심히", family: "'OngleipStudyWell', cursive" },
-  { value: "NostalgicCocochoitoon", label: "코코초이툰", family: "'NostalgicCocochoitoon', cursive" },
-  { value: "GeekbleMalrangiche", label: "긱블 말랑이체", family: "'GeekbleMalrangiche', cursive" },
-  { value: "Gyeombalbal", label: "인성IT 귀여운지수", family: "'Gyeombalbal', cursive" },
-  { value: "IsYun", label: "이서윤체", family: "'IsYun', cursive" },
-  { value: "Cafe24Surround", label: "카페24 서라운드", family: "'Cafe24Surround', sans-serif" },
-  { value: "GMarketSans", label: "지마켓 산스", family: "'GMarketSans', sans-serif" },
-  { value: "Paperozi", label: "페이퍼로지", family: "'Paperozi', sans-serif" },
-  { value: "Pretendard", label: "프리텐다드", family: "'Pretendard', sans-serif" },
-  { value: "MemomentKkukkukk", label: "미모먼트 꾸꾸꾸", family: "'MemomentKkukkukk', sans-serif" },
-];
-
-
+ 
 interface SpeechBubble {
   id: string;
   seed: number;
@@ -293,11 +277,6 @@ function seededRandom(seed: number) {
     s = (s * 16807 + 0) % 2147483647;
     return (s - 1) / 2147483646;
   };
-}
-
-function getFontFamily(fontKey: string): string {
-  const font = KOREAN_FONTS.find((f) => f.value === fontKey);
-  return font ? font.family : KOREAN_FONTS[0].family;
 }
 
 function createBubble(
@@ -1162,11 +1141,13 @@ function PanelCanvas({
       drawScriptOverlay(ctx, p.bottomScript, "bottom", CANVAS_W, CANVAS_H);
     if (!isPro) {
       ctx.save();
-      ctx.font = "12px sans-serif";
-      ctx.fillStyle = "rgba(0,0,0,0.4)";
-      ctx.textAlign = "right";
-      ctx.textBaseline = "bottom";
-      ctx.fillText("OLLI Free", CANVAS_W - 8, CANVAS_H - 8);
+      ctx.translate(CANVAS_W / 2, CANVAS_H / 2);
+      ctx.rotate(-Math.PI / 8);
+      ctx.font = "36px sans-serif";
+      ctx.fillStyle = "rgba(0,0,0,0.06)";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("OLLI Free", 0, 0);
       ctx.restore();
     }
   }, [isPro]);
