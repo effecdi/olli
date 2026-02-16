@@ -2301,12 +2301,12 @@ function EditorPanel({
             <div
               key={`${item.type}:${item.id}`}
               className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${item.type === "char"
-                  ? selectedCharId === item.id
-                    ? "bg-primary/10"
-                    : "hover-elevate"
-                  : selectedBubbleId === item.id
-                    ? "bg-primary/10"
-                    : "hover-elevate"
+                ? selectedCharId === item.id
+                  ? "bg-primary/10"
+                  : "hover-elevate"
+                : selectedBubbleId === item.id
+                  ? "bg-primary/10"
+                  : "hover-elevate"
                 }`}
               onClick={() => {
                 if (item.type === "char") {
@@ -3524,7 +3524,6 @@ export default function StoryPage() {
   }, []);
   const LEFT_TABS: { id: LeftTab; icon: typeof Wand2; label: string }[] = [
     { id: "ai", icon: Wand2, label: "AI 생성" },
-    { id: "panels", icon: Layers, label: "패널" },
     { id: "script", icon: Type, label: "스크립트" },
     { id: "edit", icon: Settings2, label: "편집" },
   ];
@@ -3532,29 +3531,29 @@ export default function StoryPage() {
   return (
     <div className="editor-page h-[calc(100vh-3.5rem)] flex overflow-hidden bg-muted/30 dark:bg-background relative">
       <EditorOnboarding editor="story" />
-      <ResizablePanelGroup direction="horizontal" className="flex w-full h-full">
-        <ResizablePanel defaultSize={18} minSize={14} maxSize={26}>
-          <div
-            className="flex shrink-0 bg-card dark:bg-card"
-            data-testid="left-icon-sidebar"
+      <div
+        className="flex flex-col items-center py-3 px-1.5 gap-5 w-[56px] shrink-0 bg-card dark:bg-card border-r"
+        data-testid="left-icon-sidebar"
+      >
+        {LEFT_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => toggleLeftTab(tab.id)}
+            className={`flex flex-col items-center justify-center w-11 h-11 rounded-lg text-[10px] gap-0.5 transition-colors ${activeLeftTab === tab.id ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover-elevate"}`}
+            data-testid={`button-left-tab-${tab.id}`}
           >
-            <div className="flex flex-col items-center py-3 px-1.5 gap-5 w-[56px]">
-              {LEFT_TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => toggleLeftTab(tab.id)}
-                  className={`flex flex-col items-center justify-center w-11 h-11 rounded-lg text-[10px] gap-0.5 transition-colors ${activeLeftTab === tab.id ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover-elevate"}`}
-                  data-testid={`button-left-tab-${tab.id}`}
-                >
-                  <tab.icon className="h-[18px] w-[18px]" />
-                  <span>{tab.label}</span>
-                </button>
-              ))}
-            </div>
+            <tab.icon className="h-[18px] w-[18px]" />
+            <span>{tab.label}</span>
+          </button>
+        ))}
+      </div>
 
-            {activeLeftTab && (
+      <ResizablePanelGroup direction="horizontal" className="flex-1 h-full">
+        {activeLeftTab && (
+          <>
+            <ResizablePanel defaultSize={20} minSize={14} maxSize={30} order={1}>
               <div
-                className="w-[260px] bg-card overflow-y-auto"
+                className="h-full w-full bg-card overflow-y-auto"
                 data-testid="left-panel-content"
               >
                 <div className="p-3 space-y-5">
@@ -3615,112 +3614,7 @@ export default function StoryPage() {
                     </>
                   )}
 
-                  {activeLeftTab === "panels" && (
-                    <>
-                      <div className="flex items-center justify-between gap-2">
-                        <h3 className="text-sm font-semibold">패널 목록</h3>
-                        <div className="flex items-center gap-1">
-                          <Badge
-                            variant="secondary"
-                            className="text-[11px]"
-                            data-testid="badge-story-panel-count"
-                          >
-                            {panels.length}개
-                          </Badge>
-                          <button
-                            onClick={() => setActiveLeftTab(null)}
-                            className="text-muted-foreground hover-elevate rounded-md p-1"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        {panels.map((panel, i) => (
-                          <div
-                            key={panel.id}
-                            className={`rounded-lg border-2 transition-colors cursor-pointer overflow-hidden ${i === activePanelIndex ? "border-primary/50" : "border-border hover-elevate"}`}
-                            onClick={() => {
-                              setActivePanelIndex(i);
-                              setSelectedBubbleId(null);
-                              setSelectedCharId(null);
-                            }}
-                            data-testid={`panel-card-${i}`}
-                          >
-                            <div className="flex items-center justify-between px-2 py-1 bg-muted/50">
-                              <span className="text-[11px] text-muted-foreground font-medium">
-                                {i + 1}
-                              </span>
-                              <div className="flex items-center gap-0.5">
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-6 w-6"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    downloadPanel(i);
-                                  }}
-                                  data-testid={`button-download-panel-${i}`}
-                                >
-                                  <Download className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-6 w-6"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    duplicatePanel(i);
-                                  }}
-                                  disabled={panels.length >= maxPanels}
-                                  data-testid={`button-duplicate-panel-${i}`}
-                                >
-                                  <Copy className="h-3 w-3" />
-                                </Button>
-                                {panels.length > 1 && (
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-6 w-6"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      removePanel(i);
-                                    }}
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                            <div className="p-1.5">
-                              <PanelCanvas
-                                key={panel.id + "-thumb"}
-                                panel={panel}
-                                onUpdate={(updated) => updatePanel(i, updated)}
-                                selectedBubbleId={null}
-                                onSelectBubble={() => { }}
-                                selectedCharId={null}
-                                onSelectChar={() => { }}
-                                canvasRef={() => { }}
-                                fontsReady={fontsReady}
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={addPanel}
-                        disabled={panels.length >= maxPanels}
-                        data-testid="button-add-panel"
-                      >
-                        <Plus className="h-3.5 w-3.5 mr-1" />
-                        페이지 추가 ({panels.length}/{maxPanels})
-                      </Button>
-                    </>
-                  )}
+
 
                   {activeLeftTab === "script" && activePanel && (
                     <>
@@ -4153,11 +4047,11 @@ export default function StoryPage() {
                   )}
                 </div>
               </div>
-            )}
-          </div>
-        </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={52} minSize={40} className="flex flex-col min-w-0 overflow-hidden">
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+          </>
+        )}
+        <ResizablePanel defaultSize={52} minSize={40} className="flex flex-col min-w-0 overflow-hidden" order={2}>
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             <div
               className="w-full relative"
@@ -4540,6 +4434,6 @@ export default function StoryPage() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   );
 }
