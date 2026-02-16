@@ -47,7 +47,7 @@ export default function CreateInstatoonPage() {
     id: generateId(),
     bubbles: [],
     characters: [],
-    canvasSize: { width: 1024, height: 1024 },
+    canvasSize: { width: 522, height: 695 },
   });
   const [selectedBubbleId, setSelectedBubbleId] = useState<string | null>(null);
   const [zoom] = useState(100);
@@ -178,7 +178,7 @@ export default function CreateInstatoonPage() {
   }, [baseImageForCanvas]);
 
   const addSpeechBubble = () => {
-    const canvasSize = bubblePage.canvasSize || { width: 1024, height: 1024 };
+    const canvasSize = bubblePage.canvasSize || { width: 522, height: 695 };
     const baseBubble: SpeechBubble = {
       id: generateId(),
       seed: Math.floor(Math.random() * 1_000_000),
