@@ -57,7 +57,7 @@ export default function PosePage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: usageData } = useQuery<{creatorTier: number; totalGenerations: number; tier: string; credits: number}>({ queryKey: ["/api/usage"] });
+  const { data: usageData } = useQuery<{ creatorTier: number; totalGenerations: number; tier: string; credits: number }>({ queryKey: ["/api/usage"] });
   const isPro = usageData?.tier === "pro";
   const isOutOfCredits = !isPro && (usageData?.credits ?? 0) <= 0;
 
@@ -81,7 +81,8 @@ export default function PosePage() {
 
   const generateMutation = useMutation({
     mutationFn: async () => {
-      const body: any = { prompt };
+      const finalPrompt = prompt.trim() || "follow the reference pose";
+      const body: any = { prompt: finalPrompt };
       if (characterId) body.characterId = characterId;
       if (referenceImage) body.referenceImageData = referenceImage;
       const res = await apiRequest("POST", "/api/generate-pose", body);
@@ -292,8 +293,16 @@ export default function PosePage() {
           <Button
             size="lg"
             className="w-full gap-2"
-            onClick={() => generateMutation.mutate()}
-            disabled={!prompt.trim() || !referenceImage || !characterId || generateMutation.isPending || isOutOfCredits || generationCount >= 3}
+            onClick={() => {
+              if (!prompt.trim()) {
+                setPrompt("follow the reference pose");
+              }
+              // Use setTimeout to ensure state update processes or just let the mutation handle it
+              // Actually, better to just pass the prompt to mutate if possible, but generateMutation uses state.
+              // Let's update the mutation to use the current prompt or a default.
+              generateMutation.mutate();
+            }}
+            disabled={(!prompt.trim() && !referenceImage) || !characterId || generateMutation.isPending || isOutOfCredits || generationCount >= 3}
             data-testid="button-generate-pose"
           >
             {generateMutation.isPending ? (

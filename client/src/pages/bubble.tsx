@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/context-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import FabricEditor from "@/components/fabric-editor";
 import { Upload, Download, Plus, Trash2, MessageCircle, ArrowRight, Type, Move, Maximize2, ImagePlus, X, Loader2, Layers, ChevronUp, ChevronDown, Save, Minimize2, ZoomIn, ZoomOut, FolderOpen, Share2, Crown, Lightbulb, Copy, FilePlus } from "lucide-react";
 import { useLocation } from "wouter";
 import { BubbleCanvas } from "@/components/bubble-canvas";
@@ -61,7 +60,7 @@ export default function BubblePage() {
   const [selectedBubbleId, setSelectedBubbleId] = useState<string | null>(null);
   const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
 
-  const [showDesignEditor, setShowDesignEditor] = useState(false);
+
   const [showGalleryPicker, setShowGalleryPicker] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [templateCategoryIdx, setTemplateCategoryIdx] = useState(0);
@@ -303,7 +302,7 @@ export default function BubblePage() {
   const selectedChar = activePage.characters.find(c => c.id === selectedCharId);
 
   return (
-    <div className="flex h-screen w-full flex-col bg-neutral-50">
+    <div className="flex h-screen w-full flex-col bg-background">
       {/* Top bar */}
       <header className="flex h-14 items-center justify-between border-b bg-white px-4">
         <div className="flex items-center gap-2">
@@ -314,9 +313,7 @@ export default function BubblePage() {
           {isPro && <Badge variant="secondary" className="gap-1"><Crown className="h-3 w-3 text-yellow-500" /> Pro</Badge>}
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setShowDesignEditor(true)}>
-            <Share2 className="mr-2 h-4 w-4" /> 디자인 에디터
-          </Button>
+
           <Button variant="outline" size="sm" onClick={() => document.getElementById("bg-upload")?.click()}>
             <Upload className="mr-2 h-4 w-4" /> 이미지 업로드
           </Button>
@@ -331,148 +328,137 @@ export default function BubblePage() {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        {showDesignEditor ? (
-          <div className="flex-1 h-full bg-neutral-100 p-4">
-            <FabricEditor
-              isPro={isPro}
-              className="h-full"
-              onClose={() => setShowDesignEditor(false)}
-            />
-          </div>
-        ) : (
-          <>
-            {/* Left Toolbar - Simplified for brevity, reusing original logic structure */}
-            <div className="w-[320px] overflow-y-auto border-r bg-white p-4">
-              {/* Text/Bubble Controls when selected */}
-              {selectedBubble ? (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium">말풍선 편집</h3>
-                    <Button variant="ghost" size="icon" onClick={() => updateActivePage({ bubbles: activePage.bubbles.filter(b => b.id !== selectedBubbleId) })}>
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>텍스트</Label>
-                    <Textarea
-                      value={selectedBubble.text}
-                      onChange={(e) => updateBubble(selectedBubble.id, { text: e.target.value })}
-                    />
-                  </div>
-                  {/* ... More controls (Font, Style, Tail, etc) ... */}
-                  <div className="space-y-2">
-                    <Label>폰트</Label>
-                    <Select value={selectedBubble.fontKey} onValueChange={(v) => updateBubble(selectedBubble.id, { fontKey: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {KOREAN_FONTS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>스타일</Label>
-                    <Select value={selectedBubble.style} onValueChange={(v) => updateBubble(selectedBubble.id, { style: v as BubbleStyle })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(STYLE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs">꼬리 방향</Label>
-                      <Select value={selectedBubble.tailDirection} onValueChange={(v: any) => updateBubble(selectedBubble.id, { tailDirection: v })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="bottom">아래</SelectItem>
-                          <SelectItem value="top">위</SelectItem>
-                          <SelectItem value="left">왼쪽</SelectItem>
-                          <SelectItem value="right">오른쪽</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-              ) : selectedChar ? (
-                <div className="space-y-4">
-                  <h3 className="font-medium">캐릭터 편집</h3>
-                  <Button variant="ghost" className="w-full justify-start text-red-500" onClick={() => updateActivePage({ characters: activePage.characters.filter(c => c.id !== selectedCharId) })}>
-                    <Trash2 className="mr-2 h-4 w-4" /> 삭제
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <h3 className="font-medium">도구</h3>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button variant="outline" onClick={addBubble} className="h-20 flex-col gap-2">
-                        <MessageCircle className="h-6 w-6" />
-                        말풍선 추가
-                      </Button>
-                      <Button variant="outline" onClick={() => setShowGalleryPicker(true)} className="h-20 flex-col gap-2">
-                        <ImagePlus className="h-6 w-6" />
-                        캐릭터 추가
-                      </Button>
-                      <Button variant="outline" onClick={() => setShowTemplatePicker(true)} className="h-20 flex-col gap-2">
-                        <Type className="h-6 w-6" />
-                        템플릿
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
 
-            {/* Main Canvas Area - Scrollable List */}
-            <div className="flex-1 overflow-y-auto bg-neutral-100 p-8">
-              <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-8 pb-32">
-                {pages.map((page, i) => (
-                  <ContextMenu key={page.id}>
-                    <ContextMenuTrigger>
-                      <div
-                        onClick={() => setActivePageIndex(i)}
-                        className={`relative shadow-lg transition-all ${activePageIndex === i ? "ring-4 ring-primary ring-offset-2" : "opacity-90 hover:opacity-100"}`}
-                      >
-                        {/* Page Number Tag */}
-                        <div className="absolute -left-12 top-0 flex flex-col gap-2">
-                          <div className={`flex h-8 w-8 items-center justify-center rounded-full font-bold shadow-sm ${activePageIndex === i ? "bg-primary text-white" : "bg-white text-neutral-500"}`}>
-                            {i + 1}
-                          </div>
-                        </div>
-
-                        <BubbleCanvas
-                          page={page}
-                          isActive={activePageIndex === i}
-                          zoom={zoom}
-                          onUpdateBubble={(id, u) => updatePage(i, { bubbles: page.bubbles.map(b => b.id === id ? { ...b, ...u } : b) })}
-                          onUpdateChar={(id, u) => updatePage(i, { characters: page.characters.map(c => c.id === id ? { ...c, ...u } : c) })}
-                          onSelectBubble={(id) => { setSelectedBubbleId(id); if (id) { setSelectedCharId(null); setActivePageIndex(i); } }}
-                          onSelectChar={(id) => { setSelectedCharId(id); if (id) { setSelectedBubbleId(null); setActivePageIndex(i); } }}
-                          selectedBubbleId={activePageIndex === i ? selectedBubbleId : null}
-                          selectedCharId={activePageIndex === i ? selectedCharId : null}
-                          onCanvasRef={(el) => { if (el) canvasRefs.current.set(page.id, el); else canvasRefs.current.delete(page.id); }}
-                          onEditBubble={(id) => { /* Handle double click edit if needed */ }}
-                        />
-                      </div>
-                    </ContextMenuTrigger>
-                    <ContextMenuContent>
-                      <ContextMenuLabel>Page {i + 1}</ContextMenuLabel>
-                      <ContextMenuSeparator />
-                      <ContextMenuItem onClick={() => duplicatePage(i)}><Copy className="mr-2 h-4 w-4" /> Duplicate Page</ContextMenuItem>
-                      <ContextMenuItem onClick={() => deletePage(i)} className="text-red-500"><Trash2 className="mr-2 h-4 w-4" /> Delete Page</ContextMenuItem>
-                    </ContextMenuContent>
-                  </ContextMenu>
-                ))}
-
-                <Button variant="outline" className="h-24 w-full max-w-[500px] border-dashed" onClick={addPage}>
-                  <FilePlus className="mr-2 h-6 w-6 text-neutral-400" />
-                  <span className="text-neutral-500">Add New Page</span>
+        <div className="w-[320px] overflow-y-auto border-r bg-background p-4">
+          {/* Text/Bubble Controls when selected */}
+          {selectedBubble ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">말풍선 편집</h3>
+                <Button variant="ghost" size="icon" onClick={() => updateActivePage({ bubbles: activePage.bubbles.filter(b => b.id !== selectedBubbleId) })}>
+                  <Trash2 className="h-4 w-4 text-red-500" />
                 </Button>
               </div>
+              <div className="space-y-2">
+                <Label>텍스트</Label>
+                <Textarea
+                  value={selectedBubble.text}
+                  onChange={(e) => updateBubble(selectedBubble.id, { text: e.target.value })}
+                />
+              </div>
+              {/* ... More controls (Font, Style, Tail, etc) ... */}
+              <div className="space-y-2">
+                <Label>폰트</Label>
+                <Select value={selectedBubble.fontKey} onValueChange={(v) => updateBubble(selectedBubble.id, { fontKey: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {KOREAN_FONTS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>스타일</Label>
+                <Select value={selectedBubble.style} onValueChange={(v) => updateBubble(selectedBubble.id, { style: v as BubbleStyle })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(STYLE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">꼬리 방향</Label>
+                  <Select value={selectedBubble.tailDirection} onValueChange={(v: any) => updateBubble(selectedBubble.id, { tailDirection: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="bottom">아래</SelectItem>
+                      <SelectItem value="top">위</SelectItem>
+                      <SelectItem value="left">왼쪽</SelectItem>
+                      <SelectItem value="right">오른쪽</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
-          </>
-        )}
+          ) : selectedChar ? (
+            <div className="space-y-4">
+              <h3 className="font-medium">캐릭터 편집</h3>
+              <Button variant="ghost" className="w-full justify-start text-red-500" onClick={() => updateActivePage({ characters: activePage.characters.filter(c => c.id !== selectedCharId) })}>
+                <Trash2 className="mr-2 h-4 w-4" /> 삭제
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <h3 className="font-medium">도구</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" onClick={addBubble} className="h-20 flex-col gap-2">
+                    <MessageCircle className="h-6 w-6" />
+                    말풍선 추가
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowGalleryPicker(true)} className="h-20 flex-col gap-2">
+                    <ImagePlus className="h-6 w-6" />
+                    캐릭터 추가
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowTemplatePicker(true)} className="h-20 flex-col gap-2">
+                    <Type className="h-6 w-6" />
+                    템플릿
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Main Canvas Area - Scrollable List */}
+        <div className="flex-1 overflow-y-auto bg-muted/20 dark:bg-muted/10 p-8">
+          <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-8 pb-32">
+            {pages.map((page, i) => (
+              <ContextMenu key={page.id}>
+                <ContextMenuTrigger>
+                  <div
+                    onClick={() => setActivePageIndex(i)}
+                    className={`relative shadow-lg transition-all ${activePageIndex === i ? "ring-4 ring-primary ring-offset-2" : "opacity-90 hover:opacity-100"}`}
+                  >
+                    {/* Page Number Tag */}
+                    <div className="absolute -left-12 top-0 flex flex-col gap-2">
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-full font-bold shadow-sm ${activePageIndex === i ? "bg-primary text-white" : "bg-white text-neutral-500"}`}>
+                        {i + 1}
+                      </div>
+                    </div>
+
+                    <BubbleCanvas
+                      page={page}
+                      isActive={activePageIndex === i}
+                      zoom={zoom}
+                      onUpdateBubble={(id, u) => updatePage(i, { bubbles: page.bubbles.map(b => b.id === id ? { ...b, ...u } : b) })}
+                      onUpdateChar={(id, u) => updatePage(i, { characters: page.characters.map(c => c.id === id ? { ...c, ...u } : c) })}
+                      onSelectBubble={(id) => { setSelectedBubbleId(id); if (id) { setSelectedCharId(null); setActivePageIndex(i); } }}
+                      onSelectChar={(id) => { setSelectedCharId(id); if (id) { setSelectedBubbleId(null); setActivePageIndex(i); } }}
+                      selectedBubbleId={activePageIndex === i ? selectedBubbleId : null}
+                      selectedCharId={activePageIndex === i ? selectedCharId : null}
+                      onCanvasRef={(el) => { if (el) canvasRefs.current.set(page.id, el); else canvasRefs.current.delete(page.id); }}
+                      onEditBubble={(id) => { /* Handle double click edit if needed */ }}
+                    />
+                  </div>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuLabel>Page {i + 1}</ContextMenuLabel>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem onClick={() => duplicatePage(i)}><Copy className="mr-2 h-4 w-4" /> Duplicate Page</ContextMenuItem>
+                  <ContextMenuItem onClick={() => deletePage(i)} className="text-red-500"><Trash2 className="mr-2 h-4 w-4" /> Delete Page</ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
+            ))}
+
+            <Button variant="outline" className="h-24 w-full max-w-[500px] border-dashed" onClick={addPage}>
+              <FilePlus className="mr-2 h-6 w-6 text-neutral-400" />
+              <span className="text-neutral-500">Add New Page</span>
+            </Button>
+          </div>
+        </div>
       </div>
+
 
 
 

@@ -60,7 +60,7 @@ export async function registerRoutes(
 
       const canGenerate = await storage.deductCredit(userId);
       if (!canGenerate) {
-        return res.status(403).json({ message: "오늘의 무료 생성 횟수를 모두 사용했습니다. 내일 다시 시도해주세요." });
+        return res.status(403).json({ message: "이번 달의 무료 생성 횟수를 모두 사용했습니다. 다음 달에 다시 시도해주세요." });
       }
 
       const imageDataUrl = await generateCharacterImage(prompt, style);
@@ -110,7 +110,7 @@ export async function registerRoutes(
 
       const canGenerate = await storage.deductCredit(userId);
       if (!canGenerate) {
-        return res.status(403).json({ message: "오늘의 무료 생성 횟수를 모두 사용했습니다. 내일 다시 시도해주세요." });
+        return res.status(403).json({ message: "이번 달의 무료 생성 횟수를 모두 사용했습니다. 다음 달에 다시 시도해주세요." });
       }
 
       const imageDataUrl = await generatePoseImage(character, prompt, referenceImageData);
@@ -155,7 +155,7 @@ export async function registerRoutes(
 
       const canGenerate = await storage.deductCredit(userId);
       if (!canGenerate) {
-        return res.status(403).json({ message: "오늘의 무료 생성 횟수를 모두 사용했습니다. 내일 다시 시도해주세요." });
+        return res.status(403).json({ message: "이번 달의 무료 생성 횟수를 모두 사용했습니다. 다음 달에 다시 시도해주세요." });
       }
 
       const imageDataUrl = await generateWithBackground(sourceImageData, backgroundPrompt, itemsPrompt);
@@ -342,17 +342,17 @@ export async function registerRoutes(
 
       const amount = paymentData.amount;
       let resolvedProductType = (product_type || "credits") as keyof typeof PRODUCT_PRICES;
-      
+
       // 금액 검증: 실제 결제 금액과 상품 가격이 일치하는지 확인
       const expectedAmount = PRODUCT_PRICES[resolvedProductType];
       if (!expectedAmount) {
         return res.status(400).json({ message: "유효하지 않은 상품 타입입니다." });
       }
-      
+
       if (amount !== expectedAmount) {
         console.error(`Payment amount mismatch: expected ${expectedAmount}, got ${amount} for product ${resolvedProductType}`);
-        return res.status(400).json({ 
-          message: `결제 금액이 일치하지 않습니다. 예상: ${expectedAmount}원, 실제: ${amount}원` 
+        return res.status(400).json({
+          message: `결제 금액이 일치하지 않습니다. 예상: ${expectedAmount}원, 실제: ${amount}원`
         });
       }
 
@@ -438,7 +438,7 @@ export async function registerRoutes(
 
       const canUseStory = await storage.deductStoryUse(userId);
       if (!canUseStory) {
-        return res.status(403).json({ message: "오늘의 스토리 에디터 무료 사용 횟수(3회)를 모두 사용했습니다." });
+        return res.status(403).json({ message: "이번 달의 스토리 에디터 무료 사용 횟수(3회)를 모두 사용했습니다." });
       }
 
       const result = await generateStoryScripts(parsed.data);
@@ -470,7 +470,7 @@ export async function registerRoutes(
       const userId = req.userId!;
       const canUseBubble = await storage.deductBubbleUse(userId);
       if (!canUseBubble) {
-        return res.status(403).json({ message: "오늘의 말풍선 편집기 무료 사용 횟수(3회)를 모두 사용했습니다." });
+        return res.status(403).json({ message: "이번 달의 말풍선 편집기 무료 사용 횟수(3회)를 모두 사용했습니다." });
       }
       const { name, thumbnailUrl, canvasData, editorType } = req.body;
       if (!name || !canvasData) {

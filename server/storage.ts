@@ -105,12 +105,17 @@ export class DatabaseStorage implements IStorage {
     if (existing) {
       const now = new Date();
       const lastReset = new Date(existing.lastResetAt);
-      const isNewDay = now.getUTCDate() !== lastReset.getUTCDate() ||
-                       now.getUTCMonth() !== lastReset.getUTCMonth() ||
-                       now.getUTCFullYear() !== lastReset.getUTCFullYear();
+      const isNewMonth = now.getUTCMonth() !== lastReset.getUTCMonth() ||
+        now.getUTCFullYear() !== lastReset.getUTCFullYear();
 
-      if (isNewDay) {
-        const updates: any = { bubbleUsesToday: 0, storyUsesToday: 0, lastResetAt: now };
+      if (isNewMonth) {
+        // Reset monthly limits
+        const updates: any = {
+          bubbleUsesToday: 0,
+          storyUsesToday: 0,
+          lastResetAt: now
+        };
+        // Reset free tier generations to 3
         if (existing.tier === "free") {
           updates.credits = 3;
         }

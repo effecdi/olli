@@ -16,7 +16,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import FabricEditor from "@/components/fabric-editor";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError, redirectToLogin } from "@/lib/auth-utils";
@@ -2669,7 +2668,6 @@ function EditorPanel({
           </div>
         </div>
       )}
-
       {!selectedBubble && panel.bubbles.length > 0 && (
         <div className="space-y-1">
           <div className="flex items-center gap-2 mb-1">
@@ -2718,49 +2716,51 @@ function EditorPanel({
         </div>
       )}
 
-      {showBubbleTemplatePicker && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowBubbleTemplatePicker(false)} data-testid="modal-story-template-picker">
-          <Card className="w-full max-w-lg max-h-[70vh] flex flex-col m-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border flex-wrap">
-              <h3 className="text-sm font-semibold">말풍선 템플릿</h3>
-              <Button variant="ghost" size="icon" onClick={() => setShowBubbleTemplatePicker(false)} data-testid="button-close-story-templates">
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex gap-1.5 px-4 pt-3 pb-1 overflow-x-auto flex-wrap">
-              {BUBBLE_TEMPLATE_CATEGORIES.map((cat, ci) => (
-                <Badge
-                  key={ci}
-                  className={`cursor-pointer shrink-0 toggle-elevate ${ci === templateCatIdx ? "toggle-elevated" : ""}`}
-                  variant={ci === templateCatIdx ? "default" : "outline"}
-                  onClick={() => setTemplateCatIdx(ci)}
-                  data-testid={`badge-story-template-cat-${ci}`}
-                >
-                  {cat.label}
-                </Badge>
-              ))}
-            </div>
-            <div className="overflow-y-auto p-4 flex-1">
-              <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
-                {BUBBLE_TEMPLATE_CATEGORIES[templateCatIdx]?.ids.map((id) => {
-                  const path = bubblePath(id);
-                  return (
-                    <div
-                      key={id}
-                      className="aspect-square rounded-md border border-border overflow-hidden cursor-pointer hover-elevate bg-muted/30 p-1.5"
-                      onClick={() => addBubbleTemplate(path)}
-                      data-testid={`story-template-item-${id}`}
-                    >
-                      <img src={path} alt={`말풍선 ${id}`} className="w-full h-full object-contain" loading="lazy" />
-                    </div>
-                  );
-                })}
+      {
+        showBubbleTemplatePicker && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowBubbleTemplatePicker(false)} data-testid="modal-story-template-picker">
+            <Card className="w-full max-w-lg max-h-[70vh] flex flex-col m-4" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border flex-wrap">
+                <h3 className="text-sm font-semibold">말풍선 템플릿</h3>
+                <Button variant="ghost" size="icon" onClick={() => setShowBubbleTemplatePicker(false)} data-testid="button-close-story-templates">
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
-            </div>
-          </Card>
-        </div>
-      )}
-    </div>
+              <div className="flex gap-1.5 px-4 pt-3 pb-1 overflow-x-auto flex-wrap">
+                {BUBBLE_TEMPLATE_CATEGORIES.map((cat, ci) => (
+                  <Badge
+                    key={ci}
+                    className={`cursor-pointer shrink-0 toggle-elevate ${ci === templateCatIdx ? "toggle-elevated" : ""}`}
+                    variant={ci === templateCatIdx ? "default" : "outline"}
+                    onClick={() => setTemplateCatIdx(ci)}
+                    data-testid={`badge-story-template-cat-${ci}`}
+                  >
+                    {cat.label}
+                  </Badge>
+                ))}
+              </div>
+              <div className="overflow-y-auto p-4 flex-1">
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                  {BUBBLE_TEMPLATE_CATEGORIES[templateCatIdx]?.ids.map((id) => {
+                    const path = bubblePath(id);
+                    return (
+                      <div
+                        key={id}
+                        className="aspect-square rounded-md border border-border overflow-hidden cursor-pointer hover-elevate bg-muted/30 p-1.5"
+                        onClick={() => addBubbleTemplate(path)}
+                        data-testid={`story-template-item-${id}`}
+                      >
+                        <img src={path} alt={`말풍선 ${id}`} className="w-full h-full object-contain" loading="lazy" />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </Card>
+          </div>
+        )
+      }
+    </div >
   );
 }
 
@@ -2782,7 +2782,7 @@ export default function StoryPage() {
   const [activePanelIndex, setActivePanelIndex] = useState(0);
   const [fontsReady, setFontsReady] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
-  const [showDesignEditor, setShowDesignEditor] = useState(false);
+
   const [projectName, setProjectName] = useState("");
   const [currentProjectId, setCurrentProjectId] = useState<number | null>(null);
   const [savingProject, setSavingProject] = useState(false);
@@ -4120,9 +4120,7 @@ export default function StoryPage() {
                   <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => downloadPanel(activePanelIndex)} title="다운로드" data-testid="button-download-panel">
                     <Download className="h-3.5 w-3.5" />
                   </Button>
-                  <Button size="sm" variant="outline" className="gap-1 h-7 text-xs px-2" onClick={() => setShowDesignEditor(true)}>
-                    디자인 에디터
-                  </Button>
+
                   <Button size="sm" onClick={() => setShowSaveModal(true)} className="gap-1 h-7 text-xs px-2.5 bg-[hsl(173_100%_35%)] text-white border-[hsl(173_100%_35%)]" data-testid="button-save-story-project">
                     <Save className="h-3 w-3" />
                     저장
@@ -4136,307 +4134,247 @@ export default function StoryPage() {
               <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-[hsl(173_100%_35%)] to-transparent opacity-60" />
             </div>
 
-            {showDesignEditor ? (
-              <div className="flex-1 h-full bg-neutral-100 dark:bg-neutral-900 p-4 z-40 absolute inset-0">
-                <FabricEditor
-                  isPro={isPro}
-                  className="h-full"
-                  onClose={() => setShowDesignEditor(false)}
-                />
+            {/* Main Canvas Area - List View */}
+            <div
+              ref={canvasAreaRef}
+              className={`flex-1 min-h-0 overflow-auto flex flex-col items-center bg-muted/20 dark:bg-muted/10 relative ${zoom >= 200 ? "p-0" : "p-8"}`}
+              data-testid="story-canvas-area"
+              onMouseDown={(e) => {
+                if (e.target === e.currentTarget) {
+                  setSelectedBubbleId(null);
+                  setSelectedCharId(null);
+                }
+              }}
+            >
+              <div className="flex flex-col items-center gap-8 pb-32">
+                {panels.map((panel, i) => (
+                  <ContextMenu key={panel.id}>
+                    <ContextMenuTrigger>
+                      <div
+                        onClick={() => setActivePanelIndex(i)}
+                        className={`relative shadow-lg transition-all ${activePanelIndex === i ? "ring-4 ring-primary ring-offset-2" : "opacity-90 hover:opacity-100"}`}
+                      >
+                        {/* Page Number Tag */}
+                        <div className="absolute -left-12 top-0 flex flex-col gap-2">
+                          <div className={`flex h-8 w-8 items-center justify-center rounded-full font-bold shadow-sm ${activePanelIndex === i ? "bg-primary text-white" : "bg-white text-neutral-500"}`}>
+                            {i + 1}
+                          </div>
+                        </div>
+
+                        <PanelCanvas
+                          key={panel.id + "-main"}
+                          panel={panel}
+                          onUpdate={(updated) => updatePanel(i, updated)}
+                          selectedBubbleId={activePanelIndex === i ? selectedBubbleId : null}
+                          onSelectBubble={(id) => {
+                            setSelectedBubbleId(id);
+                            setSelectedCharId(null);
+                            setActivePanelIndex(i);
+                          }}
+                          selectedCharId={activePanelIndex === i ? selectedCharId : null}
+                          onSelectChar={(id) => {
+                            setSelectedCharId(id);
+                            setSelectedBubbleId(null);
+                            setActivePanelIndex(i);
+                          }}
+                          canvasRef={(el) => {
+                            if (el) panelCanvasRefs.current.set(panel.id, el);
+                            else panelCanvasRefs.current.delete(panel.id);
+                          }}
+                          zoom={zoom}
+                          fontsReady={fontsReady}
+                        />
+                      </div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent>
+                      <ContextMenuLabel>Page {i + 1}</ContextMenuLabel>
+                      <ContextMenuSeparator />
+                      <ContextMenuItem onClick={() => {
+                        const newPanel = { ...panel, id: generateId(), bubbles: panel.bubbles.map(b => ({ ...b, id: generateId() })), characters: panel.characters.map(c => ({ ...c, id: generateId() })) };
+                        const newPanels = [...panels];
+                        newPanels.splice(i + 1, 0, newPanel);
+                        setPanels(newPanels);
+                      }}><Copy className="mr-2 h-4 w-4" /> Duplicate Page</ContextMenuItem>
+                      <ContextMenuItem onClick={() => removePanel(i)} className="text-red-500"><Trash2 className="mr-2 h-4 w-4" /> Delete Page</ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
+                ))}
+
+                <Button variant="outline" className="h-24 w-full max-w-[500px] border-dashed" onClick={addPanel} disabled={panels.length >= maxPanels}>
+                  <Plus className="mr-2 h-6 w-6 text-neutral-400" />
+                  <span className="text-neutral-500">Add New Page</span>
+                </Button>
               </div>
-            ) : (
-              <div
-                ref={canvasAreaRef}
-                className={`flex-1 min-h-0 overflow-auto flex items-center justify-center bg-muted/20 dark:bg-muted/10 relative ${zoom >= 200 ? "p-0" : "p-6"}`}
-                data-testid="story-canvas-area"
-                onMouseDown={(e) => {
-                  if (e.target === e.currentTarget) {
+            </div>
+            <div className="flex items-center gap-3 overflow-x-auto" data-testid="story-page-strip">
+              {panels.map((panel, i) => (
+                <button
+                  key={panel.id}
+                  onClick={() => {
+                    setActivePanelIndex(i);
                     setSelectedBubbleId(null);
                     setSelectedCharId(null);
-                  }
-                }}
-              >
-                {panMode && (
-                  <div
-                    className="absolute inset-0 z-40"
-                    onPointerDown={(e) => {
-                      const area = canvasAreaRef.current;
-                      if (!area) return;
-                      (e.currentTarget as any).setPointerCapture(e.pointerId);
-                      panDraggingRef.current = true;
-                      panStartRef.current = { x: e.clientX, y: e.clientY };
-                      panScrollStartRef.current = { left: area.scrollLeft, top: area.scrollTop };
-                      area.style.cursor = "grabbing";
-                    }}
-                    onPointerMove={(e) => {
-                      if (!panDraggingRef.current) return;
-                      const area = canvasAreaRef.current;
-                      if (!area || !panStartRef.current || !panScrollStartRef.current) return;
-                      const dx = e.clientX - panStartRef.current.x;
-                      const dy = e.clientY - panStartRef.current.y;
-                      area.scrollLeft = panScrollStartRef.current.left - dx;
-                      area.scrollTop = panScrollStartRef.current.top - dy;
-                    }}
-                    onPointerUp={() => {
-                      panDraggingRef.current = false;
-                      const area = canvasAreaRef.current;
-                      if (area) area.style.cursor = "grab";
-                    }}
-                    onClick={() => {
-                      setSelectedBubbleId(null);
-                      setSelectedCharId(null);
-                    }}
-                    style={{ cursor: "grab" }}
-                  />
-                )}
-                {activePanel && !flowMode && (
-                  <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30">
-                    <div className="flex items-center gap-2 rounded-full border bg-background/95 px-3 py-1.5 shadow-md">
-                      <button
-                        className={`text-xs px-2 py-1 rounded-full ${activeLeftTab === "edit" ? "bg-muted font-medium" : "hover:bg-muted"}`}
-                        onClick={() => toggleLeftTab("edit")}
-                      >
-                        편집
-                      </button>
-                      <div className="h-4 w-px bg-border" />
-                      <button
-                        className="flex items-center gap-1 text-xs px-2 py-1 rounded-full hover:bg-muted"
-                        onClick={() => {
-                          if (!isPro) {
-                            toast({
-                              title: "Pro 전용 기능",
-                              description: "배경 제거는 Pro 멤버십 전용 기능입니다.",
-                              variant: "destructive",
-                            });
-                            return;
-                          }
-                          setShowDesignEditor(true);
-                        }}
-                      >
-                        <span>배경 제거</span>
-                        {!isPro && <Crown className="h-3 w-3 text-amber-500" />}
-                      </button>
-                    </div>
+                  }}
+                  className={`flex-shrink-0 rounded-lg border transition-colors bg-muted/10 hover:border-primary/40 ${i === activePanelIndex ? "border-primary/60 bg-primary/5" : "border-border"}`}
+                >
+                  <div className="flex items-center justify-between px-2 pt-1">
+                    <span className="text-[11px] text-muted-foreground font-medium">
+                      페이지 {i + 1}
+                    </span>
                   </div>
-                )}
-                {captureActive && (
-                  <div className="absolute inset-0 z-50 bg-black/60 text-white grid place-items-center">
-                    <div className="px-3 py-1.5 rounded bg-white/10 text-xs font-medium">스크린캡쳐 방지 중</div>
+                  <div className="w-[120px] h-[80px] p-1.5 pointer-events-none">
+                    <PanelCanvas
+                      key={panel.id + "-strip"}
+                      panel={panel}
+                      onUpdate={(updated) => updatePanel(i, updated)}
+                      selectedBubbleId={null}
+                      onSelectBubble={() => { }}
+                      selectedCharId={null}
+                      onSelectChar={() => { }}
+                      canvasRef={() => { }}
+                      fontsReady={fontsReady}
+                    />
                   </div>
-                )}
-                {activePanel && (
-                  flowMode ? (
-                    <div
-                      className="border border-border rounded-md overflow-hidden relative shrink-0 bg-white"
-                      style={{ width: CANVAS_W * flowZoomScale, height: CANVAS_H * flowZoomScale }}
-                    >
-                      <ReactFlow
-                        nodes={flowNodes}
-                        edges={[]}
-                        onNodesChange={onFlowNodesChange}
-                        fitView
-                      >
-                        <Background />
-                        <Controls />
-                      </ReactFlow>
-                    </div>
-                  ) : (
-                    <div className="shrink-0" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)", borderRadius: "12px" }}>
-                      <PanelCanvas
-                        key={activePanel.id + "-main"}
-                        panel={activePanel}
-                        onUpdate={(updated) => updatePanel(activePanelIndex, updated)}
-                        selectedBubbleId={selectedBubbleId}
-                        onSelectBubble={(id) => {
-                          setSelectedBubbleId(id);
-                          setSelectedCharId(null);
-                        }}
-                        selectedCharId={selectedCharId}
-                        onSelectChar={(id) => {
-                          setSelectedCharId(id);
-                          setSelectedBubbleId(null);
-                        }}
-                        canvasRef={(el) => {
-                          if (el) panelCanvasRefs.current.set(activePanel.id, el);
-                        }}
-                        zoom={zoom}
-                        fontsReady={fontsReady}
-                      />
-                    </div>
-                  )
-                )}
-              </div>
-            )}
-            <div className="border-t border-border bg-background/80 px-4 py-3">
-              <div className="flex items-center gap-3 overflow-x-auto" data-testid="story-page-strip">
-                {panels.map((panel, i) => (
-                  <button
-                    key={panel.id}
-                    onClick={() => {
-                      setActivePanelIndex(i);
-                      setSelectedBubbleId(null);
-                      setSelectedCharId(null);
-                    }}
-                    className={`flex-shrink-0 rounded-lg border transition-colors bg-muted/10 hover:border-primary/40 ${i === activePanelIndex ? "border-primary/60 bg-primary/5" : "border-border"}`}
-                  >
-                    <div className="flex items-center justify-between px-2 pt-1">
-                      <span className="text-[11px] text-muted-foreground font-medium">
-                        페이지 {i + 1}
-                      </span>
-                    </div>
-                    <div className="w-[120px] h-[80px] p-1.5 pointer-events-none">
-                      <PanelCanvas
-                        key={panel.id + "-strip"}
-                        panel={panel}
-                        onUpdate={(updated) => updatePanel(i, updated)}
-                        selectedBubbleId={null}
-                        onSelectBubble={() => { }}
-                        selectedCharId={null}
-                        onSelectChar={() => { }}
-                        canvasRef={() => { }}
-                        fontsReady={fontsReady}
-                      />
-                    </div>
-                  </button>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-shrink-0 h-[80px] min-w-[120px] flex flex-col items-center justify-center text-xs"
-                  onClick={addPanel}
-                  disabled={panels.length >= maxPanels}
-                  data-testid="button-add-panel-bottom"
-                >
-                  <Plus className="h-3.5 w-3.5 mb-1" />
-                  페이지 추가
-                </Button>
-              </div>
-            </div>
-
-
-            <div className="flex items-center justify-center gap-3 px-4 py-2 border-t border-border bg-background shrink-0" data-testid="story-bottom-toolbar">
-              <div className="flex items-center gap-1.5">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => setZoom((z) => Math.max(20, z - 10))}
-                  disabled={zoom <= 20}
-                  data-testid="button-story-zoom-out"
-                >
-                  <ZoomOut className="h-3.5 w-3.5" />
-                </Button>
-                <Slider
-                  min={20}
-                  max={200}
-                  step={5}
-                  value={[zoom]}
-                  onValueChange={([v]) => setZoom(v)}
-                  className="w-28"
-                  data-testid="slider-story-zoom"
-                />
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => setZoom((z) => Math.min(200, z + 10))}
-                  disabled={zoom >= 200}
-                  data-testid="button-story-zoom-in"
-                >
-                  <ZoomIn className="h-3.5 w-3.5" />
-                </Button>
-                <span className="text-xs text-muted-foreground tabular-nums w-9 text-right" data-testid="text-story-zoom-value">{zoom}%</span>
-              </div>
-              <div className="h-4 w-px bg-border" />
+                </button>
+              ))}
               <Button
-                size="icon"
-                variant="ghost"
-                onClick={fitToView}
-                title="화면에 맞추기"
-                data-testid="button-story-fit-to-view"
+                variant="outline"
+                size="sm"
+                className="flex-shrink-0 h-[80px] min-w-[120px] flex flex-col items-center justify-center text-xs"
+                onClick={addPanel}
+                disabled={panels.length >= maxPanels}
+                data-testid="button-add-panel-bottom"
               >
-                <Minimize2 className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => setZoom(200)}
-                title="전체 화면"
-                data-testid="button-story-fullscreen"
-              >
-                <Maximize className="h-3.5 w-3.5" />
+                <Plus className="h-3.5 w-3.5 mb-1" />
+                페이지 추가
               </Button>
             </div>
           </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
 
-      <Dialog open={aiLimitOpen} onOpenChange={setAiLimitOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-base">AI 생성 제한</DialogTitle>
-            <DialogDescription>오늘 무료 AI 생성 3회를 초과했습니다.</DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-2">
-            <Button asChild className="w-full gap-1.5" data-testid="button-upgrade-pro-ai">
-              <a href="/pricing">Pro 업그레이드</a>
-            </Button>
-            <Button variant="outline" className="w-full" onClick={() => setAiLimitOpen(false)} data-testid="button-close-ai-limit">닫기</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
-      <Dialog open={showSaveModal} onOpenChange={setShowSaveModal}>
-        <DialogContent className="max-w-sm" data-testid="modal-save-story">
-          <DialogHeader>
-            <DialogTitle className="text-base">스토리 프로젝트 저장</DialogTitle>
-          </DialogHeader>
-          {isPro ? (
-            <div className="space-y-3">
-              <Input
-                placeholder="프로젝트 이름"
-                value={projectName}
-                onChange={(e) => setProjectName(e.target.value)}
-                data-testid="input-story-project-name"
+          <div className="flex items-center justify-center gap-3 px-4 py-2 border-t border-border bg-background shrink-0" data-testid="story-bottom-toolbar">
+            <div className="flex items-center gap-1.5">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setZoom((z) => Math.max(20, z - 10))}
+                disabled={zoom <= 20}
+                data-testid="button-story-zoom-out"
+              >
+                <ZoomOut className="h-3.5 w-3.5" />
+              </Button>
+              <Slider
+                min={20}
+                max={200}
+                step={5}
+                value={[zoom]}
+                onValueChange={([v]) => setZoom(v)}
+                className="w-28"
+                data-testid="slider-story-zoom"
               />
-              <div className="space-y-2">
-                <Button
-                  className="w-full gap-1.5"
-                  onClick={handleSaveProject}
-                  disabled={savingProject || !projectName.trim()}
-                  data-testid="button-save-story-confirm"
-                >
-                  {savingProject ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                  {currentProjectId ? "업데이트" : "저장하기"}
-                </Button>
-
-              </div>
-              {currentProjectId && (
-                <p className="text-[11px] text-muted-foreground text-center">
-                  기존 프로젝트를 덮어씁니다
-                </p>
-              )}
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setZoom((z) => Math.min(200, z + 10))}
+                disabled={zoom >= 200}
+                data-testid="button-story-zoom-in"
+              >
+                <ZoomIn className="h-3.5 w-3.5" />
+              </Button>
+              <span className="text-xs text-muted-foreground tabular-nums w-9 text-right" data-testid="text-story-zoom-value">{zoom}%</span>
             </div>
-          ) : (
-            <div className="text-center py-4 space-y-3">
-              <div className="mx-auto w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                <Crown className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-sm font-medium mb-1">Pro 전용 기능</p>
-                <p className="text-xs text-muted-foreground">프로젝트 저장/관리는 Pro 멤버십 전용 기능입니다.</p>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Button asChild className="w-full gap-1.5" data-testid="button-upgrade-pro-story">
-                  <a href="/pricing">
-                    <Crown className="h-3.5 w-3.5" />
-                    Pro 업그레이드
-                  </a>
-                </Button>
+            <div className="h-4 w-px bg-border" />
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={fitToView}
+              title="화면에 맞추기"
+              data-testid="button-story-fit-to-view"
+            >
+              <Minimize2 className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setZoom(200)}
+              title="전체 화면"
+              data-testid="button-story-fullscreen"
+            >
+              <Maximize className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      </ResizablePanel>
+    </ResizablePanelGroup>
 
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div >
-  );
+            <Dialog open={aiLimitOpen} onOpenChange={setAiLimitOpen}>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle className="text-base">AI 생성 제한</DialogTitle>
+                  <DialogDescription>오늘 무료 AI 생성 3회를 초과했습니다.</DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col gap-2">
+                  <Button asChild className="w-full gap-1.5" data-testid="button-upgrade-pro-ai">
+                    <a href="/pricing">Pro 업그레이드</a>
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={() => setAiLimitOpen(false)} data-testid="button-close-ai-limit">닫기</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={showSaveModal} onOpenChange={setShowSaveModal}>
+              <DialogContent className="max-w-sm" data-testid="modal-save-story">
+                <DialogHeader>
+                  <DialogTitle className="text-base">스토리 프로젝트 저장</DialogTitle>
+                </DialogHeader>
+                {isPro ? (
+                  <div className="space-y-3">
+                    <Input
+                      placeholder="프로젝트 이름"
+                      value={projectName}
+                      onChange={(e) => setProjectName(e.target.value)}
+                      data-testid="input-story-project-name"
+                    />
+                    <div className="space-y-2">
+                      <Button
+                        className="w-full gap-1.5"
+                        onClick={handleSaveProject}
+                        disabled={savingProject || !projectName.trim()}
+                        data-testid="button-save-story-confirm"
+                      >
+                        {savingProject ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                        {currentProjectId ? "업데이트" : "저장하기"}
+                      </Button>
+
+                    </div>
+                    {currentProjectId && (
+                      <p className="text-[11px] text-muted-foreground text-center">
+                        기존 프로젝트를 덮어씁니다
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 space-y-3">
+                    <div className="mx-auto w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                      <Crown className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium mb-1">Pro 전용 기능</p>
+                      <p className="text-xs text-muted-foreground">프로젝트 저장/관리는 Pro 멤버십 전용 기능입니다.</p>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <Button asChild className="w-full gap-1.5" data-testid="button-upgrade-pro-story">
+                        <a href="/pricing">
+                          <Crown className="h-3.5 w-3.5" />
+                          Pro 업그레이드
+                        </a>
+                      </Button>
+
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+          </div >
+          );
 }

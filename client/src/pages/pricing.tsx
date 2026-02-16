@@ -102,11 +102,11 @@ export default function PricingPage() {
       description: "OLLI를 체험해보세요",
       icon: Sparkles,
       features: [
-        { text: "매일 1회 캐릭터 생성", included: true },
-        { text: "1가지 스타일 (심플 라인)", included: true },
+        { text: "매월 3회 캐릭터 생성", included: true },
+        { text: "3가지 스타일 (심플 라인)", included: true },
         { text: "포즈 & 배경 기본 제공", included: true },
-        { text: "말풍선 편집기 (매일 1회)", included: true },
-        { text: "스토리 에디터 (매일 1회)", included: true },
+        { text: "말풍선 편집기 (매월 3회)", included: true },
+        { text: "스토리 에디터 (매월 3회)", included: true },
         { text: "갤러리 조회만 가능", included: true },
         { text: "워터마크 포함", included: true },
         { text: "프리미엄 스타일", included: false },
@@ -222,7 +222,7 @@ export default function PricingPage() {
       </div>
 
       <div className="mt-12 text-center text-sm text-muted-foreground">
-        <p>무료 플랜은 매일 자정(UTC)에 사용 횟수가 초기화됩니다.</p>
+        <p>무료 플랜은 매월 1일에 사용 횟수가 초기화됩니다.</p>
         <p className="mt-1">Pro 멤버십은 채팅 이미지 메이커, AI 광고주 매칭을 포함합니다.</p>
       </div>
     </div>
