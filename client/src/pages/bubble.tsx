@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/context-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Upload, Download, Plus, Trash2, MessageCircle, ArrowRight, Type, Move, Maximize2, ImagePlus, X, Loader2, Layers, ChevronUp, ChevronDown, Save, Minimize2, ZoomIn, ZoomOut, FolderOpen, Share2, Crown, Lightbulb, Copy, FilePlus } from "lucide-react";
+import { Upload, Download, Plus, Trash2, MessageCircle, ArrowRight, Type, Move, Maximize2, ImagePlus, X, Loader2, Layers, ChevronUp, ChevronDown, Save, Minimize2, ZoomIn, ZoomOut, FolderOpen, Share2, Crown, Lightbulb, Copy, FilePlus, Wand2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { BubbleCanvas } from "@/components/bubble-canvas";
 import { SpeechBubble, CharacterOverlay, PageData, DragMode, BubbleStyle, TailStyle } from "@/lib/bubble-types";
@@ -72,6 +72,7 @@ export default function BubblePage() {
   const [savingProject, setSavingProject] = useState(false);
 
   const [zoom, setZoom] = useState(100);
+  const [removingBg, setRemovingBg] = useState(false);
 
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
@@ -298,6 +299,18 @@ export default function BubblePage() {
     link.click();
   };
 
+  const handleDownloadAll = () => {
+    pages.forEach((page, index) => {
+      const canvas = canvasRefs.current.get(page.id);
+      if (!canvas) return;
+      const dataUrl = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.download = `bubble-page-${index + 1}.png`;
+      link.href = dataUrl;
+      link.click();
+    });
+  };
+
   const { data: loadedProject } = useQuery<any>({
     queryKey: ["/api/bubble-projects", loadProjectId],
     enabled: isAuthenticated && !!loadProjectId,
@@ -380,6 +393,45 @@ export default function BubblePage() {
 
   const selectedBubble = activePage.bubbles.find(b => b.id === selectedBubbleId);
   const selectedChar = activePage.characters.find(c => c.id === selectedCharId);
+
+  const handleRemoveBackground = async () => {
+    if (!selectedChar) return;
+    if (!isPro) {
+      toast({
+        title: "Pro 전용 기능",
+        description: "배경제거는 Pro 멤버십 전용 기능입니다.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      setRemovingBg(true);
+      const res = await apiRequest("POST", "/api/remove-background", {
+        sourceImageData: selectedChar.imageUrl,
+      });
+      const data = await res.json();
+      const imageUrl = data.imageUrl as string;
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        updateActivePage({
+          characters: activePage.characters.map((c) =>
+            c.id === selectedChar.id ? { ...c, imageUrl, imgElement: img } : c,
+          ),
+        });
+        toast({ title: "배경 제거 완료" });
+      };
+      img.src = imageUrl;
+    } catch (error: any) {
+      toast({
+        title: "배경 제거 실패",
+        description: error?.message || "잠시 후 다시 시도해주세요.",
+        variant: "destructive",
+      });
+    } finally {
+      setRemovingBg(false);
+    }
+  };
 
   const startBubbleTour = useCallback(() => {
     const ensureDriver = () =>
@@ -472,6 +524,16 @@ export default function BubblePage() {
               data-testid="button-download-bubble"
             >
               <Download className="h-4 w-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 h-8 text-xs px-2.5"
+              onClick={handleDownloadAll}
+              data-testid="button-download-bubble-all"
+            >
+              <Download className="h-3.5 w-3.5" />
+              전체 다운로드
             </Button>
             <Button
               size="sm"
@@ -768,8 +830,34 @@ export default function BubblePage() {
           ) : selectedChar ? (
             <div className="space-y-4">
               <h3 className="font-medium">캐릭터 편집</h3>
-              <Button variant="ghost" className="w-full justify-start text-red-500" onClick={() => updateActivePage({ characters: activePage.characters.filter(c => c.id !== selectedCharId) })}>
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-red-500"
+                onClick={() =>
+                  updateActivePage({
+                    characters: activePage.characters.filter(
+                      (c) => c.id !== selectedCharId,
+                    ),
+                  })
+                }
+              >
                 <Trash2 className="mr-2 h-4 w-4" /> 삭제
+              </Button>
+              <Button
+                variant={isPro ? "default" : "outline"}
+                size="sm"
+                className="w-full justify-center gap-1.5"
+                onClick={handleRemoveBackground}
+                disabled={removingBg || !isPro}
+                data-testid="button-remove-bg-bubble"
+              >
+                {removingBg ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Wand2 className="h-3.5 w-3.5" />
+                )}
+                <span className="text-xs">AI 배경제거 (Pro)</span>
+                {!isPro && <Crown className="h-3 w-3 text-yellow-500" />}
               </Button>
             </div>
           ) : null}

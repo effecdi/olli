@@ -2,9 +2,9 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { isAuthenticated, type AuthRequest } from "./authMiddleware";
-import { generateCharacterImage, generatePoseImage, generateWithBackground } from "./imageGen";
+import { generateCharacterImage, generatePoseImage, generateWithBackground, removeBackground } from "./imageGen";
 import { generateAIPrompt, analyzeAdMatch, enhanceBio, generateStoryScripts, suggestStoryTopics } from "./aiText";
-import { generateCharacterSchema, generatePoseSchema, generateBackgroundSchema, adMatchSchema, creatorProfileSchema, storyScriptSchema, topicSuggestSchema, updateBubbleProjectSchema } from "@shared/schema";
+import { generateCharacterSchema, generatePoseSchema, generateBackgroundSchema, removeBackgroundSchema, adMatchSchema, creatorProfileSchema, storyScriptSchema, topicSuggestSchema, updateBubbleProjectSchema } from "@shared/schema";
 import axios from "axios";
 import { config } from "./config";
 
@@ -180,6 +180,28 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Background generation error:", error);
       res.status(500).json({ message: error.message || "Failed to generate background" });
+    }
+  });
+
+  app.post("/api/remove-background", isAuthenticated, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.userId!;
+      const parsed = removeBackgroundSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: parsed.error.errors[0]?.message || "Invalid input" });
+      }
+
+      const credits = await storage.getUserCredits(userId);
+      if (credits.tier !== "pro") {
+        return res.status(403).json({ message: "배경제거는 Pro 멤버십 전용 기능입니다." });
+      }
+
+      const imageDataUrl = await removeBackground(parsed.data.sourceImageData);
+
+      res.json({ imageUrl: imageDataUrl });
+    } catch (error: any) {
+      console.error("Remove background error:", error);
+      res.status(500).json({ message: error.message || "Failed to remove background" });
     }
   });
 

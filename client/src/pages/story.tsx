@@ -1975,6 +1975,7 @@ function EditorPanel({
   const [showBubbleTemplatePicker, setShowBubbleTemplatePicker] = useState(false);
   const [templateCatIdx, setTemplateCatIdx] = useState(0);
   const [limitOpen, setLimitOpen] = useState(false);
+  const [removingBg, setRemovingBg] = useState(false);
   const { toast } = useToast();
 
   const canBubbleEdit = true;
@@ -1983,6 +1984,8 @@ function EditorPanel({
 
   const selectedBubble =
     panel.bubbles.find((b) => b.id === selectedBubbleId) || null;
+  const selectedChar =
+    panel.characters.find((c) => c.id === selectedCharId) || null;
 
   const getDailyKey = (feature: string) => {
     const d = new Date();
@@ -2190,6 +2193,44 @@ function EditorPanel({
   const isBubbleMode = mode === "bubble";
   const isTemplateMode = mode === "template";
 
+  const handleRemoveBackground = async () => {
+    if (!selectedChar) return;
+    if (!isPro) {
+      toast({
+        title: "Pro 전용 기능",
+        description: "배경제거는 Pro 멤버십 전용 기능입니다.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      setRemovingBg(true);
+      const res = await apiRequest("POST", "/api/remove-background", {
+        sourceImageData: selectedChar.imageUrl,
+      });
+      const data = await res.json();
+      const imageUrl = data.imageUrl as string;
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const updatedChars = panel.characters.map((c) =>
+          c.id === selectedChar.id ? { ...c, imageUrl, imageEl: img } : c,
+        );
+        onUpdate({ ...panel, characters: updatedChars });
+        toast({ title: "배경 제거 완료" });
+      };
+      img.src = imageUrl;
+    } catch (error: any) {
+      toast({
+        title: "배경 제거 실패",
+        description: error?.message || "잠시 후 다시 시도해주세요.",
+        variant: "destructive",
+      });
+    } finally {
+      setRemovingBg(false);
+    }
+  };
+
   const handleLocalImageFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
     Array.from(files).forEach((file) => {
@@ -2351,6 +2392,35 @@ function EditorPanel({
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {isImageMode && selectedChar && (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-2 mt-3">
+            <span className="text-[13px] font-medium text-muted-foreground">
+              이미지 도구
+            </span>
+            {!isPro && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                Pro
+              </Badge>
+            )}
+          </div>
+          <Button
+            size="sm"
+            className="w-full justify-center gap-1.5"
+            onClick={handleRemoveBackground}
+            disabled={removingBg || !isPro}
+            data-testid={`button-remove-bg-story-${index}`}
+          >
+            {removingBg ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Wand2 className="h-3.5 w-3.5" />
+            )}
+            <span className="text-xs">AI 배경제거 (Pro)</span>
+          </Button>
         </div>
       )}
 
@@ -4367,6 +4437,17 @@ export default function StoryPage() {
                     <Plus className="h-3 w-3" />
                     추가
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => removePanel(activePanelIndex)}
+                    disabled={panels.length <= 1}
+                    className="gap-1 h-7 text-xs px-2 text-red-500"
+                    data-testid="button-remove-panel"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    삭제
+                  </Button>
                   <div className="flex items-center gap-0.5">
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={undo} disabled={historyRef.current.length === 0} title="실행 취소 (Ctrl+Z)" data-testid="button-undo">
                       <Undo2 className="h-3.5 w-3.5" />
@@ -4385,6 +4466,16 @@ export default function StoryPage() {
                   </Button>
                   <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => downloadPanel(activePanelIndex)} title="다운로드" data-testid="button-download-panel">
                     <Download className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1 h-7 text-xs px-2"
+                    onClick={downloadAll}
+                    data-testid="button-download-all-panels"
+                  >
+                    <Download className="h-3 w-3" />
+                    전체 다운로드
                   </Button>
 
                   <Button size="sm" onClick={() => setShowSaveModal(true)} className="gap-1 h-7 text-xs px-2.5 bg-[hsl(173_100%_35%)] text-white border-[hsl(173_100%_35%)]" data-testid="button-save-story-project">

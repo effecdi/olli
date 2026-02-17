@@ -102,6 +102,10 @@ export const generateBackgroundSchema = z.object({
   characterId: z.number().optional(),
 });
 
+export const removeBackgroundSchema = z.object({
+  sourceImageData: z.string().min(1, "Source image is required"),
+});
+
 export const adMatchSchema = z.object({
   genre: z.string().min(1, "Genre is required"),
   followers: z.string().min(1, "Follower count is required"),
