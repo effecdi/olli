@@ -484,7 +484,27 @@ export default function BubblePage() {
             />
             <Button
               size="sm"
-              onClick={() => setShowSaveModal(true)}
+              onClick={() => {
+                if (!isAuthenticated) {
+                  toast({
+                    title: "로그인 필요",
+                    description: "로그인 후 프로젝트를 저장할 수 있습니다.",
+                    variant: "destructive",
+                  });
+                  setLocation("/login");
+                  return;
+                }
+                if (!isPro) {
+                  toast({
+                    title: "Pro 전용 기능",
+                    description: "말풍선 프로젝트 저장은 Pro 업그레이드 후 이용할 수 있습니다.",
+                    variant: "destructive",
+                  });
+                  setLocation("/pricing");
+                  return;
+                }
+                setShowSaveModal(true);
+              }}
               className="gap-1.5 h-8 text-xs px-2.5 bg-[hsl(173_100%_35%)] text-white border-[hsl(173_100%_35%)]"
               data-testid="button-save-bubble-project"
             >
