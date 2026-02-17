@@ -169,62 +169,65 @@ export default function PricingPage() {
 
       <div className="grid gap-6 md:grid-cols-2 max-w-3xl mx-auto">
         {plans.map((plan) => (
-          <LiquidGlass
+          <Card
             key={plan.name}
-            displacementScale={plan.highlighted ? 80 : 60}
-            blurAmount={0.08}
-            saturation={plan.highlighted ? 145 : 125}
-            elasticity={plan.highlighted ? 0.26 : 0.18}
-            cornerRadius={24}
-            padding="0"
-            className="h-full"
-            overLight={false}
+            className={`relative h-full overflow-hidden rounded-3xl border-0 px-8 py-9 shadow-[0_22px_70px_rgba(15,23,42,0.85)] ${
+              plan.highlighted
+                ? "bg-gradient-to-br from-violet-500 via-fuchsia-500 to-indigo-500 text-white"
+                : "bg-slate-950 text-slate-50"
+            }`}
+            data-testid={`card-plan-${plan.tier}`}
           >
-            <Card
-              className={`h-full p-6 flex flex-col relative rounded-3xl border-0 ${
+            <div
+              className={
                 plan.highlighted
-                  ? "bg-gradient-to-br from-violet-600 via-fuchsia-500 to-indigo-500 text-white shadow-[0_22px_70px_rgba(129,140,248,0.6)]"
-                  : "bg-slate-950/80 text-slate-50 shadow-[0_18px_60px_rgba(15,23,42,0.85)]"
-              }`}
-              data-testid={`card-plan-${plan.tier}`}
-            >
-              {plan.highlighted && (
-                <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-white/15 border border-white/30 text-[11px]">
-                  추천
-                </Badge>
-              )}
-              <div className="relative mb-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <div
-                    className={`flex h-9 w-9 items-center justify-center rounded-md ${
-                      plan.highlighted ? "bg-white/20" : "bg-slate-800/80"
-                    }`}
-                  >
-                    <plan.icon className={`h-5 w-5 ${plan.highlighted ? "text-white" : "text-teal-300"}`} />
-                  </div>
-                  <h3 className="text-xl font-semibold">{plan.name}</h3>
-                </div>
+                  ? "absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/10 mix-blend-screen"
+                  : "absolute inset-0 bg-gradient-to-br from-slate-800/50 via-slate-900 to-black"
+              }
+            />
+            <div className="relative flex h-full flex-col">
+              <div className="flex items-center justify-between mb-6">
+                {plan.highlighted ? (
+                  <>
+                    <Badge className="bg-white/15 text-[11px] px-3 py-1 border border-white/20">Pro</Badge>
+                    <span className="text-[11px] text-white/80">{plan.period}</span>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="font-semibold text-sm uppercase tracking-[0.18em] text-slate-400">Free</h3>
+                    <span className="text-[11px] text-slate-400">{plan.period}</span>
+                  </>
+                )}
+              </div>
+              <div className="mb-2">
+                {plan.highlighted ? (
+                  <p className="text-xs uppercase tracking-[0.22em] text-white/70 mb-1">크리에이터 추천</p>
+                ) : null}
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-bold">{plan.price}</span>
-                  <span className={plan.highlighted ? "text-white/80" : "text-slate-300"}>{plan.period}</span>
+                  <span className="text-4xl font-black tracking-tight">{plan.price}</span>
+                  <span className={plan.highlighted ? "text-sm text-white/80" : "text-sm text-slate-400"}>/월</span>
                 </div>
-                <p className={plan.highlighted ? "mt-2 text-sm text-white/85" : "mt-2 text-sm text-slate-300"}>
+                <p
+                  className={
+                    plan.highlighted ? "mt-2 text-xs text-white/85" : "mt-2 text-xs text-slate-400"
+                  }
+                >
                   {plan.description}
                 </p>
               </div>
 
-              <ul className="relative flex-1 space-y-3 mb-6">
+              <ul className="space-y-2.5 text-sm mb-7 mt-2">
                 {plan.features.map((feature) => (
-                  <li key={feature.text} className="flex items-center gap-2 text-sm">
+                  <li key={feature.text} className="flex items-center gap-2.5">
                     {feature.included ? (
                       <Check
-                        className={`h-4 w-4 flex-shrink-0 ${
-                          plan.highlighted ? "text-lime-300" : "text-teal-300"
+                        className={`h-4 w-4 shrink-0 ${
+                          plan.highlighted ? "text-white" : "text-teal-300"
                         }`}
                       />
                     ) : (
                       <X
-                        className={`h-4 w-4 flex-shrink-0 ${
+                        className={`h-4 w-4 shrink-0 ${
                           plan.highlighted ? "text-white/25" : "text-slate-500/60"
                         }`}
                       />
@@ -234,9 +237,9 @@ export default function PricingPage() {
                         feature.included
                           ? plan.highlighted
                             ? "text-white/95"
-                            : "text-slate-100"
+                            : "text-slate-200"
                           : plan.highlighted
-                            ? "text-white/50"
+                            ? "text-white/55"
                             : "text-slate-400"
                       }
                     >
@@ -248,10 +251,10 @@ export default function PricingPage() {
 
               <Button
                 variant={plan.highlighted ? "default" : "outline"}
-                className={`w-full gap-2 h-11 rounded-full ${
+                className={`mt-auto w-full h-11 rounded-full ${
                   plan.highlighted
                     ? "bg-white text-slate-900 hover:bg-slate-100"
-                    : "border-slate-400/80 text-slate-50 bg-slate-900/20 hover:bg-slate-900/60"
+                    : "border-slate-500/70 text-slate-50 hover:bg-slate-900/60"
                 }`}
                 disabled={
                   (plan.tier === "free" && credits?.tier === "free") ||
@@ -266,8 +269,8 @@ export default function PricingPage() {
                 ) : null}
                 {getButtonText(plan.tier)}
               </Button>
-            </Card>
-          </LiquidGlass>
+            </div>
+          </Card>
         ))}
       </div>
 
