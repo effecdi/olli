@@ -509,13 +509,13 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
     }
 
     if (isSelected) {
-        ctx.strokeStyle = "hsl(150, 80%, 40%)";
+        ctx.strokeStyle = "hsl(173, 80%, 45%)";
         ctx.lineWidth = 2;
-        ctx.setLineDash([5, 3]);
+        ctx.setLineDash([4, 3]);
         ctx.strokeRect(x - 4, y - 4, w + 8, h + 8);
         ctx.setLineDash([]);
 
-        const handleSize = 8;
+        const handleSize = 9;
         const handles = [
             { x: x - 4, y: y - 4 },
             { x: x + w / 2, y: y - 4 },
@@ -528,20 +528,22 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
         ];
 
         handles.forEach((handle) => {
-            ctx.fillStyle = "white";
-            ctx.fillRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
-            ctx.strokeStyle = "hsl(150, 80%, 40%)";
-            ctx.lineWidth = 2;
-            ctx.strokeRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
+            ctx.beginPath();
+            ctx.arc(handle.x, handle.y, handleSize / 2, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255,255,255,0.96)";
+            ctx.fill();
+            ctx.strokeStyle = "hsl(173, 80%, 45%)";
+            ctx.lineWidth = 1.8;
+            ctx.stroke();
         });
 
         if (bubble.tailStyle !== "none") {
             const geo = getTailGeometry(bubble);
             ctx.beginPath();
-            ctx.arc(geo.tipX, geo.tipY, 6, 0, Math.PI * 2);
-            ctx.fillStyle = "hsl(150, 80%, 40%)";
+            ctx.arc(geo.tipX, geo.tipY, 7, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255,255,255,0.96)";
             ctx.fill();
-            ctx.strokeStyle = "white";
+            ctx.strokeStyle = "hsl(173, 80%, 45%)";
             ctx.lineWidth = 2;
             ctx.stroke();
         }

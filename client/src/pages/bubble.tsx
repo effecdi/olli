@@ -187,6 +187,110 @@ export default function BubblePage() {
     }
   };
 
+  const deleteSelectedElement = useCallback(() => {
+    if (selectedBubbleId) {
+      updateActivePage({
+        bubbles: activePage.bubbles.filter((b) => b.id !== selectedBubbleId),
+      });
+      setSelectedBubbleId(null);
+    } else if (selectedCharId) {
+      updateActivePage({
+        characters: activePage.characters.filter((c) => c.id !== selectedCharId),
+      });
+      setSelectedCharId(null);
+    }
+  }, [activePage, selectedBubbleId, selectedCharId, updateActivePage]);
+
+  const bringSelectedLayerForward = useCallback(() => {
+    if (!selectedBubbleId && !selectedCharId) return;
+    const idx = layerItems.findIndex((it) =>
+      selectedCharId ? it.type === "char" && it.id === selectedCharId : it.type === "bubble" && it.id === selectedBubbleId
+    );
+    if (idx < 0) return;
+    moveLayer(idx, "up");
+  }, [layerItems, moveLayer, selectedBubbleId, selectedCharId]);
+
+  const sendSelectedLayerBackward = useCallback(() => {
+    if (!selectedBubbleId && !selectedCharId) return;
+    const idx = layerItems.findIndex((it) =>
+      selectedCharId ? it.type === "char" && it.id === selectedCharId : it.type === "bubble" && it.id === selectedBubbleId
+    );
+    if (idx < 0) return;
+    moveLayer(idx, "down");
+  }, [layerItems, moveLayer, selectedBubbleId, selectedCharId]);
+
+  const toggleLockSelectedElement = useCallback(() => {
+    if (selectedBubbleId) {
+      const b = activePage.bubbles.find((bb) => bb.id === selectedBubbleId);
+      if (!b) return;
+      updateBubble(selectedBubbleId, { locked: !b.locked });
+    } else if (selectedCharId) {
+      const c = activePage.characters.find((cc) => cc.id === selectedCharId);
+      if (!c) return;
+      updateChar(selectedCharId, { locked: !c.locked });
+    }
+  }, [activePage, selectedBubbleId, selectedCharId, updateBubble, updateChar]);
+
+  const rotateSelectedElement = useCallback(() => {
+    if (!selectedCharId) return;
+    const c = activePage.characters.find((cc) => cc.id === selectedCharId);
+    if (!c) return;
+    const next = (c.rotation || 0) + Math.PI / 12;
+    updateChar(selectedCharId, { rotation: next });
+  }, [activePage, selectedCharId, updateChar]);
+
+  const copySelectedElement = useCallback(() => {
+    if (selectedBubbleId) {
+      const b = activePage.bubbles.find((bb) => bb.id === selectedBubbleId);
+      if (!b) return;
+      localStorage.setItem("olli_clipboard", JSON.stringify({ type: "bubble", data: b }));
+      toast({ title: "복사됨", description: "말풍선이 복사되었습니다." });
+    } else if (selectedCharId) {
+      const c = activePage.characters.find((cc) => cc.id === selectedCharId);
+      if (!c) return;
+      localStorage.setItem("olli_clipboard", JSON.stringify({ type: "char", data: c }));
+      toast({ title: "복사됨", description: "캐릭터가 복사되었습니다." });
+    }
+  }, [activePage, selectedBubbleId, selectedCharId, toast]);
+
+  const pasteFromClipboard = useCallback(() => {
+    try {
+      const raw = localStorage.getItem("olli_clipboard");
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (parsed.type === "bubble") {
+        const b = parsed.data as SpeechBubble;
+        const maxZ = activePage.bubbles.reduce((acc, cur) => Math.max(acc, cur.zIndex ?? 10), 10);
+        const newBubble: SpeechBubble = {
+          ...b,
+          id: generateId(),
+          x: b.x + 20,
+          y: b.y + 20,
+          zIndex: maxZ + 1,
+        };
+        updateActivePage({ bubbles: [...activePage.bubbles, newBubble] });
+        setSelectedBubbleId(newBubble.id);
+        setSelectedCharId(null);
+      } else if (parsed.type === "char") {
+        const c = parsed.data as CharacterOverlay;
+        const maxZ = activePage.characters.reduce((acc, cur) => Math.max(acc, cur.zIndex ?? 0), 0);
+        const newChar: CharacterOverlay = {
+          ...c,
+          id: generateId(),
+          x: c.x + 20,
+          y: c.y + 20,
+          zIndex: maxZ + 1,
+        };
+        updateActivePage({ characters: [...activePage.characters, newChar] });
+        setSelectedCharId(newChar.id);
+        setSelectedBubbleId(null);
+      }
+      toast({ title: "붙여넣기 완료" });
+    } catch {
+      toast({ title: "붙여넣기 실패", description: "클립보드 데이터를 읽을 수 없습니다.", variant: "destructive" });
+    }
+  }, [activePage, updateActivePage, toast]);
+
   const addBubble = () => {
     const newBubble: SpeechBubble = {
       id: generateId(),
@@ -215,6 +319,28 @@ export default function BubblePage() {
     setSelectedBubbleId(newBubble.id);
     setSelectedCharId(null);
   };
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+      if (!selectedBubbleId && !selectedCharId) return;
+      if (e.key === "Delete" || e.key === "Backspace") {
+        e.preventDefault();
+        deleteSelectedElement();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === "]" || e.key === "[")) {
+        e.preventDefault();
+        if (e.key === "]") {
+          bringSelectedLayerForward();
+        } else {
+          sendSelectedLayerBackward();
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [deleteSelectedElement, bringSelectedLayerForward, sendSelectedLayerBackward, selectedBubbleId, selectedCharId]);
 
   const addPage = () => {
     const newPage: PageData = {
@@ -759,7 +885,15 @@ export default function BubblePage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-medium">말풍선 편집</h3>
-                <Button variant="ghost" size="icon" onClick={() => updateActivePage({ bubbles: activePage.bubbles.filter(b => b.id !== selectedBubbleId) })}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() =>
+                    updateActivePage({
+                      bubbles: activePage.bubbles.filter((b) => b.id !== selectedBubbleId),
+                    })
+                  }
+                >
                   <Trash2 className="h-4 w-4 text-red-500" />
                 </Button>
               </div>
@@ -767,21 +901,28 @@ export default function BubblePage() {
                 <Label>텍스트</Label>
                 <Textarea
                   value={selectedBubble.text}
-                  onChange={(e) => updateBubble(selectedBubble.id, { text: e.target.value })}
+                  onChange={(e) =>
+                    updateBubble(selectedBubble.id, { text: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <Label>폰트</Label>
-                <Select value={selectedBubble.fontKey} onValueChange={(v) => updateBubble(selectedBubble.id, { fontKey: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select
+                  value={selectedBubble.fontKey}
+                  onValueChange={(v) => updateBubble(selectedBubble.id, { fontKey: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
-                    {availableFonts.map(f => (
+                    {availableFonts.map((f) => (
                       <SelectItem key={f.value} value={f.value}>
                         <span style={{ fontFamily: f.family }}>{f.label}</span>
                       </SelectItem>
                     ))}
                     {!canAllFonts && (
-                      <div className="px-3 py-2 text-[11px] text-muted-foreground border-t">
+                      <div className="border-t px-3 py-2 text-[11px] text-muted-foreground">
                         Pro 멤버십 또는 프로 연재러(30회+) 등급에서 전체 폰트 해금
                       </div>
                     )}
@@ -797,7 +938,9 @@ export default function BubblePage() {
                 </div>
                 <Slider
                   value={[selectedBubble.fontSize]}
-                  onValueChange={([v]) => updateBubble(selectedBubble.id, { fontSize: v })}
+                  onValueChange={([v]) =>
+                    updateBubble(selectedBubble.id, { fontSize: v })
+                  }
                   min={8}
                   max={40}
                   step={1}
@@ -805,26 +948,161 @@ export default function BubblePage() {
               </div>
               <div className="space-y-2">
                 <Label>스타일</Label>
-                <Select value={selectedBubble.style} onValueChange={(v) => updateBubble(selectedBubble.id, { style: v as BubbleStyle })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select
+                  value={selectedBubble.style}
+                  onValueChange={(v) =>
+                    updateBubble(selectedBubble.id, { style: v as BubbleStyle })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(STYLE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                    {Object.entries(STYLE_LABELS).map(([k, v]) => (
+                      <SelectItem key={k} value={k}>
+                        {v}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-xs">꼬리 방향</Label>
-                  <Select value={selectedBubble.tailDirection} onValueChange={(v: any) => updateBubble(selectedBubble.id, { tailDirection: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="bottom">아래</SelectItem>
-                      <SelectItem value="top">위</SelectItem>
-                      <SelectItem value="left">왼쪽</SelectItem>
-                      <SelectItem value="right">오른쪽</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">말꼬리</Label>
+                    <Select
+                      value={selectedBubble.tailStyle}
+                      onValueChange={(v) =>
+                        updateBubble(selectedBubble.id, {
+                          tailStyle: v as TailStyle,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(TAIL_LABELS).map(([k, label]) => (
+                          <SelectItem key={k} value={k}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {selectedBubble.tailStyle !== "none" && (
+                    <div className="space-y-1">
+                      <Label className="text-xs">꼬리 방향</Label>
+                      <Select
+                        value={selectedBubble.tailDirection}
+                        onValueChange={(v: any) =>
+                          updateBubble(selectedBubble.id, { tailDirection: v })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="bottom">아래</SelectItem>
+                          <SelectItem value="top">위</SelectItem>
+                          <SelectItem value="left">왼쪽</SelectItem>
+                          <SelectItem value="right">오른쪽</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
+                {selectedBubble.tailStyle !== "none" && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="mb-1 block text-[11px]">말꼬리 길이</Label>
+                      <Slider
+                        value={[
+                          selectedBubble.tailLength ??
+                          (selectedBubble.tailStyle === "long" ? 50 : 25),
+                        ]}
+                        onValueChange={([v]) =>
+                          updateBubble(selectedBubble.id, { tailLength: v })
+                        }
+                        min={10}
+                        max={120}
+                        step={2}
+                      />
+                    </div>
+                    <div>
+                      <Label className="mb-1 block text-[11px]">말꼬리 폭</Label>
+                      <Slider
+                        value={[selectedBubble.tailBaseSpread ?? 8]}
+                        onValueChange={([v]) =>
+                          updateBubble(selectedBubble.id, { tailBaseSpread: v })
+                        }
+                        min={4}
+                        max={20}
+                        step={1}
+                      />
+                    </div>
+                    <div>
+                      <Label className="mb-1 block text-[11px]">곡률</Label>
+                      <Slider
+                        value={[selectedBubble.tailCurve ?? 0.5]}
+                        onValueChange={([v]) =>
+                          updateBubble(selectedBubble.id, { tailCurve: v })
+                        }
+                        min={0.2}
+                        max={0.8}
+                        step={0.02}
+                      />
+                    </div>
+                    <div>
+                      <Label className="mb-1 block text-[11px]">랜덤 흔들림</Label>
+                      <Slider
+                        value={[selectedBubble.tailJitter ?? 1]}
+                        onValueChange={([v]) =>
+                          updateBubble(selectedBubble.id, { tailJitter: v })
+                        }
+                        min={0}
+                        max={2}
+                        step={0.1}
+                      />
+                    </div>
+                    {selectedBubble.tailStyle.startsWith("dots_") && (
+                      <>
+                        <div>
+                          <Label className="mb-1 block text-[11px]">
+                            점 크기 배율
+                          </Label>
+                          <Slider
+                            value={[selectedBubble.dotsScale ?? 1]}
+                            onValueChange={([v]) =>
+                              updateBubble(selectedBubble.id, {
+                                dotsScale: v,
+                              })
+                            }
+                            min={0.5}
+                            max={1.5}
+                            step={0.05}
+                          />
+                        </div>
+                        <div>
+                          <Label className="mb-1 block text-[11px]">
+                            점 간격 배율
+                          </Label>
+                          <Slider
+                            value={[selectedBubble.dotsSpacing ?? 1]}
+                            onValueChange={([v]) =>
+                              updateBubble(selectedBubble.id, {
+                                dotsSpacing: v,
+                              })
+                            }
+                            min={0.5}
+                            max={1.5}
+                            step={0.05}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ) : selectedChar ? (
@@ -908,6 +1186,32 @@ export default function BubblePage() {
                   </div>
                 </ContextMenuTrigger>
                 <ContextMenuContent>
+                  {(selectedBubbleId || selectedCharId) && (
+                    <>
+                      <ContextMenuItem onClick={copySelectedElement}>복사</ContextMenuItem>
+                      <ContextMenuItem onClick={pasteFromClipboard}>붙여넣기</ContextMenuItem>
+                      <ContextMenuItem onClick={rotateSelectedElement}>회전</ContextMenuItem>
+                      <ContextMenuSeparator />
+                      <ContextMenuItem onClick={bringSelectedLayerForward}>레이어 앞으로</ContextMenuItem>
+                      <ContextMenuItem onClick={sendSelectedLayerBackward}>레이어 뒤로</ContextMenuItem>
+                      <ContextMenuItem onClick={toggleLockSelectedElement}>
+                        {selectedCharId
+                          ? activePage.characters.find((c) => c.id === selectedCharId)?.locked
+                            ? "잠금 해제"
+                            : "잠금"
+                          : selectedBubbleId
+                          ? activePage.bubbles.find((b) => b.id === selectedBubbleId)?.locked
+                            ? "잠금 해제"
+                            : "잠금"
+                          : "잠금"}
+                      </ContextMenuItem>
+                      <ContextMenuSeparator />
+                      <ContextMenuItem onClick={deleteSelectedElement} className="text-red-500">
+                        삭제
+                      </ContextMenuItem>
+                      <ContextMenuSeparator />
+                    </>
+                  )}
                   <ContextMenuLabel>Page {i + 1}</ContextMenuLabel>
                   <ContextMenuSeparator />
                   <ContextMenuItem onClick={() => duplicatePage(i)}><Copy className="mr-2 h-4 w-4" /> Duplicate Page</ContextMenuItem>

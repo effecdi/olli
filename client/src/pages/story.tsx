@@ -975,16 +975,15 @@ function drawScriptOverlay(
   }
   ctx.fillText(script.text, bx + bw / 2, by + bh / 2);
 
-  // resize handle (bottom-right)
-  const handleSize = 8;
+  const handleSize = 10;
   const hx = bx + bw - 6;
   const hy = by + bh - 6;
-  ctx.fillStyle = "#ffffff";
-  ctx.strokeStyle = "hsl(210, 80%, 50%)";
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 1.6;
   ctx.beginPath();
-  ctx.rect(hx - handleSize / 2, hy - handleSize / 2, handleSize, handleSize);
+  ctx.arc(hx, hy, handleSize / 2, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255,255,255,0.96)";
   ctx.fill();
+  ctx.strokeStyle = "hsl(173, 80%, 45%)";
   ctx.stroke();
   ctx.restore();
 }
@@ -1096,16 +1095,16 @@ function PanelCanvas({
           ctx.rotate(ch.rotation || 0);
           ctx.drawImage(ch.imageEl, -w / 2, -h / 2, w, h);
           if (ch.id === selectedCharIdRef.current) {
-            const bx = -w / 2 - 3;
-            const by = -h / 2 - 3;
-            const bw = w + 6;
-            const bh = h + 6;
-            ctx.strokeStyle = "hsl(150, 80%, 40%)";
+            const bx = -w / 2 - 4;
+            const by = -h / 2 - 4;
+            const bw = w + 8;
+            const bh = h + 8;
+            ctx.strokeStyle = "hsl(173, 80%, 45%)";
             ctx.lineWidth = 2;
-            ctx.setLineDash([5, 3]);
+            ctx.setLineDash([4, 3]);
             ctx.strokeRect(bx, by, bw, bh);
             ctx.setLineDash([]);
-            const handleSize = 8;
+            const handleSize = 9;
             const corners = [
               { hx: bx, hy: by },
               { hx: bx + bw, hy: by },
@@ -1113,17 +1112,19 @@ function PanelCanvas({
               { hx: bx + bw, hy: by + bh },
             ];
             corners.forEach(({ hx, hy }) => {
-              ctx.fillStyle = "#ffffff";
-              ctx.strokeStyle = "hsl(150, 80%, 40%)";
-              ctx.lineWidth = 2;
-              ctx.fillRect(hx - handleSize / 2, hy - handleSize / 2, handleSize, handleSize);
-              ctx.strokeRect(hx - handleSize / 2, hy - handleSize / 2, handleSize, handleSize);
+              ctx.beginPath();
+              ctx.arc(hx, hy, handleSize / 2, 0, Math.PI * 2);
+              ctx.fillStyle = "rgba(255,255,255,0.96)";
+              ctx.fill();
+              ctx.strokeStyle = "hsl(173, 80%, 45%)";
+              ctx.lineWidth = 1.8;
+              ctx.stroke();
             });
             ctx.beginPath();
-            ctx.arc(0, by - 18, 6, 0, Math.PI * 2);
-            ctx.fillStyle = "#ffffff";
+            ctx.arc(0, by - 20, 7, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255,255,255,0.96)";
             ctx.fill();
-            ctx.strokeStyle = "hsl(150, 80%, 40%)";
+            ctx.strokeStyle = "hsl(173, 80%, 45%)";
             ctx.lineWidth = 2;
             ctx.stroke();
           }
@@ -1763,6 +1764,60 @@ function PanelCanvas({
     }
   }, [updateBubbleInPanel, updateCharInPanel]);
 
+  const handleBringForward = useCallback(() => {
+    const p = panelRef.current;
+    const sid = selectedBubbleIdRef.current;
+    const cid = selectedCharIdRef.current;
+    if (sid) {
+      const list = p.bubbles.map((b) => ({ id: b.id, z: b.zIndex ?? 0 }));
+      list.sort((a, b) => a.z - b.z);
+      const idx = list.findIndex((x) => x.id === sid);
+      if (idx >= 0 && idx < list.length - 1) {
+        const current = list[idx];
+        const next = list[idx + 1];
+        updateBubbleInPanel(current.id, { zIndex: next.z });
+        updateBubbleInPanel(next.id, { zIndex: current.z });
+      }
+    } else if (cid) {
+      const list = p.characters.map((c) => ({ id: c.id, z: c.zIndex ?? 0 }));
+      list.sort((a, b) => a.z - b.z);
+      const idx = list.findIndex((x) => x.id === cid);
+      if (idx >= 0 && idx < list.length - 1) {
+        const current = list[idx];
+        const next = list[idx + 1];
+        updateCharInPanel(current.id, { zIndex: next.z });
+        updateCharInPanel(next.id, { zIndex: current.z });
+      }
+    }
+  }, [updateBubbleInPanel, updateCharInPanel]);
+
+  const handleSendBackward = useCallback(() => {
+    const p = panelRef.current;
+    const sid = selectedBubbleIdRef.current;
+    const cid = selectedCharIdRef.current;
+    if (sid) {
+      const list = p.bubbles.map((b) => ({ id: b.id, z: b.zIndex ?? 0 }));
+      list.sort((a, b) => a.z - b.z);
+      const idx = list.findIndex((x) => x.id === sid);
+      if (idx > 0) {
+        const current = list[idx];
+        const prev = list[idx - 1];
+        updateBubbleInPanel(current.id, { zIndex: prev.z });
+        updateBubbleInPanel(prev.id, { zIndex: current.z });
+      }
+    } else if (cid) {
+      const list = p.characters.map((c) => ({ id: c.id, z: c.zIndex ?? 0 }));
+      list.sort((a, b) => a.z - b.z);
+      const idx = list.findIndex((x) => x.id === cid);
+      if (idx > 0) {
+        const current = list[idx];
+        const prev = list[idx - 1];
+        updateCharInPanel(current.id, { zIndex: prev.z });
+        updateCharInPanel(prev.id, { zIndex: current.z });
+      }
+    }
+  }, [updateBubbleInPanel, updateCharInPanel]);
+
   const handleLock = useCallback(() => {
     const sid = selectedBubbleIdRef.current;
     const cid = selectedCharIdRef.current;
@@ -1774,6 +1829,16 @@ function PanelCanvas({
       if (c) updateCharInPanel(cid, { locked: !c.locked });
     }
   }, [updateBubbleInPanel, updateCharInPanel]);
+
+  const handleRotateSelection = useCallback(() => {
+    const cid = selectedCharIdRef.current;
+    if (!cid) return;
+    const p = panelRef.current;
+    const c = p.characters.find((ch) => ch.id === cid);
+    if (!c) return;
+    const next = (c.rotation || 0) + Math.PI / 12;
+    updateCharInPanel(cid, { rotation: next });
+  }, [updateCharInPanel]);
 
   const handleCopy = useCallback(() => {
     const sid = selectedBubbleIdRef.current;
@@ -1834,6 +1899,28 @@ function PanelCanvas({
       console.error(e);
     }
   }, [onUpdate, onSelectBubble, onSelectChar, toast]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+      if (!selectedBubbleIdRef.current && !selectedCharIdRef.current) return;
+      if (e.key === "Delete" || e.key === "Backspace") {
+        e.preventDefault();
+        handleDeleteSelection();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === "]" || e.key === "[")) {
+        e.preventDefault();
+        if (e.key === "]") {
+          handleBringForward();
+        } else {
+          handleSendBackward();
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleDeleteSelection, handleBringForward, handleSendBackward]);
 
   return (
     <ContextMenu>
@@ -1925,8 +2012,11 @@ function PanelCanvas({
         <ContextMenuItem onSelect={handlePaste}>붙여넣기</ContextMenuItem>
         <ContextMenuItem onSelect={handleDuplicateSelection}>복제</ContextMenuItem>
         <ContextMenuSeparator />
+        <ContextMenuItem onSelect={handleBringForward}>레이어 앞으로</ContextMenuItem>
+        <ContextMenuItem onSelect={handleSendBackward}>레이어 뒤로</ContextMenuItem>
         <ContextMenuItem onSelect={handleBringToFront}>맨 앞으로 가져오기</ContextMenuItem>
         <ContextMenuItem onSelect={handleSendToBack}>맨 뒤로 보내기</ContextMenuItem>
+        <ContextMenuItem onSelect={handleRotateSelection}>회전</ContextMenuItem>
         <ContextMenuItem onSelect={handleLock}>
           {selectedBubbleId && panel.bubbles.find(b => b.id === selectedBubbleId)?.locked ? "잠금 해제" :
             selectedCharId && panel.characters.find(c => c.id === selectedCharId)?.locked ? "잠금 해제" : "잠금"}

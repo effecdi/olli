@@ -124,16 +124,16 @@ export function BubbleCanvas({
         ctx.save();
         ctx.translate(c.x + c.width / 2, c.y + c.height / 2);
         ctx.rotate(c.rotation || 0);
-        const bx = -c.width / 2 - 2;
-        const by = -c.height / 2 - 2;
-        const bw = c.width + 4;
-        const bh = c.height + 4;
-        ctx.strokeStyle = "hsl(150, 80%, 40%)";
+        const bx = -c.width / 2 - 4;
+        const by = -c.height / 2 - 4;
+        const bw = c.width + 8;
+        const bh = c.height + 8;
+        ctx.strokeStyle = "hsl(173, 80%, 45%)";
         ctx.lineWidth = 2;
-        ctx.setLineDash([5, 3]);
+        ctx.setLineDash([4, 3]);
         ctx.strokeRect(bx, by, bw, bh);
         ctx.setLineDash([]);
-        const hs = 8;
+        const hs = 9;
         const corners = [
             { x: bx, y: by },
             { x: bx + bw, y: by },
@@ -141,17 +141,19 @@ export function BubbleCanvas({
             { x: bx + bw, y: by + bh },
         ];
         corners.forEach((pt) => {
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(pt.x - hs / 2, pt.y - hs / 2, hs, hs);
-            ctx.strokeStyle = "hsl(150, 80%, 40%)";
-            ctx.lineWidth = 2;
-            ctx.strokeRect(pt.x - hs / 2, pt.y - hs / 2, hs, hs);
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, hs / 2, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255,255,255,0.96)";
+            ctx.fill();
+            ctx.strokeStyle = "hsl(173, 80%, 45%)";
+            ctx.lineWidth = 1.8;
+            ctx.stroke();
         });
         ctx.beginPath();
-        ctx.arc(0, by - 18, 6, 0, Math.PI * 2);
-        ctx.fillStyle = "#ffffff";
+        ctx.arc(0, by - 20, 7, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255,255,255,0.96)";
         ctx.fill();
-        ctx.strokeStyle = "hsl(150, 80%, 40%)";
+        ctx.strokeStyle = "hsl(173, 80%, 45%)";
         ctx.lineWidth = 2;
         ctx.stroke();
         ctx.restore();
