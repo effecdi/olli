@@ -3009,6 +3009,7 @@ export default function StoryPage() {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const [topic, setTopic] = useState("");
+  const [aiMode, setAiMode] = useState<"subtitle" | "instatoonFull" | "instatoonPrompt" | null>(null);
   const [panels, setPanelsRaw] = useState<PanelData[]>([createPanel()]);
   const [activePanelIndex, setActivePanelIndex] = useState(0);
   const [fontsReady, setFontsReady] = useState(false);
@@ -3912,155 +3913,265 @@ export default function StoryPage() {
                           <X className="h-3.5 w-3.5" />
                         </button>
                       </div>
-                      <div className="flex gap-2">
-                        <Input
-                          value={topic}
-                          onChange={(e) => setTopic(e.target.value)}
-                          placeholder="주제 입력 (예: 월요일 출근길)"
-                          className="text-sm"
-                          data-testid="input-story-topic"
-                        />
+
+                      <div className="grid grid-cols-1 gap-2 mt-2">
                         <Button
-                          size="icon"
-                          variant="outline"
-                          onClick={() => suggestMutation.mutate()}
-                          disabled={suggestMutation.isPending}
-                          data-testid="button-suggest-topic"
+                          variant={aiMode === "subtitle" ? "default" : "outline"}
+                          size="sm"
+                          className="justify-start"
+                          onClick={() => setAiMode("subtitle")}
                         >
-                          {suggestMutation.isPending ? (
-                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                          ) : (
-                            <Lightbulb className="h-4 w-4" />
-                          )}
+                          <Wand2 className="h-4 w-4 mr-2" />
+                          AI 프롬프트 자막 생성
+                        </Button>
+                        <Button
+                          variant={aiMode === "instatoonFull" ? "default" : "outline"}
+                          size="sm"
+                          className="justify-start"
+                          onClick={() => setAiMode("instatoonFull")}
+                        >
+                          <Wand2 className="h-4 w-4 mr-2" />
+                          인스타툰 자동화 생성
+                        </Button>
+                        <Button
+                          variant={aiMode === "instatoonPrompt" ? "default" : "outline"}
+                          size="sm"
+                          className="justify-start"
+                          onClick={() => setAiMode("instatoonPrompt")}
+                        >
+                          <Wand2 className="h-4 w-4 mr-2" />
+                          인스타툰 프롬프트 자동 작성
                         </Button>
                       </div>
 
-                      <div className="mt-3 space-y-2">
-                        <Button
-                          className="w-full"
-                          size="sm"
-                          onClick={() => {
-                            const used = getDailyCount("story-ai");
-                            if (used >= 3) {
-                              setAiLimitOpen(true);
-                              return;
-                            }
-                            generateMutation.mutate({ mode: "basic" });
-                          }}
-                          disabled={!topic.trim() || generateMutation.isPending}
-                          data-testid="button-generate-scripts"
-                        >
-                          {generateMutation.isPending ? (
-                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent mr-2" />
-                          ) : (
-                            <Wand2 className="h-4 w-4 mr-2" />
-                          )}
-                          AI 자막 생성
-                        </Button>
-                        <Button
-                          className="w-full"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            const used = getDailyCount("story-ai");
-                            if (used >= 3) {
-                              setAiLimitOpen(true);
-                              return;
-                            }
-                            generateMutation.mutate({ mode: "full" });
-                          }}
-                          disabled={!topic.trim() || generateMutation.isPending}
-                        >
-                          {generateMutation.isPending ? (
-                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent mr-2" />
-                          ) : (
-                            <Wand2 className="h-4 w-4 mr-2" />
-                          )}
-                          인스타툰 자동 생성 (포즈/배경 반영)
-                        </Button>
-                        <Button
-                          className="w-full"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => instatoonPromptMutation.mutate()}
-                          disabled={instatoonPromptMutation.isPending}
-                        >
-                          {instatoonPromptMutation.isPending ? (
-                            <div className="h-4 w-4 animate-spin rounded-full border border-primary border-t-transparent mr-2" />
-                          ) : (
-                            <Wand2 className="h-4 w-4 mr-2" />
-                          )}
-                          인스타툰 자동 프롬프트 작성 (포즈/표정/배경/아이템)
-                        </Button>
-                      </div>
+                      {aiMode === "subtitle" && (
+                        <div className="mt-4 space-y-3">
+                          <div className="flex gap-2">
+                            <Input
+                              value={topic}
+                              onChange={(e) => setTopic(e.target.value)}
+                              placeholder="주제 입력 (예: 월요일 출근길)"
+                              className="text-sm"
+                              data-testid="input-story-topic"
+                            />
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => suggestMutation.mutate()}
+                              disabled={suggestMutation.isPending}
+                              data-testid="button-suggest-topic"
+                            >
+                              {suggestMutation.isPending ? (
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                              ) : (
+                                <Lightbulb className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
 
-                      <div className="mt-3 space-y-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-medium text-muted-foreground">
-                            포즈 / 표정 프롬프트
-                          </span>
                           <Button
+                            className="w-full"
                             size="sm"
-                            variant="outline"
-                            onClick={() => posePromptMutation.mutate()}
-                            disabled={posePromptMutation.isPending}
+                            onClick={() => {
+                              const used = getDailyCount("story-ai");
+                              if (used >= 3) {
+                                setAiLimitOpen(true);
+                                return;
+                              }
+                              generateMutation.mutate({ mode: "basic" });
+                            }}
+                            disabled={!topic.trim() || generateMutation.isPending}
+                            data-testid="button-generate-scripts"
                           >
-                            {posePromptMutation.isPending ? (
-                              <div className="h-3 w-3 animate-spin rounded-full border border-primary border-t-transparent" />
+                            {generateMutation.isPending ? (
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent mr-2" />
                             ) : (
-                              <span className="text-[11px]">AI 추천</span>
+                              <Wand2 className="h-4 w-4 mr-2" />
                             )}
+                            AI 자막 생성 실행
                           </Button>
                         </div>
-                        <div className="grid grid-cols-1 gap-2">
-                          <Textarea
-                            value={posePrompt}
-                            onChange={(e) => setPosePrompt(e.target.value)}
-                            placeholder="포즈 프롬프트 (예: 양팔을 번쩍 들고 놀란 포즈)"
-                            className="text-xs"
-                          />
-                          <Textarea
-                            value={expressionPrompt}
-                            onChange={(e) => setExpressionPrompt(e.target.value)}
-                            placeholder="표정 프롬프트 (예: 입을 크게 벌리고 동공지진 난 표정)"
-                            className="text-xs"
-                          />
-                        </div>
+                      )}
 
-                        <div className="flex items-center justify-between gap-2 mt-2">
-                          <span className="text-xs font-medium text-muted-foreground">
-                            배경 / 아이템 프롬프트
-                          </span>
+                      {aiMode === "instatoonFull" && (
+                        <div className="mt-4 space-y-3">
+                          <div className="flex gap-2">
+                            <Input
+                              value={topic}
+                              onChange={(e) => setTopic(e.target.value)}
+                              placeholder="주제 입력 (예: 월요일 출근길)"
+                              className="text-sm"
+                              data-testid="input-story-topic"
+                            />
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => suggestMutation.mutate()}
+                              disabled={suggestMutation.isPending}
+                              data-testid="button-suggest-topic"
+                            >
+                              {suggestMutation.isPending ? (
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                              ) : (
+                                <Lightbulb className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-medium text-muted-foreground">
+                                포즈 / 표정 프롬프트
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => posePromptMutation.mutate()}
+                                disabled={posePromptMutation.isPending}
+                              >
+                                {posePromptMutation.isPending ? (
+                                  <div className="h-3 w-3 animate-spin rounded-full border border-primary border-t-transparent" />
+                                ) : (
+                                  <span className="text-[11px]">AI 추천</span>
+                                )}
+                              </Button>
+                            </div>
+                            <div className="grid grid-cols-1 gap-2">
+                              <Textarea
+                                value={posePrompt}
+                                onChange={(e) => setPosePrompt(e.target.value)}
+                                placeholder="포즈 프롬프트 (예: 양팔을 번쩍 들고 놀란 포즈)"
+                                className="text-xs"
+                              />
+                              <Textarea
+                                value={expressionPrompt}
+                                onChange={(e) => setExpressionPrompt(e.target.value)}
+                                placeholder="표정 프롬프트 (예: 입을 크게 벌리고 동공지진 난 표정)"
+                                className="text-xs"
+                              />
+                            </div>
+
+                            <div className="flex items-center justify-between gap-2 mt-2">
+                              <span className="text-xs font-medium text-muted-foreground">
+                                배경 / 아이템 프롬프트
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => backgroundPromptMutation.mutate()}
+                                disabled={backgroundPromptMutation.isPending}
+                              >
+                                {backgroundPromptMutation.isPending ? (
+                                  <div className="h-3 w-3 animate-spin rounded-full border border-primary border-t-transparent" />
+                                ) : (
+                                  <span className="text-[11px]">AI 추천</span>
+                                )}
+                              </Button>
+                            </div>
+                            <div className="grid grid-cols-1 gap-2">
+                              <Textarea
+                                value={backgroundPrompt}
+                                onChange={(e) => setBackgroundPrompt(e.target.value)}
+                                placeholder="배경 프롬프트 (예: 퇴근길 지하철 안, 붐비는 플랫폼)"
+                                className="text-xs"
+                              />
+                              <Textarea
+                                value={itemPrompt}
+                                onChange={(e) => setItemPrompt(e.target.value)}
+                                placeholder="아이템/소품 프롬프트 (예: 커피컵, 스마트폰, 지각 알람 시계)"
+                                className="text-xs"
+                              />
+                            </div>
+                          </div>
+
                           <Button
+                            className="w-full"
                             size="sm"
                             variant="outline"
-                            onClick={() => backgroundPromptMutation.mutate()}
-                            disabled={backgroundPromptMutation.isPending}
+                            onClick={() => {
+                              const used = getDailyCount("story-ai");
+                              if (used >= 3) {
+                                setAiLimitOpen(true);
+                                return;
+                              }
+                              generateMutation.mutate({ mode: "full" });
+                            }}
+                            disabled={!topic.trim() || generateMutation.isPending}
                           >
-                            {backgroundPromptMutation.isPending ? (
-                              <div className="h-3 w-3 animate-spin rounded-full border border-primary border-t-transparent" />
+                            {generateMutation.isPending ? (
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent mr-2" />
                             ) : (
-                              <span className="text-[11px]">AI 추천</span>
+                              <Wand2 className="h-4 w-4 mr-2" />
                             )}
+                            인스타툰 자동 생성 실행 (포즈/배경 반영)
                           </Button>
                         </div>
-                        <div className="grid grid-cols-1 gap-2">
-                          <Textarea
-                            value={backgroundPrompt}
-                            onChange={(e) => setBackgroundPrompt(e.target.value)}
-                            placeholder="배경 프롬프트 (예: 퇴근길 지하철 안, 붐비는 플랫폼)"
-                            className="text-xs"
-                          />
-                          <Textarea
-                            value={itemPrompt}
-                            onChange={(e) => setItemPrompt(e.target.value)}
-                            placeholder="아이템/소품 프롬프트 (예: 커피컵, 스마트폰, 지각 알람 시계)"
-                            className="text-xs"
-                          />
-                        </div>
-                      </div>
+                      )}
 
-                      <div className="space-y-2 pt-2" />
+                      {aiMode === "instatoonPrompt" && (
+                        <div className="mt-4 space-y-3">
+                          <p className="text-xs text-muted-foreground">
+                            인스타툰에 쓸 포즈/표정, 배경, 아이템 프롬프트를 한 번에 작성하고 수정할 수 있어요.
+                          </p>
+
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-medium text-muted-foreground">
+                                포즈 / 표정 프롬프트
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-1 gap-2">
+                              <Textarea
+                                value={posePrompt}
+                                onChange={(e) => setPosePrompt(e.target.value)}
+                                placeholder="포즈 프롬프트 (예: 양팔을 번쩍 들고 놀란 포즈)"
+                                className="text-xs"
+                              />
+                              <Textarea
+                                value={expressionPrompt}
+                                onChange={(e) => setExpressionPrompt(e.target.value)}
+                                placeholder="표정 프롬프트 (예: 입을 크게 벌리고 동공지진 난 표정)"
+                                className="text-xs"
+                              />
+                            </div>
+
+                            <div className="flex items-center justify-between gap-2 mt-2">
+                              <span className="text-xs font-medium text-muted-foreground">
+                                배경 / 아이템 프롬프트
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-1 gap-2">
+                              <Textarea
+                                value={backgroundPrompt}
+                                onChange={(e) => setBackgroundPrompt(e.target.value)}
+                                placeholder="배경 프롬프트 (예: 퇴근길 지하철 안, 붐비는 플랫폼)"
+                                className="text-xs"
+                              />
+                              <Textarea
+                                value={itemPrompt}
+                                onChange={(e) => setItemPrompt(e.target.value)}
+                                placeholder="아이템/소품 프롬프트 (예: 커피컵, 스마트폰, 지각 알람 시계)"
+                                className="text-xs"
+                              />
+                            </div>
+                          </div>
+
+                          <Button
+                            className="w-full"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => instatoonPromptMutation.mutate()}
+                            disabled={instatoonPromptMutation.isPending}
+                          >
+                            {instatoonPromptMutation.isPending ? (
+                              <div className="h-4 w-4 animate-spin rounded-full border border-primary border-t-transparent mr-2" />
+                            ) : (
+                              <Wand2 className="h-4 w-4 mr-2" />
+                            )}
+                            인스타툰 자동 프롬프트 작성 실행
+                          </Button>
+                        </div>
+                      )}
                     </>
                   )}
                   {activeLeftTab === "image" && activePanel && (
