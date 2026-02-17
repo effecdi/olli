@@ -4177,7 +4177,7 @@ export default function StoryPage() {
                 </Button>
               </div>
             </div>
-            <div className="flex items-center gap-3 overflow-x-auto" data-testid="story-page-strip">
+            <div className="flex items-center gap-3 overflow-x-auto">
               {panels.map((panel, i) => (
                 <div
                   key={panel.id}
