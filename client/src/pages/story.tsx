@@ -4598,6 +4598,12 @@ export default function StoryPage() {
                   <ContextMenu key={panel.id}>
                     <ContextMenuTrigger>
                       <div
+                        onMouseDown={(e) => {
+                          if (e.target === e.currentTarget) {
+                            setSelectedBubbleId(null);
+                            setSelectedCharId(null);
+                          }
+                        }}
                         onClick={() => setActivePanelIndex(i)}
                         className={`relative shadow-lg transition-all ${activePanelIndex === i ? "ring-4 ring-primary ring-offset-2" : "opacity-90 hover:opacity-100"}`}
                       >
