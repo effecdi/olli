@@ -2190,6 +2190,45 @@ function EditorPanel({
   const isBubbleMode = mode === "bubble";
   const isTemplateMode = mode === "template";
 
+  const handleLocalImageFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    Array.from(files).forEach((file) => {
+      if (!file.type.startsWith("image/")) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const src = reader.result;
+        if (typeof src !== "string") return;
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 150;
+          const s = Math.min(
+            maxDim / img.naturalWidth,
+            maxDim / img.naturalHeight,
+            1,
+          );
+          const newChar: CharacterPlacement = {
+            id: generateId(),
+            imageUrl: src,
+            x: CANVAS_W / 2,
+            y: CANVAS_H / 2,
+            scale: s,
+            imageEl: img,
+            zIndex: 0,
+          };
+          onUpdate({
+            ...panel,
+            characters: [...panel.characters, newChar],
+          });
+          setSelectedCharId(newChar.id);
+          setSelectedBubbleId(null);
+        };
+        img.src = src;
+      };
+      reader.readAsDataURL(file);
+    });
+    setShowCharPicker(false);
+  };
+
   return (
     <div className="space-y-5" data-testid={`panel-editor-${index}`}>
       <Dialog open={limitOpen} onOpenChange={setLimitOpen}>
@@ -2245,9 +2284,9 @@ function EditorPanel({
       </div>
 
       {isImageMode && showCharPicker && (
-        <div className="rounded-md p-3 space-y-2">
+        <div className="rounded-md p-3 space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-medium">캐릭터 선택</span>
+            <span className="text-sm font-medium">이미지 선택 / 업로드</span>
             <Button
               size="icon"
               variant="ghost"
@@ -2256,6 +2295,30 @@ function EditorPanel({
               <X className="h-3.5 w-3.5" />
             </Button>
           </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-[12px] text-muted-foreground">이미지 업로드 (여러 장 가능)</Label>
+            <button
+              type="button"
+              className="w-full flex items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground hover-elevate"
+              onClick={() =>
+                document.getElementById(`story-image-upload-${index}`)?.click()
+              }
+              data-testid={`button-upload-characters-${index}`}
+            >
+              <ImageIcon className="h-3.5 w-3.5" />
+              <span>이미지 파일을 선택해서 추가</span>
+            </button>
+            <input
+              id={`story-image-upload-${index}`}
+              type="file"
+              multiple
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handleLocalImageFiles(e.target.files)}
+            />
+          </div>
+
           {galleryLoading ? (
             <div className="flex justify-center py-4">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
