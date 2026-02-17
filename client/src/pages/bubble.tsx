@@ -73,6 +73,14 @@ export default function BubblePage() {
 
   const [zoom, setZoom] = useState(100);
 
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, []);
+
   const { data: galleryItems = [], isLoading: galleryLoading } = useQuery<any[]>({
     queryKey: ["/api/gallery"],
     enabled: isAuthenticated,
