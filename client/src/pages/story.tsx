@@ -849,7 +849,7 @@ function getScriptRect(
   const weight = script.bold !== false ? "bold" : "normal";
   ctx.font = `${weight} ${fs}px ${fontFamily}`;
   const metrics = ctx.measureText(script.text || "");
-  const bw = Math.min(metrics.width + padX * 2, canvasW - 16);
+  const bw = metrics.width + padX * 2;
   const bh = fs + padY * 2;
   const defaultX = canvasW / 2 - bw / 2;
   const defaultY = type === "top" ? 8 : canvasH - bh - 8;
@@ -1954,6 +1954,7 @@ function EditorPanel({
   setSelectedCharId,
   creatorTier,
   isPro,
+  mode = "image",
 }: {
   panel: PanelData;
   index: number;
@@ -1968,6 +1969,7 @@ function EditorPanel({
   setSelectedCharId: (id: string | null) => void;
   creatorTier: number;
   isPro: boolean;
+  mode?: "image" | "bubble" | "template";
 }) {
   const [showCharPicker, setShowCharPicker] = useState(false);
   const [showBubbleTemplatePicker, setShowBubbleTemplatePicker] = useState(false);
@@ -2184,6 +2186,10 @@ function EditorPanel({
     });
   }, [panel, onUpdate]);
 
+  const isImageMode = mode === "image";
+  const isBubbleMode = mode === "bubble";
+  const isTemplateMode = mode === "template";
+
   return (
     <div className="space-y-5" data-testid={`panel-editor-${index}`}>
       <Dialog open={limitOpen} onOpenChange={setLimitOpen}>
@@ -2198,41 +2204,47 @@ function EditorPanel({
         </DialogContent>
       </Dialog>
       <div className="flex gap-1 flex-wrap">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={addBubble}
-          disabled={!canBubbleEdit || panel.bubbles.length >= 5}
-          data-testid={`button-add-bubble-${index}`}
-          title={
-            !canBubbleEdit ? "신인 작가 등급(5회+)부터 사용 가능" : undefined
-          }
-        >
-          <MessageSquare className="h-3.5 w-3.5 mr-1" />
-          말풍선{!canBubbleEdit && " (잠김)"}
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setShowBubbleTemplatePicker(true)}
-          disabled={!canBubbleEdit || panel.bubbles.length >= 5}
-          data-testid={`button-bubble-templates-${index}`}
-        >
-          <Layers className="h-3.5 w-3.5 mr-1" />
-          템플릿
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setShowCharPicker(!showCharPicker)}
-          data-testid={`button-add-character-${index}`}
-        >
-          <ImageIcon className="h-3.5 w-3.5 mr-1" />
-          캐릭터
-        </Button>
+        {isBubbleMode && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={addBubble}
+            disabled={!canBubbleEdit || panel.bubbles.length >= 5}
+            data-testid={`button-add-bubble-${index}`}
+            title={
+              !canBubbleEdit ? "신인 작가 등급(5회+)부터 사용 가능" : undefined
+            }
+          >
+            <MessageSquare className="h-3.5 w-3.5 mr-1" />
+            말풍선{!canBubbleEdit && " (잠김)"}
+          </Button>
+        )}
+        {isTemplateMode && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowBubbleTemplatePicker(true)}
+            disabled={!canBubbleEdit || panel.bubbles.length >= 5}
+            data-testid={`button-bubble-templates-${index}`}
+          >
+            <Layers className="h-3.5 w-3.5 mr-1" />
+            템플릿 가져오기
+          </Button>
+        )}
+        {isImageMode && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowCharPicker(!showCharPicker)}
+            data-testid={`button-add-character-${index}`}
+          >
+            <ImageIcon className="h-3.5 w-3.5 mr-1" />
+            이미지 선택
+          </Button>
+        )}
       </div>
 
-      {showCharPicker && (
+      {isImageMode && showCharPicker && (
         <div className="rounded-md p-3 space-y-2">
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-medium">캐릭터 선택</span>
@@ -2383,7 +2395,7 @@ function EditorPanel({
         </div>
       )}
 
-      {selectedBubble && (
+      {(isBubbleMode || isTemplateMode) && selectedBubble && (
         <div className="space-y-4 pt-4">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <span className="text-sm font-semibold">말풍선 설정</span>
@@ -2659,7 +2671,7 @@ function EditorPanel({
           </div>
         </div>
       )}
-      {!selectedBubble && panel.bubbles.length > 0 && (
+      {(isBubbleMode || isTemplateMode) && !selectedBubble && panel.bubbles.length > 0 && (
         <div className="space-y-1">
           <div className="flex items-center gap-2 mb-1">
             <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
@@ -2708,7 +2720,7 @@ function EditorPanel({
       )}
 
       {
-        showBubbleTemplatePicker && (
+        (isBubbleMode || isTemplateMode) && showBubbleTemplatePicker && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowBubbleTemplatePicker(false)} data-testid="modal-story-template-picker">
             <Card className="w-full max-w-lg max-h-[70vh] flex flex-col m-4" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border flex-wrap">
@@ -2773,6 +2785,10 @@ export default function StoryPage() {
   const [activePanelIndex, setActivePanelIndex] = useState(0);
   const [fontsReady, setFontsReady] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [posePrompt, setPosePrompt] = useState("");
+  const [expressionPrompt, setExpressionPrompt] = useState("");
+  const [itemPrompt, setItemPrompt] = useState("");
+  const [backgroundPrompt, setBackgroundPrompt] = useState("");
 
   const [projectName, setProjectName] = useState("");
   const [currentProjectId, setCurrentProjectId] = useState<number | null>(null);
@@ -3051,11 +3067,18 @@ export default function StoryPage() {
   };
 
   const generateMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/story-scripts", {
+    mutationFn: async (variables: { mode: "basic" | "full" }) => {
+      const body: any = {
         topic,
         panelCount: panels.length,
-      });
+      };
+      if (variables.mode === "full") {
+        if (posePrompt.trim()) body.posePrompt = posePrompt.trim();
+        if (expressionPrompt.trim()) body.expressionPrompt = expressionPrompt.trim();
+        if (itemPrompt.trim()) body.itemPrompt = itemPrompt.trim();
+        if (backgroundPrompt.trim()) body.backgroundPrompt = backgroundPrompt.trim();
+      }
+      const res = await apiRequest("POST", "/api/story-scripts", body);
       return res.json() as Promise<{ panels: StoryPanelScript[] }>;
     },
     onSuccess: (data) => {
@@ -3166,6 +3189,88 @@ export default function StoryPage() {
     },
   });
 
+  const posePromptMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/ai-prompt", {
+        type: "pose",
+      });
+      return res.json() as Promise<{ prompt: string }>;
+    },
+    onSuccess: (data) => {
+      setPosePrompt(data.prompt);
+      setExpressionPrompt(data.prompt);
+      toast({
+        title: "포즈/표정 프롬프트 생성 완료",
+        description: "AI가 제안한 포즈/표정을 적용했습니다.",
+      });
+    },
+    onError: (error: any) => {
+      if (isUnauthorizedError(error)) {
+        redirectToLogin((o) =>
+          toast({
+            title: o.title,
+            description: o.description,
+            variant: o.variant as any,
+          }),
+        );
+        return;
+      }
+      toast({
+        title: "생성 실패",
+        description: error.message || "프롬프트 생성에 실패했습니다",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const backgroundPromptMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/ai-prompt", {
+        type: "background",
+      });
+      return res.json() as Promise<{ prompt: string }>;
+    },
+    onSuccess: (data) => {
+      let bg = data.prompt;
+      let items = "";
+      try {
+        const parsed = JSON.parse(data.prompt);
+        if (parsed && typeof parsed === "object") {
+          if (typeof parsed.background === "string" && parsed.background) {
+            bg = parsed.background;
+          }
+          if (typeof parsed.items === "string") {
+            items = parsed.items;
+          }
+        }
+      } catch {
+      }
+      setBackgroundPrompt(bg);
+      setItemPrompt(items);
+      toast({
+        title: "배경/아이템 프롬프트 생성 완료",
+        description: "AI가 제안한 배경과 아이템을 적용했습니다.",
+      });
+    },
+    onError: (error: any) => {
+      if (isUnauthorizedError(error)) {
+        redirectToLogin((o) =>
+          toast({
+            title: o.title,
+            description: o.description,
+            variant: o.variant as any,
+          }),
+        );
+        return;
+      }
+      toast({
+        title: "생성 실패",
+        description: error.message || "프롬프트 생성에 실패했습니다",
+        variant: "destructive",
+      });
+    },
+  });
+
   const TIER_NAMES = ["입문 작가", "신인 작가", "인기 작가", "프로 연재러"];
   const TIER_PANEL_LIMITS = [3, 5, 8, 10];
 
@@ -3235,7 +3340,7 @@ export default function StoryPage() {
   const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
   const panelCanvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map());
 
-  type LeftTab = "ai" | "script" | "panel" | null;
+  type LeftTab = "image" | "ai" | "script" | "bubble" | "template" | null;
   const [activeLeftTab, setActiveLeftTab] = useState<LeftTab>(null);
 
   const toggleLeftTab = (tab: LeftTab) => {
@@ -3481,9 +3586,11 @@ export default function StoryPage() {
     });
   }, []);
   const LEFT_TABS: { id: LeftTab; icon: typeof Wand2; label: string }[] = [
-    { id: "ai", icon: Wand2, label: "AI 생성" },
-    { id: "panel", icon: Layers, label: "패널" },
-    { id: "script", icon: Type, label: "스크립트" },
+    { id: "image", icon: ImageIcon as any, label: "이미지 선택" },
+    { id: "ai", icon: Wand2, label: "AI 프롬프트" },
+    { id: "script", icon: Type as any, label: "자막 설정" },
+    { id: "bubble", icon: MessageSquare as any, label: "말풍선" },
+    { id: "template", icon: Layers as any, label: "템플릿" },
   ];
 
   return (
@@ -3516,7 +3623,7 @@ export default function StoryPage() {
                   {activeLeftTab === "ai" && (
                     <>
                       <div className="flex items-center justify-between gap-2">
-                        <h3 className="text-sm font-semibold">AI 자막 생성</h3>
+                        <h3 className="text-sm font-semibold">AI 프롬프트 / 자막 생성</h3>
                         <button
                           onClick={() => setActiveLeftTab(null)}
                           className="text-muted-foreground hover-elevate rounded-md p-1"
@@ -3546,33 +3653,123 @@ export default function StoryPage() {
                           )}
                         </Button>
                       </div>
-                      <Button
-                        className="w-full"
-                        size="sm"
-                        onClick={() => {
-                          const used = getDailyCount("story-ai");
-                          if (used >= 3) {
-                            setAiLimitOpen(true);
-                            return;
-                          }
-                          generateMutation.mutate();
-                        }}
-                        disabled={!topic.trim() || generateMutation.isPending}
-                        data-testid="button-generate-scripts"
-                      >
-                        {generateMutation.isPending ? (
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent mr-2" />
-                        ) : (
-                          <Wand2 className="h-4 w-4 mr-2" />
-                        )}
-                        AI 자막 생성
-                      </Button>
+
+                      <div className="mt-3 space-y-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            포즈 / 표정 프롬프트
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => posePromptMutation.mutate()}
+                            disabled={posePromptMutation.isPending}
+                          >
+                            {posePromptMutation.isPending ? (
+                              <div className="h-3 w-3 animate-spin rounded-full border border-primary border-t-transparent" />
+                            ) : (
+                              <span className="text-[11px]">AI 추천</span>
+                            )}
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2">
+                          <Textarea
+                            value={posePrompt}
+                            onChange={(e) => setPosePrompt(e.target.value)}
+                            placeholder="포즈 프롬프트 (예: 양팔을 번쩍 들고 놀란 포즈)"
+                            className="text-xs"
+                          />
+                          <Textarea
+                            value={expressionPrompt}
+                            onChange={(e) => setExpressionPrompt(e.target.value)}
+                            placeholder="표정 프롬프트 (예: 입을 크게 벌리고 동공지진 난 표정)"
+                            className="text-xs"
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2 mt-2">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            배경 / 아이템 프롬프트
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => backgroundPromptMutation.mutate()}
+                            disabled={backgroundPromptMutation.isPending}
+                          >
+                            {backgroundPromptMutation.isPending ? (
+                              <div className="h-3 w-3 animate-spin rounded-full border border-primary border-t-transparent" />
+                            ) : (
+                              <span className="text-[11px]">AI 추천</span>
+                            )}
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2">
+                          <Textarea
+                            value={backgroundPrompt}
+                            onChange={(e) => setBackgroundPrompt(e.target.value)}
+                            placeholder="배경 프롬프트 (예: 퇴근길 지하철 안, 붐비는 플랫폼)"
+                            className="text-xs"
+                          />
+                          <Textarea
+                            value={itemPrompt}
+                            onChange={(e) => setItemPrompt(e.target.value)}
+                            placeholder="아이템/소품 프롬프트 (예: 커피컵, 스마트폰, 지각 알람 시계)"
+                            className="text-xs"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 pt-2">
+                        <Button
+                          className="w-full"
+                          size="sm"
+                          onClick={() => {
+                            const used = getDailyCount("story-ai");
+                            if (used >= 3) {
+                              setAiLimitOpen(true);
+                              return;
+                            }
+                            generateMutation.mutate({ mode: "basic" });
+                          }}
+                          disabled={!topic.trim() || generateMutation.isPending}
+                          data-testid="button-generate-scripts"
+                        >
+                          {generateMutation.isPending ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent mr-2" />
+                          ) : (
+                            <Wand2 className="h-4 w-4 mr-2" />
+                          )}
+                          AI 자막 생성
+                        </Button>
+                        <Button
+                          className="w-full"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const used = getDailyCount("story-ai");
+                            if (used >= 3) {
+                              setAiLimitOpen(true);
+                              return;
+                            }
+                            generateMutation.mutate({ mode: "full" });
+                          }}
+                          disabled={!topic.trim() || generateMutation.isPending}
+                        >
+                          {generateMutation.isPending ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent mr-2" />
+                          ) : (
+                            <Wand2 className="h-4 w-4 mr-2" />
+                          )}
+                          AI 자동 생성 (포즈/배경 반영)
+                        </Button>
+                      </div>
                     </>
                   )}
-                  {activeLeftTab === "panel" && activePanel && (
+                  {activeLeftTab === "image" && activePanel && (
                     <>
                       <div className="flex items-center justify-between gap-2 mb-2">
-                        <h3 className="text-sm font-semibold">패널 도구</h3>
+                        <h3 className="text-sm font-semibold">이미지 선택</h3>
                         <button
                           onClick={() => setActiveLeftTab(null)}
                           className="text-muted-foreground hover-elevate rounded-md p-1"
@@ -3594,14 +3791,75 @@ export default function StoryPage() {
                         setSelectedCharId={setSelectedCharId}
                         creatorTier={usageData?.creatorTier ?? 0}
                         isPro={isPro}
+                        mode="image"
                       />
                     </>
                   )}
 
+                {activeLeftTab === "bubble" && activePanel && (
+                  <>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <h3 className="text-sm font-semibold">말풍선</h3>
+                      <button
+                        onClick={() => setActiveLeftTab(null)}
+                        className="text-muted-foreground hover-elevate rounded-md p-1"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <EditorPanel
+                      panel={activePanel}
+                      index={activePanelIndex}
+                      total={panels.length}
+                      onUpdate={(updated) => updatePanel(activePanelIndex, updated)}
+                      onRemove={() => removePanel(activePanelIndex)}
+                      galleryImages={galleryData ?? []}
+                      galleryLoading={galleryLoading}
+                      selectedBubbleId={selectedBubbleId}
+                      setSelectedBubbleId={setSelectedBubbleId}
+                      selectedCharId={selectedCharId}
+                      setSelectedCharId={setSelectedCharId}
+                      creatorTier={usageData?.creatorTier ?? 0}
+                      isPro={isPro}
+                      mode="bubble"
+                    />
+                  </>
+                )}
+
+                {activeLeftTab === "template" && activePanel && (
+                  <>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <h3 className="text-sm font-semibold">템플릿 가져오기</h3>
+                      <button
+                        onClick={() => setActiveLeftTab(null)}
+                        className="text-muted-foreground hover-elevate rounded-md p-1"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <EditorPanel
+                      panel={activePanel}
+                      index={activePanelIndex}
+                      total={panels.length}
+                      onUpdate={(updated) => updatePanel(activePanelIndex, updated)}
+                      onRemove={() => removePanel(activePanelIndex)}
+                      galleryImages={galleryData ?? []}
+                      galleryLoading={galleryLoading}
+                      selectedBubbleId={selectedBubbleId}
+                      setSelectedBubbleId={setSelectedBubbleId}
+                      selectedCharId={selectedCharId}
+                      setSelectedCharId={setSelectedCharId}
+                      creatorTier={usageData?.creatorTier ?? 0}
+                      isPro={isPro}
+                      mode="template"
+                    />
+                  </>
+                )}
+
                   {activeLeftTab === "script" && activePanel && (
                     <>
                       <div className="flex items-center justify-between gap-2">
-                        <h3 className="text-sm font-semibold">스크립트</h3>
+                        <h3 className="text-sm font-semibold">자막 설정</h3>
                         <button
                           onClick={() => setActiveLeftTab(null)}
                           className="text-muted-foreground hover-elevate rounded-md p-1"
@@ -4177,62 +4435,7 @@ export default function StoryPage() {
                 </Button>
               </div>
             </div>
-            <div className="flex items-center gap-3 overflow-x-auto">
-              {panels.map((panel, i) => (
-                <div
-                  key={panel.id}
-                  onClick={() => {
-                    setActivePanelIndex(i);
-                    setSelectedBubbleId(null);
-                    setSelectedCharId(null);
-                  }}
-                  className={`flex-shrink-0 rounded-lg border transition-colors bg-muted/10 hover:border-primary/40 cursor-pointer ${i === activePanelIndex ? "border-primary/60 bg-primary/5" : "border-border"}`}
-                >
-                  <div className="flex items-center justify-between px-2 pt-1">
-                    <span className="text-[11px] text-muted-foreground font-medium">
-                      페이지 {i + 1}
-                    </span>
-                    {panels.length > 1 && (
-                      <button
-                        type="button"
-                        className="ml-1 text-[10px] text-red-500 hover:text-red-600"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removePanel(i);
-                        }}
-                      >
-                        삭제
-                      </button>
-                    )}
-                  </div>
-                  <div className="w-[120px] h-[80px] p-1.5 pointer-events-none">
-                    <PanelCanvas
-                      key={panel.id + "-strip"}
-                      panel={panel}
-                      onUpdate={(updated) => updatePanel(i, updated)}
-                      selectedBubbleId={null}
-                      onSelectBubble={() => { }}
-                      selectedCharId={null}
-                      onSelectChar={() => { }}
-                      canvasRef={() => { }}
-                      fontsReady={fontsReady}
-                      isPro={isPro}
-                    />
-                  </div>
-                </div>
-              ))}
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-shrink-0 h-[80px] min-w-[120px] flex flex-col items-center justify-center text-xs"
-                onClick={addPanel}
-                disabled={panels.length >= maxPanels}
-                data-testid="button-add-panel-bottom"
-              >
-                <Plus className="h-3.5 w-3.5 mb-1" />
-                페이지 추가
-              </Button>
-            </div>
+            
           </div>
 
 

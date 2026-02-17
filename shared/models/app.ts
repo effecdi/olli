@@ -119,6 +119,10 @@ export const creatorProfileSchema = z.object({
 export const storyScriptSchema = z.object({
   topic: z.string().min(2, "주제를 2글자 이상 입력해주세요"),
   panelCount: z.number().min(1).max(10),
+  posePrompt: z.string().optional(),
+  expressionPrompt: z.string().optional(),
+  itemPrompt: z.string().optional(),
+  backgroundPrompt: z.string().optional(),
 });
 
 export const topicSuggestSchema = z.object({
