@@ -376,14 +376,31 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
         const geo = getTailGeometry(bubble);
         const rand2 = seededRandom(seed + 1000);
         const jitterScale = bubble.tailJitter ?? 1;
+        const midFactor = bubble.tailCurve ?? 0.5;
+        const baseCx = (geo.baseAx + geo.baseBx) / 2;
+        const baseCy = (geo.baseAy + geo.baseBy) / 2;
+        const vx = geo.tipX - baseCx;
+        const vy = geo.tipY - baseCy;
+        const vLen = Math.hypot(vx, vy) || 1;
+        const nx = (vy / vLen) * vLen * 0.35;
+        const ny = (-vx / vLen) * vLen * 0.35;
 
         ctx.beginPath();
         if (bubble.style === "handwritten") {
             const rFill = seededRandom(seed + 1000);
-            ctx.moveTo(geo.baseAx + (rFill() - 0.5) * 3 * jitterScale, geo.baseAy + (rFill() - 0.5) * 2 * jitterScale);
-            const m = bubble.tailCurve ?? 0.5;
-            ctx.quadraticCurveTo(geo.baseAx + (geo.tipX - geo.baseAx) * m + (rFill() - 0.5) * 4 * jitterScale, geo.baseAy + (geo.tipY - geo.baseAy) * m, geo.tipX + (rFill() - 0.5) * 3 * jitterScale, geo.tipY + (rFill() - 0.5) * 2 * jitterScale);
-            ctx.quadraticCurveTo(geo.baseBx + (geo.tipX - geo.baseBx) * m + (rFill() - 0.5) * 4 * jitterScale, geo.baseBy + (geo.tipY - geo.baseBy) * m, geo.baseBx + (rFill() - 0.5) * 3 * jitterScale, geo.baseBy + (rFill() - 0.5) * 2 * jitterScale);
+            const ax = geo.baseAx + (rFill() - 0.5) * 3 * jitterScale;
+            const ay = geo.baseAy + (rFill() - 0.5) * 2 * jitterScale;
+            const bx = geo.baseBx + (rFill() - 0.5) * 3 * jitterScale;
+            const by = geo.baseBy + (rFill() - 0.5) * 2 * jitterScale;
+            const tipX = geo.tipX + (rFill() - 0.5) * 3 * jitterScale;
+            const tipY = geo.tipY + (rFill() - 0.5) * 2 * jitterScale;
+            const midOuterX = baseCx + vx * midFactor + nx;
+            const midOuterY = baseCy + vy * midFactor + ny;
+            const midInnerX = baseCx + vx * midFactor - nx * 0.6;
+            const midInnerY = baseCy + vy * midFactor - ny * 0.6;
+            ctx.moveTo(ax, ay);
+            ctx.quadraticCurveTo(midOuterX, midOuterY, tipX, tipY);
+            ctx.quadraticCurveTo(midInnerX, midInnerY, bx, by);
         } else {
             ctx.moveTo(geo.baseAx, geo.baseAy);
             ctx.lineTo(geo.tipX, geo.tipY);
@@ -400,20 +417,25 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
 
         if (bubble.style === "handwritten") {
             const r = rand2;
-            const midFactor = bubble.tailCurve ?? 0.5;
+            const ax = geo.baseAx + (r() - 0.5) * 3 * jitterScale;
+            const ay = geo.baseAy + (r() - 0.5) * 2 * jitterScale;
+            const bx = geo.baseBx + (r() - 0.5) * 3 * jitterScale;
+            const by = geo.baseBy + (r() - 0.5) * 2 * jitterScale;
+            const tipX = geo.tipX + (r() - 0.5) * 3 * jitterScale;
+            const tipY = geo.tipY + (r() - 0.5) * 2 * jitterScale;
+            const midOuterX = baseCx + vx * midFactor + nx;
+            const midOuterY = baseCy + vy * midFactor + ny;
+            const midInnerX = baseCx + vx * midFactor - nx * 0.6;
+            const midInnerY = baseCy + vy * midFactor - ny * 0.6;
 
             ctx.beginPath();
-            ctx.moveTo(geo.baseAx + (r() - 0.5) * 3 * jitterScale, geo.baseAy + (r() - 0.5) * 2 * jitterScale);
-            const midX1 = geo.baseAx + (geo.tipX - geo.baseAx) * midFactor + (r() - 0.5) * 4 * jitterScale;
-            const midY1 = geo.baseAy + (geo.tipY - geo.baseAy) * midFactor;
-            ctx.quadraticCurveTo(midX1, midY1, geo.tipX + (r() - 0.5) * 3 * jitterScale, geo.tipY + (r() - 0.5) * 2 * jitterScale);
+            ctx.moveTo(ax, ay);
+            ctx.quadraticCurveTo(midOuterX, midOuterY, tipX, tipY);
             ctx.stroke();
 
             ctx.beginPath();
-            ctx.moveTo(geo.tipX + (r() - 0.5) * 3 * jitterScale, geo.tipY + (r() - 0.5) * 2 * jitterScale);
-            const midX2 = geo.baseBx + (geo.tipX - geo.baseBx) * midFactor + (r() - 0.5) * 4 * jitterScale;
-            const midY2 = geo.baseBy + (geo.tipY - geo.baseBy) * midFactor;
-            ctx.quadraticCurveTo(midX2, midY2, geo.baseBx + (r() - 0.5) * 3 * jitterScale, geo.baseBy + (r() - 0.5) * 2 * jitterScale);
+            ctx.moveTo(tipX, tipY);
+            ctx.quadraticCurveTo(midInnerX, midInnerY, bx, by);
             ctx.stroke();
         } else {
             ctx.beginPath();

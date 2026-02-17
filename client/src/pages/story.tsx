@@ -653,27 +653,32 @@ function drawBubble(
     const geo = getTailGeometry(bubble);
     const r2 = seededRandom(seed + 1000);
     const jitterScale = bubble.tailJitter ?? 1;
+    const midFactor = bubble.tailCurve ?? 0.5;
+    const baseCx = (geo.baseAx + geo.baseBx) / 2;
+    const baseCy = (geo.baseAy + geo.baseBy) / 2;
+    const vx = geo.tipX - baseCx;
+    const vy = geo.tipY - baseCy;
+    const vLen = Math.hypot(vx, vy) || 1;
+    const nx = (vy / vLen) * vLen * 0.35;
+    const ny = (-vx / vLen) * vLen * 0.35;
 
     ctx.beginPath();
     if (style === "handwritten") {
       const rFill = seededRandom(seed + 1000);
-      ctx.moveTo(
-        geo.baseAx + (rFill() - 0.5) * 3 * jitterScale,
-        geo.baseAy + (rFill() - 0.5) * 2 * jitterScale,
-      );
-      const m = bubble.tailCurve ?? 0.5;
-      ctx.quadraticCurveTo(
-        geo.baseAx + (geo.tipX - geo.baseAx) * m + (rFill() - 0.5) * 4 * jitterScale,
-        geo.baseAy + (geo.tipY - geo.baseAy) * m,
-        geo.tipX + (rFill() - 0.5) * 3 * jitterScale,
-        geo.tipY + (rFill() - 0.5) * 2 * jitterScale,
-      );
-      ctx.quadraticCurveTo(
-        geo.baseBx + (geo.tipX - geo.baseBx) * m + (rFill() - 0.5) * 4 * jitterScale,
-        geo.baseBy + (geo.tipY - geo.baseBy) * m,
-        geo.baseBx + (rFill() - 0.5) * 3 * jitterScale,
-        geo.baseBy + (rFill() - 0.5) * 2 * jitterScale,
-      );
+      const ax = geo.baseAx + (rFill() - 0.5) * 3 * jitterScale;
+      const ay = geo.baseAy + (rFill() - 0.5) * 2 * jitterScale;
+      const bx = geo.baseBx + (rFill() - 0.5) * 3 * jitterScale;
+      const by = geo.baseBy + (rFill() - 0.5) * 2 * jitterScale;
+      const tipX = geo.tipX + (rFill() - 0.5) * 3 * jitterScale;
+      const tipY = geo.tipY + (rFill() - 0.5) * 2 * jitterScale;
+      const midOuterX = baseCx + vx * midFactor + nx;
+      const midOuterY = baseCy + vy * midFactor + ny;
+      const midInnerX = baseCx + vx * midFactor - nx * 0.6;
+      const midInnerY = baseCy + vy * midFactor - ny * 0.6;
+
+      ctx.moveTo(ax, ay);
+      ctx.quadraticCurveTo(midOuterX, midOuterY, tipX, tipY);
+      ctx.quadraticCurveTo(midInnerX, midInnerY, bx, by);
     } else {
       ctx.moveTo(geo.baseAx, geo.baseAy);
       ctx.lineTo(geo.tipX, geo.tipY);
@@ -688,24 +693,24 @@ function drawBubble(
     ctx.lineCap = "round";
     ctx.strokeStyle = "#222";
     if (style === "handwritten") {
-      const m = bubble.tailCurve ?? 0.5;
+      const ax = geo.baseAx + (r2() - 0.5) * 3 * jitterScale;
+      const ay = geo.baseAy + (r2() - 0.5) * 2 * jitterScale;
+      const bx = geo.baseBx + (r2() - 0.5) * 3 * jitterScale;
+      const by = geo.baseBy + (r2() - 0.5) * 2 * jitterScale;
+      const tipX = geo.tipX + (r2() - 0.5) * 3 * jitterScale;
+      const tipY = geo.tipY + (r2() - 0.5) * 2 * jitterScale;
+      const midOuterX = baseCx + vx * midFactor + nx;
+      const midOuterY = baseCy + vy * midFactor + ny;
+      const midInnerX = baseCx + vx * midFactor - nx * 0.6;
+      const midInnerY = baseCy + vy * midFactor - ny * 0.6;
+
       ctx.beginPath();
-      ctx.moveTo(geo.baseAx + (r2() - 0.5) * 3 * jitterScale, geo.baseAy + (r2() - 0.5) * 2 * jitterScale);
-      ctx.quadraticCurveTo(
-        geo.baseAx + (geo.tipX - geo.baseAx) * m + (r2() - 0.5) * 4 * jitterScale,
-        geo.baseAy + (geo.tipY - geo.baseAy) * m,
-        geo.tipX + (r2() - 0.5) * 3 * jitterScale,
-        geo.tipY + (r2() - 0.5) * 2 * jitterScale,
-      );
+      ctx.moveTo(ax, ay);
+      ctx.quadraticCurveTo(midOuterX, midOuterY, tipX, tipY);
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(geo.tipX + (r2() - 0.5) * 3 * jitterScale, geo.tipY + (r2() - 0.5) * 2 * jitterScale);
-      ctx.quadraticCurveTo(
-        geo.baseBx + (geo.tipX - geo.baseBx) * m + (r2() - 0.5) * 4 * jitterScale,
-        geo.baseBy + (geo.tipY - geo.baseBy) * m,
-        geo.baseBx + (r2() - 0.5) * 3 * jitterScale,
-        geo.baseBy + (r2() - 0.5) * 2 * jitterScale,
-      );
+      ctx.moveTo(tipX, tipY);
+      ctx.quadraticCurveTo(midInnerX, midInnerY, bx, by);
       ctx.stroke();
     } else {
       ctx.beginPath();
@@ -3494,6 +3499,59 @@ export default function StoryPage() {
     },
   });
 
+  const instatoonPromptMutation = useMutation({
+    mutationFn: async () => {
+      const [poseRes, bgRes] = await Promise.all([
+        apiRequest("POST", "/api/ai-prompt", { type: "pose" }),
+        apiRequest("POST", "/api/ai-prompt", { type: "background" }),
+      ]);
+      const poseData = (await poseRes.json()) as { prompt: string };
+      const bgData = (await bgRes.json()) as { prompt: string };
+      return { posePrompt: poseData.prompt, backgroundRaw: bgData.prompt };
+    },
+    onSuccess: (data) => {
+      setPosePrompt(data.posePrompt);
+      setExpressionPrompt(data.posePrompt);
+      let bg = data.backgroundRaw;
+      let items = "";
+      try {
+        const parsed = JSON.parse(data.backgroundRaw);
+        if (parsed && typeof parsed === "object") {
+          if (typeof (parsed as any).background === "string" && (parsed as any).background) {
+            bg = (parsed as any).background;
+          }
+          if (typeof (parsed as any).items === "string") {
+            items = (parsed as any).items;
+          }
+        }
+      } catch {
+      }
+      setBackgroundPrompt(bg);
+      setItemPrompt(items);
+      toast({
+        title: "인스타툰 프롬프트 생성 완료",
+        description: "포즈/표정과 배경/아이템 프롬프트를 한 번에 채웠습니다.",
+      });
+    },
+    onError: (error: any) => {
+      if (isUnauthorizedError(error)) {
+        redirectToLogin((o) =>
+          toast({
+            title: o.title,
+            description: o.description,
+            variant: o.variant as any,
+          }),
+        );
+        return;
+      }
+      toast({
+        title: "생성 실패",
+        description: error.message || "프롬프트 생성에 실패했습니다",
+        variant: "destructive",
+      });
+    },
+  });
+
   const TIER_NAMES = ["입문 작가", "신인 작가", "인기 작가", "프로 연재러"];
   const TIER_PANEL_LIMITS = [3, 5, 8, 10];
 
@@ -3846,7 +3904,7 @@ export default function StoryPage() {
                   {activeLeftTab === "ai" && (
                     <>
                       <div className="flex items-center justify-between gap-2">
-                        <h3 className="text-sm font-semibold">AI 프롬프트 / 자막 생성</h3>
+                        <h3 className="text-sm font-semibold">AI 프롬프트 / 인스타툰 생성</h3>
                         <button
                           onClick={() => setActiveLeftTab(null)}
                           className="text-muted-foreground hover-elevate rounded-md p-1"
@@ -3908,6 +3966,23 @@ export default function StoryPage() {
                             placeholder="표정 프롬프트 (예: 입을 크게 벌리고 동공지진 난 표정)"
                             className="text-xs"
                           />
+                        </div>
+
+                        <div className="pt-1">
+                          <Button
+                            className="w-full"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => instatoonPromptMutation.mutate()}
+                            disabled={instatoonPromptMutation.isPending}
+                          >
+                            {instatoonPromptMutation.isPending ? (
+                              <div className="h-4 w-4 animate-spin rounded-full border border-primary border-t-transparent mr-2" />
+                            ) : (
+                              <Wand2 className="h-4 w-4 mr-2" />
+                            )}
+                            인스타툰 자동 프롬프트 작성 (포즈/배경/아이템)
+                          </Button>
                         </div>
 
                         <div className="flex items-center justify-between gap-2 mt-2">
@@ -3984,7 +4059,7 @@ export default function StoryPage() {
                           ) : (
                             <Wand2 className="h-4 w-4 mr-2" />
                           )}
-                          AI 자동 생성 (포즈/배경 반영)
+                          인스타툰 자동 생성 (포즈/배경 반영)
                         </Button>
                       </div>
                     </>
