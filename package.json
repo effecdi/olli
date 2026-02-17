@@ -14,7 +14,6 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
-    "fabric": "^6.3.3",
     "@google/genai": "^1.41.0",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
@@ -59,9 +58,11 @@
     "embla-carousel-react": "^8.6.0",
     "express": "^5.0.1",
     "express-session": "^1.19.0",
+    "fabric": "^6.3.3",
     "framer-motion": "^11.18.2",
     "html2canvas": "^1.4.1",
     "input-otp": "^1.4.2",
+    "liquid-glass-react": "^1.1.1",
     "lucide-react": "^0.453.0",
     "memoizee": "^0.4.17",
     "memorystore": "^1.6.7",

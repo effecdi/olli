@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Check, Sparkles, Zap, X, Loader2 } from "lucide-react";
 import { useState } from "react";
+import LiquidGlass from "liquid-glass-react";
 
 declare global {
   interface Window {
@@ -168,58 +169,105 @@ export default function PricingPage() {
 
       <div className="grid gap-6 md:grid-cols-2 max-w-3xl mx-auto">
         {plans.map((plan) => (
-          <Card
+          <LiquidGlass
             key={plan.name}
-            className={`p-6 flex flex-col relative ${plan.highlighted ? "border-primary" : ""}`}
-            data-testid={`card-plan-${plan.tier}`}
+            displacementScale={plan.highlighted ? 80 : 60}
+            blurAmount={0.08}
+            saturation={plan.highlighted ? 145 : 125}
+            elasticity={plan.highlighted ? 0.26 : 0.18}
+            cornerRadius={24}
+            padding="0"
+            className="h-full"
+            overLight={false}
           >
-            {plan.highlighted && (
-              <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2">추천</Badge>
-            )}
-            <div className="mb-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10">
-                  <plan.icon className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold">{plan.name}</h3>
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-bold">{plan.price}</span>
-                <span className="text-muted-foreground">{plan.period}</span>
-              </div>
-              <p className="mt-2 text-sm text-muted-foreground">{plan.description}</p>
-            </div>
-
-            <ul className="flex-1 space-y-3 mb-6">
-              {plan.features.map((feature) => (
-                <li key={feature.text} className="flex items-center gap-2 text-sm">
-                  {feature.included ? (
-                    <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                  ) : (
-                    <X className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
-                  )}
-                  <span className={feature.included ? "" : "text-muted-foreground/60"}>{feature.text}</span>
-                </li>
-              ))}
-            </ul>
-
-            <Button
-              variant={plan.tier === "pro" ? "default" : "secondary"}
-              className="w-full gap-2"
-              disabled={
-                (plan.tier === "free" && credits?.tier === "free") ||
-                (plan.tier === "pro" && credits?.tier === "pro") ||
-                isProcessing
-              }
-              onClick={() => handlePlanAction(plan.tier)}
-              data-testid={`button-plan-${plan.tier}`}
+            <Card
+              className={`h-full p-6 flex flex-col relative rounded-3xl border-0 ${
+                plan.highlighted
+                  ? "bg-gradient-to-br from-violet-600 via-fuchsia-500 to-indigo-500 text-white shadow-[0_22px_70px_rgba(129,140,248,0.6)]"
+                  : "bg-slate-950/80 text-slate-50 shadow-[0_18px_60px_rgba(15,23,42,0.85)]"
+              }`}
+              data-testid={`card-plan-${plan.tier}`}
             >
-              {isProcessing && plan.tier === "pro" ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : null}
-              {getButtonText(plan.tier)}
-            </Button>
-          </Card>
+              {plan.highlighted && (
+                <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-white/15 border border-white/30 text-[11px]">
+                  추천
+                </Badge>
+              )}
+              <div className="relative mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div
+                    className={`flex h-9 w-9 items-center justify-center rounded-md ${
+                      plan.highlighted ? "bg-white/20" : "bg-slate-800/80"
+                    }`}
+                  >
+                    <plan.icon className={`h-5 w-5 ${plan.highlighted ? "text-white" : "text-teal-300"}`} />
+                  </div>
+                  <h3 className="text-xl font-semibold">{plan.name}</h3>
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-bold">{plan.price}</span>
+                  <span className={plan.highlighted ? "text-white/80" : "text-slate-300"}>{plan.period}</span>
+                </div>
+                <p className={plan.highlighted ? "mt-2 text-sm text-white/85" : "mt-2 text-sm text-slate-300"}>
+                  {plan.description}
+                </p>
+              </div>
+
+              <ul className="relative flex-1 space-y-3 mb-6">
+                {plan.features.map((feature) => (
+                  <li key={feature.text} className="flex items-center gap-2 text-sm">
+                    {feature.included ? (
+                      <Check
+                        className={`h-4 w-4 flex-shrink-0 ${
+                          plan.highlighted ? "text-lime-300" : "text-teal-300"
+                        }`}
+                      />
+                    ) : (
+                      <X
+                        className={`h-4 w-4 flex-shrink-0 ${
+                          plan.highlighted ? "text-white/25" : "text-slate-500/60"
+                        }`}
+                      />
+                    )}
+                    <span
+                      className={
+                        feature.included
+                          ? plan.highlighted
+                            ? "text-white/95"
+                            : "text-slate-100"
+                          : plan.highlighted
+                            ? "text-white/50"
+                            : "text-slate-400"
+                      }
+                    >
+                      {feature.text}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+
+              <Button
+                variant={plan.highlighted ? "default" : "outline"}
+                className={`w-full gap-2 h-11 rounded-full ${
+                  plan.highlighted
+                    ? "bg-white text-slate-900 hover:bg-slate-100"
+                    : "border-slate-400/80 text-slate-50 bg-slate-900/20 hover:bg-slate-900/60"
+                }`}
+                disabled={
+                  (plan.tier === "free" && credits?.tier === "free") ||
+                  (plan.tier === "pro" && credits?.tier === "pro") ||
+                  isProcessing
+                }
+                onClick={() => handlePlanAction(plan.tier)}
+                data-testid={`button-plan-${plan.tier}`}
+              >
+                {isProcessing && plan.tier === "pro" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : null}
+                {getButtonText(plan.tier)}
+              </Button>
+            </Card>
+          </LiquidGlass>
         ))}
       </div>
 
