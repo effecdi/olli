@@ -386,46 +386,80 @@ export default function LandingPage() {
           </div>
           <div className="grid gap-5 sm:grid-cols-2 max-w-3xl mx-auto">
             <motion.div initial="hidden" animate={pricingInView ? "visible" : "hidden"} variants={fadeUp} custom={2}>
-              <TiltCard className="h-full rounded-md" maxTilt={5}>
-                <Card className="p-7 h-full" data-testid="card-pricing-free">
-                  <h3 className="font-bold text-xl mb-2">Free</h3>
-                  <div className="text-3xl font-black mb-5">
-                    ₩0
-                    <span className="text-base font-normal text-muted-foreground">/월</span>
+              <TiltCard className="h-full rounded-3xl" maxTilt={5}>
+                <Card
+                  className="relative h-full overflow-hidden rounded-3xl border-0 bg-slate-950 text-slate-50 px-8 py-9 shadow-[0_24px_80px_rgba(15,23,42,0.85)]"
+                  data-testid="card-pricing-free"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-slate-800/50 via-slate-900 to-black" />
+                  <div className="relative flex h-full flex-col">
+                    <div className="mb-6">
+                      <h3 className="font-semibold text-sm uppercase tracking-[0.18em] text-slate-400 mb-2">Free</h3>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-4xl font-black tracking-tight">₩0</span>
+                        <span className="text-sm text-slate-400">/월</span>
+                      </div>
+                      <p className="mt-2 text-xs text-slate-400">
+                        가볍게 써보는 입문 플랜
+                      </p>
+                    </div>
+                    <ul className="space-y-2.5 text-sm text-slate-200 mb-7">
+                      <li className="flex items-center gap-2.5"><Zap className="h-4 w-4 text-teal-300 shrink-0" /> 첫 가입 후 3회 캐릭터 생성</li>
+                      <li className="flex items-center gap-2.5"><Palette className="h-4 w-4 text-teal-300 shrink-0" /> 3가지 스타일 (심플 라인)</li>
+                      <li className="flex items-center gap-2.5"><Layers className="h-4 w-4 text-teal-300 shrink-0" /> 워터마크 포함</li>
+                      <li className="flex items-center gap-2.5"><Paintbrush className="h-4 w-4 text-teal-300 shrink-0" /> 포즈·배경·에디터 기능 제한</li>
+                    </ul>
+                    <Button
+                      className="mt-auto w-full h-11 rounded-full border-slate-500/70 text-slate-50 hover:bg-slate-900/60"
+                      size="lg"
+                      variant="outline"
+                      asChild
+                      data-testid="button-pricing-free"
+                    >
+                      <a href="/login">무료로 시작하기</a>
+                    </Button>
                   </div>
-                  <ul className="space-y-2.5 text-sm text-muted-foreground mb-7">
-                    <li className="flex items-center gap-2.5"><Zap className="h-4 w-4 text-primary shrink-0" /> 첫 가입 후 3회 캐릭터 생성</li>
-                    <li className="flex items-center gap-2.5"><Palette className="h-4 w-4 text-primary shrink-0" /> 3가지 스타일 (심플 라인)</li>
-                    <li className="flex items-center gap-2.5"><Layers className="h-4 w-4 text-primary shrink-0" /> 워터마크 포함</li>
-                    <li className="flex items-center gap-2.5"><Paintbrush className="h-4 w-4 text-primary shrink-0" /> 포즈·배경·에디터 기능 제한</li>
-                  </ul>
-                  <Button className="w-full" size="lg" variant="outline" asChild data-testid="button-pricing-free">
-                    <a href="/login">무료로 시작하기</a>
-                  </Button>
                 </Card>
               </TiltCard>
             </motion.div>
 
             <motion.div initial="hidden" animate={pricingInView ? "visible" : "hidden"} variants={fadeUp} custom={3}>
-              <TiltCard className="h-full rounded-md" maxTilt={5}>
-                <Card className="p-7 border-primary/30 bg-primary/[0.03] h-full relative overflow-visible" data-testid="card-pricing-pro">
-                  <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2">추천</Badge>
-                  <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <h3 className="font-bold text-xl">Pro</h3>
+              <TiltCard className="h-full rounded-3xl" maxTilt={5}>
+                <Card
+                  className="relative h-full overflow-hidden rounded-3xl border-0 bg-gradient-to-br from-violet-500 via-fuchsia-500 to-indigo-500 text-white px-8 py-9 shadow-[0_26px_90px_rgba(109,40,217,0.75)]"
+                  data-testid="card-pricing-pro"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/10 mix-blend-screen" />
+                  <div className="relative flex h-full flex-col">
+                    <div className="flex items-center justify-between mb-6">
+                      <Badge className="bg-white/15 text-[11px] px-3 py-1 border border-white/20">Pro</Badge>
+                      <span className="text-[11px] text-white/80">월간</span>
+                    </div>
+                    <div className="mb-2">
+                      <p className="text-xs uppercase tracking-[0.22em] text-white/70 mb-1">크리에이터 추천</p>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-4xl font-black tracking-tight">₩19,900</span>
+                        <span className="text-sm text-white/80">/월</span>
+                      </div>
+                      <p className="mt-2 text-xs text-white/85">
+                        본격적인 인스타툰 크리에이터를 위한 풀 옵션 플랜
+                      </p>
+                    </div>
+                    <ul className="space-y-2.5 text-sm text-white/95 mb-7 mt-2">
+                      <li className="flex items-center gap-2.5"><Zap className="h-4 w-4 text-white shrink-0" /> 무제한 캐릭터 생성</li>
+                      <li className="flex items-center gap-2.5"><Palette className="h-4 w-4 text-white shrink-0" /> 6가지 전체 스타일</li>
+                      <li className="flex items-center gap-2.5"><MessageCircle className="h-4 w-4 text-white shrink-0" /> 카카오톡 채팅 이미지</li>
+                      <li className="flex items-center gap-2.5"><Target className="h-4 w-4 text-white shrink-0" /> AI 광고주 매칭</li>
+                    </ul>
+                    <Button
+                      className="mt-auto w-full h-11 rounded-full bg-white text-slate-900 hover:bg-slate-100"
+                      size="lg"
+                      asChild
+                      data-testid="button-pricing-pro"
+                    >
+                      <a href="/login">Pro 시작하기</a>
+                    </Button>
                   </div>
-                  <div className="text-3xl font-black mb-5">
-                    ₩19,900
-                    <span className="text-base font-normal text-muted-foreground">/월</span>
-                  </div>
-                  <ul className="space-y-2.5 text-sm text-muted-foreground mb-7">
-                    <li className="flex items-center gap-2.5"><Zap className="h-4 w-4 text-primary shrink-0" /> 무제한 캐릭터 생성</li>
-                    <li className="flex items-center gap-2.5"><Palette className="h-4 w-4 text-primary shrink-0" /> 6가지 전체 스타일</li>
-                    <li className="flex items-center gap-2.5"><MessageCircle className="h-4 w-4 text-primary shrink-0" /> 카카오톡 채팅 이미지</li>
-                    <li className="flex items-center gap-2.5"><Target className="h-4 w-4 text-primary shrink-0" /> AI 광고주 매칭</li>
-                  </ul>
-                  <Button className="w-full" size="lg" asChild data-testid="button-pricing-pro">
-                    <a href="/login">Pro 시작하기</a>
-                  </Button>
                 </Card>
               </TiltCard>
             </motion.div>
