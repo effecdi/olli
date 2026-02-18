@@ -381,20 +381,20 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
         const pB = { x: geo.baseBx, y: geo.baseBy };
         const pTip = { x: geo.tipX, y: geo.tipY };
 
-        const pull = 0.75;
+        const pull = 0.92;
 
         const c1 = {
             x: pA.x + (baseCx - pA.x) * pull,
             y: pA.y + (baseCy - pA.y) * pull,
         };
         const c2 = {
-            x: pTip.x + (baseCx - pTip.x) * 0.15,
-            y: pTip.y + (baseCy - pTip.y) * 0.15,
+            x: pTip.x + (baseCx - pTip.x) * 0.45,
+            y: pTip.y + (baseCy - pTip.y) * 0.45,
         };
 
         const c3 = {
-            x: pTip.x + (baseCx - pTip.x) * 0.15,
-            y: pTip.y + (baseCy - pTip.y) * 0.15,
+            x: pTip.x + (baseCx - pTip.x) * 0.45,
+            y: pTip.y + (baseCy - pTip.y) * 0.45,
         };
         const c4 = {
             x: pB.x + (baseCx - pB.x) * pull,
