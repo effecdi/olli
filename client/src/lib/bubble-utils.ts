@@ -364,8 +364,10 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
         if (!isDoubleLine) {
             ctx.fillStyle = "#ffffff";
             ctx.fill();
-            ctx.strokeStyle = "#222";
-            ctx.stroke();
+            if (!hasTail) {
+                ctx.strokeStyle = "#222";
+                ctx.stroke();
+            }
         } else {
             ctx.strokeStyle = "#222";
             ctx.stroke();
@@ -374,38 +376,42 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
 
     if (hasTail) {
         const geo = getTailGeometry(bubble);
+        const cx = bubble.x + bubble.width / 2;
+        const cy = bubble.y + bubble.height / 2;
+        const rx = bubble.width / 2;
+        const ry = bubble.height / 2;
+
+        const angleA = Math.atan2(geo.baseAy - cy, geo.baseAx - cx);
+        const angleB = Math.atan2(geo.baseBy - cy, geo.baseBx - cx);
         const baseCx = (geo.baseAx + geo.baseBx) / 2;
         const baseCy = (geo.baseAy + geo.baseBy) / 2;
 
-        const pA = { x: geo.baseAx, y: geo.baseAy };
-        const pB = { x: geo.baseBx, y: geo.baseBy };
-        const pTip = { x: geo.tipX, y: geo.tipY };
-
-        const pull = 0.92;
+        const pull = 0.97;
+        const tipPull = 0.6;
 
         const c1 = {
-            x: pA.x + (baseCx - pA.x) * pull,
-            y: pA.y + (baseCy - pA.y) * pull,
+            x: geo.baseAx + (baseCx - geo.baseAx) * pull,
+            y: geo.baseAy + (baseCy - geo.baseAy) * pull,
         };
         const c2 = {
-            x: pTip.x + (baseCx - pTip.x) * 0.45,
-            y: pTip.y + (baseCy - pTip.y) * 0.45,
+            x: geo.tipX + (baseCx - geo.tipX) * tipPull,
+            y: geo.tipY + (baseCy - geo.tipY) * tipPull,
         };
-
         const c3 = {
-            x: pTip.x + (baseCx - pTip.x) * 0.45,
-            y: pTip.y + (baseCy - pTip.y) * 0.45,
+            x: geo.tipX + (baseCx - geo.tipX) * tipPull,
+            y: geo.tipY + (baseCy - geo.tipY) * tipPull,
         };
         const c4 = {
-            x: pB.x + (baseCx - pB.x) * pull,
-            y: pB.y + (baseCy - pB.y) * pull,
+            x: geo.baseBx + (baseCx - geo.baseBx) * pull,
+            y: geo.baseBy + (baseCy - geo.baseBy) * pull,
         };
 
         ctx.beginPath();
-        ctx.moveTo(pA.x, pA.y);
-        ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, pTip.x, pTip.y);
-        ctx.bezierCurveTo(c3.x, c3.y, c4.x, c4.y, pB.x, pB.y);
+        ctx.ellipse(cx, cy, rx, ry, 0, angleB, angleA, true);
+        ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, geo.tipX, geo.tipY);
+        ctx.bezierCurveTo(c3.x, c3.y, c4.x, c4.y, geo.baseBx, geo.baseBy);
         ctx.closePath();
+
         ctx.fillStyle = "#ffffff";
         ctx.fill();
         ctx.lineWidth = sw;
