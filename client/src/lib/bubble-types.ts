@@ -31,6 +31,7 @@ export interface SpeechBubble {
     templateSrc?: string;
     templateImg?: HTMLImageElement;
     zIndex?: number;
+    groupId?: string;
     locked?: boolean;
 }
 

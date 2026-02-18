@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import { SpeechBubble, CharacterOverlay, DragMode, PageData } from "@/lib/bubble-types";
-import { drawBubble, getTailGeometry, FONT_CSS } from "@/lib/bubble-utils";
+import { drawBubble, drawBubbleGroup, getTailGeometry, FONT_CSS } from "@/lib/bubble-utils";
 
 interface BubbleCanvasProps {
     page: PageData;
@@ -191,19 +191,37 @@ export function BubbleCanvas({
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
+        const bubbleGroups = new Map<string, SpeechBubble[]>();
+        const ungroupedBubbles: SpeechBubble[] = [];
+        page.bubbles.forEach((b) => {
+            if (b.groupId) {
+                const arr = bubbleGroups.get(b.groupId) ?? [];
+                arr.push(b);
+                bubbleGroups.set(b.groupId, arr);
+            } else {
+                ungroupedBubbles.push(b);
+            }
+        });
+
         const drawables: Array<
             | { type: "char"; z: number; c: CharacterOverlay }
             | { type: "bubble"; z: number; b: SpeechBubble }
+            | { type: "group"; z: number; bubbles: SpeechBubble[] }
         > = [
                 ...page.characters.map((c) => ({
                     type: "char" as const,
                     z: c.zIndex ?? 0,
                     c,
                 })),
-                ...page.bubbles.map((b) => ({
+                ...ungroupedBubbles.map((b) => ({
                     type: "bubble" as const,
                     z: b.zIndex ?? 10,
                     b,
+                })),
+                ...Array.from(bubbleGroups.values()).map((bs) => ({
+                    type: "group" as const,
+                    z: Math.max(...bs.map((b) => b.zIndex ?? 10)),
+                    bubbles: bs,
                 })),
             ];
         drawables.sort((a, b) => a.z - b.z);
@@ -221,9 +239,13 @@ export function BubbleCanvas({
                 if (isActive && c.id === selectedCharId) {
                     drawCharOverlaySelection(ctx, c);
                 }
-            } else {
+            } else if (d.type === "bubble") {
                 const b = d.b;
                 drawBubble(ctx, b, isActive && b.id === selectedBubbleId);
+            } else if (d.type === "group") {
+                const isGroupSelected =
+                    isActive && d.bubbles.some((b) => b.id === selectedBubbleId);
+                drawBubbleGroup(ctx, d.bubbles, isGroupSelected);
             }
         });
 

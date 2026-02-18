@@ -231,6 +231,36 @@ export default function BubblePage() {
     }
   }, [activePage, selectedBubbleId, selectedCharId, updateBubble, updateChar]);
 
+  const groupSelectedBubbleWithAbove = useCallback(() => {
+    if (!selectedBubbleId) return;
+    const bubbles = activePage.bubbles;
+    const current = bubbles.find((b) => b.id === selectedBubbleId);
+    if (!current) return;
+    const sorted = [...bubbles].sort((a, b) => (a.zIndex ?? 10) - (b.zIndex ?? 10));
+    const idx = sorted.findIndex((b) => b.id === current.id);
+    const neighbor = sorted[idx + 1] ?? sorted[idx - 1];
+    const groupId = generateId();
+    const ids = [current.id, ...(neighbor ? [neighbor.id] : [])];
+    updateActivePage({
+      bubbles: bubbles.map((b) =>
+        ids.includes(b.id) ? { ...b, groupId } : b,
+      ),
+    });
+  }, [activePage, selectedBubbleId, updateActivePage]);
+
+  const ungroupSelectedBubble = useCallback(() => {
+    if (!selectedBubbleId) return;
+    const bubbles = activePage.bubbles;
+    const current = bubbles.find((b) => b.id === selectedBubbleId);
+    if (!current || !current.groupId) return;
+    const gid = current.groupId;
+    updateActivePage({
+      bubbles: bubbles.map((b) =>
+        b.groupId === gid ? { ...b, groupId: undefined } : b,
+      ),
+    });
+  }, [activePage, selectedBubbleId, updateActivePage]);
+
   const rotateSelectedElement = useCallback(() => {
     if (!selectedCharId) return;
     const c = activePage.characters.find((cc) => cc.id === selectedCharId);
@@ -314,6 +344,7 @@ export default function BubblePage() {
       fontSize: 14,
       fontKey: "default",
       zIndex: 10,
+      groupId: undefined,
     };
     updateActivePage({ bubbles: [...activePage.bubbles, newBubble] });
     setSelectedBubbleId(newBubble.id);
@@ -1216,6 +1247,17 @@ export default function BubblePage() {
                       <ContextMenuItem onClick={pasteFromClipboard}>붙여넣기</ContextMenuItem>
                       <ContextMenuItem onClick={rotateSelectedElement}>회전</ContextMenuItem>
                       <ContextMenuSeparator />
+                      {selectedBubbleId && (
+                        <>
+                          <ContextMenuItem onClick={groupSelectedBubbleWithAbove}>
+                            그룹으로 묶기
+                          </ContextMenuItem>
+                          <ContextMenuItem onClick={ungroupSelectedBubble}>
+                            그룹 해제
+                          </ContextMenuItem>
+                          <ContextMenuSeparator />
+                        </>
+                      )}
                       <ContextMenuItem onClick={bringSelectedLayerForward}>레이어 앞으로</ContextMenuItem>
                       <ContextMenuItem onClick={sendSelectedLayerBackward}>레이어 뒤로</ContextMenuItem>
                       <ContextMenuItem onClick={toggleLockSelectedElement}>

@@ -319,6 +319,165 @@ function drawWavyPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
     ctx.closePath();
 }
 
+function drawBubbleFillOnly(ctx: CanvasRenderingContext2D, bubble: SpeechBubble) {
+    const { x, y, width: w, height: h, style, strokeWidth: sw, wobble: wob, seed } = bubble;
+    const isDoubleLine = style === "doubleline";
+    const isImage = style === "image";
+
+    if (isImage && bubble.templateImg) {
+        ctx.drawImage(bubble.templateImg, x, y, w, h);
+        return;
+    }
+
+    switch (style) {
+        case "handwritten":
+            drawHandwrittenPath(ctx, x, y, w, h, sw, seed);
+            break;
+        case "linedrawing":
+            drawLinedrawingPath(ctx, x, y, w, h, sw);
+            break;
+        case "wobbly":
+            drawWobblyPath(ctx, x, y, w, h, sw, wob);
+            break;
+        case "thought":
+            drawThoughtPath(ctx, x, y, w, h, sw, seed);
+            break;
+        case "shout":
+            drawShoutPath(ctx, x, y, w, h, sw, seed);
+            break;
+        case "rectangle":
+            drawRectanglePath(ctx, x, y, w, h, sw);
+            break;
+        case "rounded":
+            drawRoundedPath(ctx, x, y, w, h, sw);
+            break;
+        case "doubleline":
+            drawDoublelinePath(ctx, x, y, w, h, sw);
+            break;
+        case "wavy":
+            drawWavyPath(ctx, x, y, w, h, sw);
+            break;
+        case "image":
+            break;
+    }
+
+    if (!isDoubleLine) {
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+    } else {
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+    }
+}
+
+function drawBubbleStrokeOnly(ctx: CanvasRenderingContext2D, bubble: SpeechBubble) {
+    const { x, y, width: w, height: h, style, strokeWidth: sw, wobble: wob, seed } = bubble;
+    const isImage = style === "image";
+
+    if (isImage && bubble.templateImg) {
+        return;
+    }
+
+    switch (style) {
+        case "handwritten":
+            drawHandwrittenPath(ctx, x, y, w, h, sw, seed);
+            break;
+        case "linedrawing":
+            drawLinedrawingPath(ctx, x, y, w, h, sw);
+            break;
+        case "wobbly":
+            drawWobblyPath(ctx, x, y, w, h, sw, wob);
+            break;
+        case "thought":
+            drawThoughtPath(ctx, x, y, w, h, sw, seed);
+            break;
+        case "shout":
+            drawShoutPath(ctx, x, y, w, h, sw, seed);
+            break;
+        case "rectangle":
+            drawRectanglePath(ctx, x, y, w, h, sw);
+            break;
+        case "rounded":
+            drawRoundedPath(ctx, x, y, w, h, sw);
+            break;
+        case "doubleline":
+            drawDoublelinePath(ctx, x, y, w, h, sw);
+            break;
+        case "wavy":
+            drawWavyPath(ctx, x, y, w, h, sw);
+            break;
+        case "image":
+            break;
+    }
+
+    ctx.strokeStyle = "#222";
+    ctx.lineWidth = sw;
+    ctx.stroke();
+}
+
+export function drawBubbleGroup(ctx: CanvasRenderingContext2D, bubbles: SpeechBubble[], isSelected: boolean) {
+    if (bubbles.length === 0) return;
+
+    const canvas = ctx.canvas;
+    const offscreen = document.createElement("canvas");
+    offscreen.width = canvas.width;
+    offscreen.height = canvas.height;
+    const offCtx = offscreen.getContext("2d");
+    if (!offCtx) return;
+
+    bubbles.forEach((b) => {
+        offCtx.save();
+        drawBubbleFillOnly(offCtx, b);
+        offCtx.restore();
+    });
+
+    ctx.drawImage(offscreen, 0, 0);
+
+    bubbles.forEach((b) => {
+        drawBubbleStrokeOnly(ctx, b);
+    });
+
+    const offscreen2 = document.createElement("canvas");
+    offscreen2.width = canvas.width;
+    offscreen2.height = canvas.height;
+    const offCtx2 = offscreen2.getContext("2d");
+    if (!offCtx2) return;
+
+    bubbles.forEach((b) => {
+        drawBubbleFillOnly(offCtx2, b);
+    });
+
+    ctx.save();
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.drawImage(offscreen2, 0, 0);
+    ctx.restore();
+
+    bubbles.forEach((b) => {
+        drawBubbleFillOnly(ctx, b);
+    });
+
+    bubbles.forEach((b) => {
+        drawBubbleStrokeOnly(ctx, b);
+    });
+
+    if (isSelected) {
+        const xs = bubbles.map((b) => b.x);
+        const ys = bubbles.map((b) => b.y);
+        const ws = bubbles.map((b) => b.x + b.width);
+        const hs = bubbles.map((b) => b.y + b.height);
+        const minX = Math.min(...xs);
+        const minY = Math.min(...ys);
+        const maxX = Math.max(...ws);
+        const maxY = Math.max(...hs);
+        ctx.save();
+        ctx.strokeStyle = "hsl(173, 80%, 45%)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 3]);
+        ctx.strokeRect(minX - 4, minY - 4, (maxX - minX) + 8, (maxY - minY) + 8);
+        ctx.restore();
+    }
+}
+
 export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, isSelected: boolean) {
     ctx.save();
 
@@ -333,45 +492,9 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
     if (isImage && bubble.templateImg) {
         ctx.drawImage(bubble.templateImg, x, y, w, h);
     } else if (!isImage) {
-        switch (style) {
-            case "handwritten":
-                drawHandwrittenPath(ctx, x, y, w, h, sw, seed);
-                break;
-            case "linedrawing":
-                drawLinedrawingPath(ctx, x, y, w, h, sw);
-                break;
-            case "wobbly":
-                drawWobblyPath(ctx, x, y, w, h, sw, wob);
-                break;
-            case "thought":
-                drawThoughtPath(ctx, x, y, w, h, sw, seed);
-                break;
-            case "shout":
-                drawShoutPath(ctx, x, y, w, h, sw, seed);
-                break;
-            case "rectangle":
-                drawRectanglePath(ctx, x, y, w, h, sw);
-                break;
-            case "rounded":
-                drawRoundedPath(ctx, x, y, w, h, sw);
-                break;
-            case "doubleline":
-                drawDoublelinePath(ctx, x, y, w, h, sw);
-                break;
-            case "wavy":
-                drawWavyPath(ctx, x, y, w, h, sw);
-                break;
-        }
-
-        if (!isDoubleLine) {
-            ctx.fillStyle = "#ffffff";
-            ctx.fill();
-            ctx.strokeStyle = "#222";
-            ctx.stroke();
-        } else {
-            ctx.strokeStyle = "#222";
-            ctx.stroke();
-        }
+        drawBubbleFillOnly(ctx, bubble);
+        ctx.strokeStyle = "#222";
+        ctx.stroke();
     }
 
     if (hasTail) {
