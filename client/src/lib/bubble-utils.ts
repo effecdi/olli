@@ -105,30 +105,26 @@ export function getTailGeometry(bubble: SpeechBubble) {
     const cy = bubble.y + bubble.height / 2;
     const rx = bubble.width / 2;
     const ry = bubble.height / 2;
+
     const defaultTip = getDefaultTailTip(bubble) || { x: cx + 10, y: bubble.y + bubble.height + 50 };
     const tipX = bubble.tailTipX ?? defaultTip.x;
     const tipY = bubble.tailTipY ?? defaultTip.y;
 
-    const angle = Math.atan2(tipY - cy, tipX - cx);
-    const perpAngle = angle + Math.PI / 2;
-    const baseSpread = bubble.tailBaseSpread ?? 8;
+    const mainAngle = Math.atan2(tipY - cy, tipX - cx);
 
-    const edgeX = cx + rx * Math.cos(angle);
-    const edgeY = cy + ry * Math.sin(angle);
+    const spreadPx = bubble.tailBaseSpread ?? 15;
+    const avgR = (rx + ry) / 2;
+    const spreadAngle = Math.atan2(spreadPx, avgR);
 
-    const perpX = Math.cos(perpAngle) / rx;
-    const perpY = Math.sin(perpAngle) / ry;
-    const perpLen = Math.sqrt(perpX * perpX + perpY * perpY) || 1;
-    const normPerpX = Math.cos(perpAngle) / perpLen;
-    const normPerpY = Math.sin(perpAngle) / perpLen;
-
-    const baseAx = edgeX + normPerpX * baseSpread;
-    const baseAy = edgeY + normPerpY * baseSpread;
-    const baseBx = edgeX - normPerpX * baseSpread;
-    const baseBy = edgeY - normPerpY * baseSpread;
+    const angleA = mainAngle - spreadAngle;
+    const angleB = mainAngle + spreadAngle;
+    const baseAx = cx + rx * Math.cos(angleA);
+    const baseAy = cy + ry * Math.sin(angleA);
+    const baseBx = cx + rx * Math.cos(angleB);
+    const baseBy = cy + ry * Math.sin(angleB);
 
     const tailLen = Math.sqrt((tipX - cx) ** 2 + (tipY - cy) ** 2);
-    return { tipX, tipY, baseAx, baseAy, baseBx, baseBy, tailLen };
+    return { tipX, tipY, baseAx, baseAy, baseBx, baseBy, tailLen, angleA, angleB };
 }
 
 // Drawing helper functions
@@ -380,40 +376,38 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
 
     if (hasTail) {
         const geo = getTailGeometry(bubble);
-        const baseCx = (geo.baseAx + geo.baseBx) / 2;
-        const baseCy = (geo.baseAy + geo.baseBy) / 2;
-        const pull = 0.97;
-        const tipPull = 0.6;
+        const cx = bubble.x + bubble.width / 2;
+        const cy = bubble.y + bubble.height / 2;
+        const rx = bubble.width / 2;
+        const ry = bubble.height / 2;
+
+        const curvePull = bubble.tailCurve ?? 0.5;
+        const baseMidX = (geo.baseAx + geo.baseBx) / 2;
+        const baseMidY = (geo.baseAy + geo.baseBy) / 2;
 
         const c1 = {
-            x: bubble.tailCtrl1X ?? (geo.baseAx + (baseCx - geo.baseAx) * pull),
-            y: bubble.tailCtrl1Y ?? (geo.baseAy + (baseCy - geo.baseAy) * pull),
+            x: geo.baseAx + (baseMidX - geo.baseAx) * (0.5 + curvePull * 0.45),
+            y: geo.baseAy + (baseMidY - geo.baseAy) * (0.5 + curvePull * 0.45),
         };
         const c2 = {
-            x: bubble.tailCtrl2X ?? (geo.tipX + (baseCx - geo.tipX) * tipPull),
-            y: bubble.tailCtrl2Y ?? (geo.tipY + (baseCy - geo.tipY) * tipPull),
+            x: geo.tipX + (baseMidX - geo.tipX) * 0.3,
+            y: geo.tipY + (baseMidY - geo.tipY) * 0.3,
         };
         const c3 = { x: c2.x, y: c2.y };
         const c4 = {
-            x: geo.baseBx + (baseCx - geo.baseBx) * pull,
-            y: geo.baseBy + (baseCy - geo.baseBy) * pull,
+            x: geo.baseBx + (baseMidX - geo.baseBx) * (0.5 + curvePull * 0.45),
+            y: geo.baseBy + (baseMidY - geo.baseBy) * (0.5 + curvePull * 0.45),
         };
 
-        // STEP 1: 꼬리 전체 흰색으로 fill (바디 접합선 덮기)
         ctx.beginPath();
-        ctx.moveTo(geo.baseAx, geo.baseAy);
+        ctx.moveTo(geo.baseBx, geo.baseBy);
+        ctx.ellipse(cx, cy, rx, ry, 0, geo.angleB, geo.angleA, true);
         ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, geo.tipX, geo.tipY);
         ctx.bezierCurveTo(c3.x, c3.y, c4.x, c4.y, geo.baseBx, geo.baseBy);
-        ctx.lineTo(geo.baseAx, geo.baseAy);
         ctx.closePath();
+
         ctx.fillStyle = "#ffffff";
         ctx.fill();
-
-        // STEP 2: 꼬리 외곽선만 stroke (베이스 선은 제외)
-        ctx.beginPath();
-        ctx.moveTo(geo.baseAx, geo.baseAy);
-        ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, geo.tipX, geo.tipY);
-        ctx.bezierCurveTo(c3.x, c3.y, c4.x, c4.y, geo.baseBx, geo.baseBy);
         ctx.lineWidth = sw;
         ctx.lineJoin = "round";
         ctx.lineCap = "round";
