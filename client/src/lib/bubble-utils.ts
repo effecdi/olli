@@ -49,25 +49,25 @@ export const FONT_CSS = `
 @font-face { font-family: 'MemomentKkukkukk'; src: url('/fonts/MemomentKkukkukk.woff') format('woff'); font-weight: normal; font-style: normal; font-display: swap; }
 `;
 
-export const STYLE_LABELS: Record<BubbleStyle, string> = {
+export const STYLE_LABELS: Record<string, string> = {
     linedrawing: "심플 라인",
     handwritten: "손글씨",
     rounded: "둥근 사각형",
     rectangle: "사각형",
     thought: "생각 구름",
-    shout: "외침 / 효과",
-    wobbly: "불안한 말풍선",
+    shout: "외침 효과",
+    wobbly: "불안한",
     doubleline: "이중선",
     wavy: "물결",
-    image: "이미지 말풍선",
-    flash_black: "검은 바탕 플래시",
+    image: "이미지",
+};
+
+export const FLASH_STYLE_LABELS: Record<string, string> = {
+    flash_black: "검은 바탕",
     flash_normal: "플래시",
-    flash_dense: "빽빽한 플래시",
-    flash_urchin: "성게 플래시",
+    flash_dense: "빽빽한",
+    flash_urchin: "성게",
     flash_pop: "폭죽",
-    cloud: "구름형",
-    electric: "번개형",
-    sticker: "스티커",
 };
 
 export const TAIL_LABELS: Record<TailStyle, string> = {
