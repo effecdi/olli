@@ -327,51 +327,103 @@ function drawWavyPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
     ctx.closePath();
 }
 
-function drawFlashPath(
+function drawFlashStyle(
     ctx: CanvasRenderingContext2D,
     x: number,
     y: number,
     w: number,
     h: number,
-    strokeWidth: number,
+    sw: number,
     seed: number,
-    bubble: SpeechBubble,
     style: BubbleStyle,
+    opts: {
+        lineCount: number;
+        lineLength: number;
+        lineSpacing: number;
+        lineThickness: number;
+        bumpCount: number;
+        bumpHeight: number;
+        innerRadius: number;
+        filled: boolean;
+    },
 ) {
-    ctx.lineWidth = strokeWidth;
-    ctx.lineJoin = "miter";
-    ctx.lineCap = "round";
-
+    const cx = x + w / 2;
+    const cy = y + h / 2;
     const rx = w / 2;
     const ry = h / 2;
-    const cx = x + rx;
-    const cy = y + ry;
-    const baseRadius = Math.min(rx, ry);
+    const rand = seededRandom(seed);
+    const { lineCount, lineLength, lineSpacing, lineThickness, bumpCount, bumpHeight, innerRadius, filled } = opts;
 
-    const baseCount = bubble.flashLineCount ?? 18;
-    let spikes = baseCount;
-    if (style === "flash_dense") spikes = baseCount + 8;
-    else if (style === "flash_urchin") spikes = baseCount + 12;
-    else if (style === "flash_pop") spikes = Math.max(6, baseCount - 6);
+    if (style === "flash_urchin" || style === "flash_black") {
+        ctx.beginPath();
+        const spikes = bumpCount * 2;
+        for (let i = 0; i <= spikes; i++) {
+            const angle = (i / spikes) * Math.PI * 2;
+            const isOuter = i % 2 === 0;
+            const r = isOuter ? 1 + bumpHeight / 100 : 1 - bumpHeight / 200;
+            const px = cx + rx * r * Math.cos(angle);
+            const py = cy + ry * r * Math.sin(angle);
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fillStyle = style === "flash_black" ? "#222" : "#ffffff";
+        ctx.fill();
+        if (style !== "flash_black") {
+            ctx.strokeStyle = "#222";
+            ctx.lineWidth = sw;
+            ctx.stroke();
+        }
+    }
 
-    const innerRadius = bubble.flashInnerRadius ?? baseRadius * 0.55;
-    const bumpHeight = bubble.flashBumpHeight ?? baseRadius * 0.25;
-    const rand = seededRandom(seed + 37);
+    if (style !== "flash_urchin") {
+        const actualCount = style === "flash_dense" ? Math.round(lineCount / lineSpacing) : lineCount;
+
+        for (let i = 0; i < actualCount; i++) {
+            const angle = (i / actualCount) * Math.PI * 2;
+            const lenVariance =
+                style === "flash_pop"
+                    ? rand() * lineLength
+                    : lineLength * (0.7 + rand() * 0.6);
+
+            const startR = style === "flash_black" ? 1 : innerRadius;
+            const startX = cx + rx * startR * Math.cos(angle);
+            const startY = cy + ry * startR * Math.sin(angle);
+
+            if (style === "flash_pop") {
+                const dotSize = lineThickness * (0.5 + rand() * 1.5);
+                const dist = innerRadius * ((rx + ry) / 2) + rand() * lenVariance;
+                ctx.beginPath();
+                ctx.arc(
+                    cx + dist * Math.cos(angle),
+                    cy + dist * Math.sin(angle),
+                    dotSize,
+                    0,
+                    Math.PI * 2,
+                );
+                ctx.fillStyle = "#222";
+                ctx.fill();
+            } else {
+                const endX = cx + (rx * startR + lenVariance) * Math.cos(angle);
+                const endY = cy + (ry * startR + lenVariance) * Math.sin(angle);
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(endX, endY);
+                ctx.lineWidth = lineThickness;
+                ctx.strokeStyle = "#222";
+                ctx.lineCap = "round";
+                ctx.stroke();
+            }
+        }
+    }
 
     ctx.beginPath();
-    for (let i = 0; i <= spikes * 2; i++) {
-        const t = i / (spikes * 2);
-        const angle = t * Math.PI * 2;
-        const isOuter = i % 2 === 0;
-        const baseR = isOuter ? baseRadius : innerRadius;
-        const jitter = (rand() - 0.5) * bumpHeight;
-        const r = baseR + jitter;
-        const px = cx + Math.cos(angle) * r;
-        const py = cy + Math.sin(angle) * r;
-        if (i === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
-    }
-    ctx.closePath();
+    ctx.ellipse(cx, cy, rx * innerRadius, ry * innerRadius, 0, 0, Math.PI * 2);
+    ctx.fillStyle = filled ? "#ffffff" : "transparent";
+    if (filled) ctx.fill();
+    ctx.strokeStyle = "#222";
+    ctx.lineWidth = sw;
+    ctx.stroke();
 }
 
 function drawCloudPath(
@@ -522,8 +574,17 @@ function drawBubbleFillOnly(ctx: CanvasRenderingContext2D, bubble: SpeechBubble)
         case "flash_dense":
         case "flash_urchin":
         case "flash_pop":
-            drawFlashPath(ctx, x, y, w, h, sw, seed, bubble, style);
-            break;
+            drawFlashStyle(ctx, x, y, w, h, sw, seed, style, {
+                lineCount: bubble.flashLineCount ?? 24,
+                lineLength: bubble.flashLineLength ?? 30,
+                lineSpacing: bubble.flashLineSpacing ?? 0.3,
+                lineThickness: bubble.flashLineThickness ?? sw * 0.8,
+                bumpCount: bubble.flashBumpCount ?? 24,
+                bumpHeight: bubble.flashBumpHeight ?? 10,
+                innerRadius: bubble.flashInnerRadius ?? 0.65,
+                filled: bubble.flashFilled ?? true,
+            });
+            return;
         case "cloud":
             drawCloudPath(ctx, x, y, w, h, sw, seed, bubble);
             break;
@@ -587,8 +648,17 @@ function drawBubbleStrokeOnly(ctx: CanvasRenderingContext2D, bubble: SpeechBubbl
         case "flash_dense":
         case "flash_urchin":
         case "flash_pop":
-            drawFlashPath(ctx, x, y, w, h, sw, seed, bubble, style);
-            break;
+            drawFlashStyle(ctx, x, y, w, h, sw, seed, style, {
+                lineCount: bubble.flashLineCount ?? 24,
+                lineLength: bubble.flashLineLength ?? 30,
+                lineSpacing: bubble.flashLineSpacing ?? 0.3,
+                lineThickness: bubble.flashLineThickness ?? sw * 0.8,
+                bumpCount: bubble.flashBumpCount ?? 24,
+                bumpHeight: bubble.flashBumpHeight ?? 10,
+                innerRadius: bubble.flashInnerRadius ?? 0.65,
+                filled: bubble.flashFilled ?? true,
+            });
+            return;
         case "cloud":
             drawCloudPath(ctx, x, y, w, h, sw, seed, bubble);
             break;
@@ -723,8 +793,17 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
                 case "flash_dense":
                 case "flash_urchin":
                 case "flash_pop":
-                    drawFlashPath(ctx, x, y, w, h, sw, seed, bubble, style);
-                    break;
+                    drawFlashStyle(ctx, x, y, w, h, sw, seed, style, {
+                        lineCount: bubble.flashLineCount ?? 24,
+                        lineLength: bubble.flashLineLength ?? 30,
+                        lineSpacing: bubble.flashLineSpacing ?? 0.3,
+                        lineThickness: bubble.flashLineThickness ?? sw * 0.8,
+                        bumpCount: bubble.flashBumpCount ?? 24,
+                        bumpHeight: bubble.flashBumpHeight ?? 10,
+                        innerRadius: bubble.flashInnerRadius ?? 0.65,
+                        filled: bubble.flashFilled ?? true,
+                    });
+                    return;
                 case "cloud":
                     drawCloudPath(ctx, x, y, w, h, sw, seed, bubble);
                     break;
