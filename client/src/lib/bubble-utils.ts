@@ -387,30 +387,38 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
         const rx = bubble.width / 2;
         const ry = bubble.height / 2;
 
-        const angleA = Math.atan2(geo.baseAy - cy, geo.baseAx - cx);
-        const angleB = Math.atan2(geo.baseBy - cy, geo.baseBx - cx);
+        // ★ 핵심 수정: 타원 파라메트릭 각도로 계산해야 ellipse()가 정확히 동작함
+        // 일반 atan2(y-cy, x-cx)는 원 기준이라 타원에서 점이 어긋남
+        const angleA = Math.atan2((geo.baseAy - cy) / ry, (geo.baseAx - cx) / rx);
+        const angleB = Math.atan2((geo.baseBy - cy) / ry, (geo.baseBx - cx) / rx);
+
         const baseCx = (geo.baseAx + geo.baseBx) / 2;
         const baseCy = (geo.baseAy + geo.baseBy) / 2;
-
         const pull = 0.97;
         const tipPull = 0.6;
 
-        const cp1x = bubble.tailCtrl1X ?? (geo.baseAx + (baseCx - geo.baseAx) * pull);
-        const cp1y = bubble.tailCtrl1Y ?? (geo.baseAy + (baseCy - geo.baseAy) * pull);
-        const cp2x = bubble.tailCtrl2X ?? (geo.tipX + (baseCx - geo.tipX) * tipPull);
-        const cp2y = bubble.tailCtrl2Y ?? (geo.tipY + (baseCy - geo.tipY) * tipPull);
-
-        const c1 = { x: cp1x, y: cp1y };
-        const c2 = { x: cp2x, y: cp2y };
-        const c3 = { x: cp2x, y: cp2y };
+        // 왼쪽 곡선 control points (tailCtrl1 저장값 우선)
+        const c1 = {
+            x: bubble.tailCtrl1X ?? (geo.baseAx + (baseCx - geo.baseAx) * pull),
+            y: bubble.tailCtrl1Y ?? (geo.baseAy + (baseCy - geo.baseAy) * pull),
+        };
+        const c2 = {
+            x: bubble.tailCtrl2X ?? (geo.tipX + (baseCx - geo.tipX) * tipPull),
+            y: bubble.tailCtrl2Y ?? (geo.tipY + (baseCy - geo.tipY) * tipPull),
+        };
+        // 오른쪽 곡선 control points (c2와 대칭, 별도 저장값 없으면 미러)
+        const c3 = { x: c2.x, y: c2.y };
         const c4 = {
             x: geo.baseBx + (baseCx - geo.baseBx) * pull,
             y: geo.baseBy + (baseCy - geo.baseBy) * pull,
         };
 
         ctx.beginPath();
+        // angleB → angleA 반시계 방향으로 타원 그리기
         ctx.ellipse(cx, cy, rx, ry, 0, angleB, angleA, true);
+        // baseA → tip
         ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, geo.tipX, geo.tipY);
+        // tip → baseB
         ctx.bezierCurveTo(c3.x, c3.y, c4.x, c4.y, geo.baseBx, geo.baseBy);
         ctx.closePath();
 
@@ -534,6 +542,12 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
 
         if (bubble.tailStyle !== "none") {
             const geo = getTailGeometry(bubble);
+            const baseCx = (geo.baseAx + geo.baseBx) / 2;
+            const baseCy = (geo.baseAy + geo.baseBy) / 2;
+            const pull = 0.97;
+            const tipPull = 0.6;
+
+            // tip 핸들 (파란 원)
             ctx.beginPath();
             ctx.arc(geo.tipX, geo.tipY, 7, 0, Math.PI * 2);
             ctx.fillStyle = "rgba(255,255,255,0.96)";
@@ -541,6 +555,39 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
             ctx.strokeStyle = "hsl(173, 80%, 45%)";
             ctx.lineWidth = 2;
             ctx.stroke();
+
+            // control point 핸들 (노란 마름모 2개)
+            const cp1x = bubble.tailCtrl1X ?? (geo.baseAx + (baseCx - geo.baseAx) * pull);
+            const cp1y = bubble.tailCtrl1Y ?? (geo.baseAy + (baseCy - geo.baseAy) * pull);
+            const cp2x = bubble.tailCtrl2X ?? (geo.tipX + (baseCx - geo.tipX) * tipPull);
+            const cp2y = bubble.tailCtrl2Y ?? (geo.tipY + (baseCy - geo.tipY) * tipPull);
+
+            // 가이드 선 (control point → 연결점)
+            ctx.setLineDash([3, 3]);
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = "rgba(255,220,0,0.6)";
+            ctx.beginPath();
+            ctx.moveTo(geo.baseAx, geo.baseAy);
+            ctx.lineTo(cp1x, cp1y);
+            ctx.moveTo(geo.tipX, geo.tipY);
+            ctx.lineTo(cp2x, cp2y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            [{ x: cp1x, y: cp1y, mode: "tail-ctrl1" }, { x: cp2x, y: cp2y, mode: "tail-ctrl2" }]
+                .forEach(({ x, y }) => {
+                    ctx.beginPath();
+                    ctx.moveTo(x, y - 7);
+                    ctx.lineTo(x + 7, y);
+                    ctx.lineTo(x, y + 7);
+                    ctx.lineTo(x - 7, y);
+                    ctx.closePath();
+                    ctx.fillStyle = "rgba(255,220,0,0.95)";
+                    ctx.fill();
+                    ctx.strokeStyle = "hsl(173, 80%, 45%)";
+                    ctx.lineWidth = 1.8;
+                    ctx.stroke();
+                });
         }
     }
 
