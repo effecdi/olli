@@ -2118,6 +2118,33 @@ function EditorPanel({
     });
   };
 
+  const handleFlipTailHorizontally = () => {
+    if (!selectedBubble) return;
+    const b = selectedBubble;
+    if (b.tailStyle === "none") return;
+
+    const cx = b.x + b.width / 2;
+    const defaultTip = getDefaultTailTip(b);
+    const origTipX = b.tailTipX ?? defaultTip?.x ?? cx;
+    const origTipY = b.tailTipY ?? defaultTip?.y ?? (b.y + b.height);
+
+    const updates: Partial<SpeechBubble> = {
+      tailTipX: 2 * cx - origTipX,
+      tailTipY: origTipY,
+    };
+
+    if (typeof b.tailCtrl1X === "number" && typeof b.tailCtrl1Y === "number") {
+      updates.tailCtrl1X = 2 * cx - b.tailCtrl1X;
+      updates.tailCtrl1Y = b.tailCtrl1Y;
+    }
+    if (typeof b.tailCtrl2X === "number" && typeof b.tailCtrl2Y === "number") {
+      updates.tailCtrl2X = 2 * cx - b.tailCtrl2X;
+      updates.tailCtrl2Y = b.tailCtrl2Y;
+    }
+
+    updateBubble(b.id, updates);
+  };
+
   const addBubble = () => {
     if (!canBubbleEdit) return;
     const used = getDailyCount("story-bubble");
@@ -2787,107 +2814,48 @@ function EditorPanel({
               </div>
             )}
             {selectedBubble.tailStyle !== "none" && (
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                <div>
-                  <Label className="text-[13px] mb-1 block">말꼬리 길이</Label>
-                  <Slider
-                    value={[selectedBubble.tailLength ?? (selectedBubble.tailStyle === "long" ? 50 : 25)]}
-                    onValueChange={([v]) =>
-                      updateBubble(selectedBubble.id, {
-                        tailLength: v,
-                        tailTipX: undefined,
-                        tailTipY: undefined,
-                      })
-                    }
-                    min={10}
-                    max={150}
-                    step={2}
-                    data-testid="slider-tail-length"
-                  />
-                </div>
-                <div>
-                  <Label className="text-[13px] mb-1 block">말꼬리 폭</Label>
-                  <Slider
-                    value={[selectedBubble.tailBaseSpread ?? 8]}
-                    onValueChange={([v]) =>
-                      updateBubble(selectedBubble.id, {
-                        tailBaseSpread: v,
-                        tailCtrl1X: undefined,
-                        tailCtrl1Y: undefined,
-                        tailCtrl2X: undefined,
-                        tailCtrl2Y: undefined,
-                      })
-                    }
-                    min={4}
-                    max={40}
-                    step={1}
-                    data-testid="slider-tail-spread"
-                  />
-                </div>
-                <div>
-                  <Label className="text-[13px] mb-1 block">곡률</Label>
-                  <Slider
-                    value={[selectedBubble.tailCurve ?? 0.5]}
-                    onValueChange={([v]) =>
-                      updateBubble(selectedBubble.id, {
-                        tailCurve: v,
-                        tailCtrl1X: undefined,
-                        tailCtrl1Y: undefined,
-                        tailCtrl2X: undefined,
-                        tailCtrl2Y: undefined,
-                      })
-                    }
-                    min={0}
-                    max={1}
-                    step={0.02}
-                    data-testid="slider-tail-curve"
-                  />
-                </div>
-                <div>
-                  <Label className="text-[13px] mb-1 block">랜덤 흔들림</Label>
-                  <Slider
-                    value={[selectedBubble.tailJitter ?? 1]}
-                    onValueChange={([v]) =>
-                      updateBubble(selectedBubble.id, { tailJitter: v })
-                    }
-                    min={0}
-                    max={3}
-                    step={0.1}
-                    data-testid="slider-tail-jitter"
-                  />
-                </div>
-                {selectedBubble.tailStyle.startsWith("dots_") && (
-                  <>
-                    <div>
-                      <Label className="text-[13px] mb-1 block">점 크기 배율</Label>
-                      <Slider
-                        value={[selectedBubble.dotsScale ?? 1]}
-                        onValueChange={([v]) =>
-                          updateBubble(selectedBubble.id, { dotsScale: v })
-                        }
-                        min={0.5}
-                        max={1.5}
-                        step={0.05}
-                        data-testid="slider-dots-scale"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-[13px] mb-1 block">점 간격 배율</Label>
-                      <Slider
-                        value={[selectedBubble.dotsSpacing ?? 1]}
-                        onValueChange={([v]) =>
-                          updateBubble(selectedBubble.id, { dotsSpacing: v })
-                        }
-                        min={0.5}
-                        max={1.5}
-                        step={0.05}
-                        data-testid="slider-dots-spacing"
-                      />
-                    </div>
-                  </>
-                )}
+              <div className="flex justify-end mt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleFlipTailHorizontally}
+                >
+                  꼬리 좌우 반전
+                </Button>
               </div>
             )}
+            {selectedBubble.tailStyle !== "none" &&
+              selectedBubble.tailStyle.startsWith("dots_") && (
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <div>
+                    <Label className="text-[13px] mb-1 block">점 크기 배율</Label>
+                    <Slider
+                      value={[selectedBubble.dotsScale ?? 1]}
+                      onValueChange={([v]) =>
+                        updateBubble(selectedBubble.id, { dotsScale: v })
+                      }
+                      min={0.5}
+                      max={1.5}
+                      step={0.05}
+                      data-testid="slider-dots-scale"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[13px] mb-1 block">점 간격 배율</Label>
+                    <Slider
+                      value={[selectedBubble.dotsSpacing ?? 1]}
+                      onValueChange={([v]) =>
+                        updateBubble(selectedBubble.id, { dotsSpacing: v })
+                      }
+                      min={0.5}
+                      max={1.5}
+                      step={0.05}
+                      data-testid="slider-dots-spacing"
+                    />
+                  </div>
+                </div>
+              )}
           </div>
 
           <div>
