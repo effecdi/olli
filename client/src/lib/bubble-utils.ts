@@ -376,40 +376,38 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
         const geo = getTailGeometry(bubble);
         const baseCx = (geo.baseAx + geo.baseBx) / 2;
         const baseCy = (geo.baseAy + geo.baseBy) / 2;
-        const dx = baseCx - geo.tipX;
-        const dy = baseCy - geo.tipY;
-        const len = Math.hypot(dx, dy) || 1;
-        const ux = dx / len;
-        const uy = dy / len;
-        const px = -uy;
-        const py = ux;
-        const scale = len / 50;
 
-        const mapPoint = (lx: number, ly: number) => {
-            const sx = lx * scale;
-            const sy = ly * scale;
-            return {
-                x: geo.tipX + sx * px - sy * ux,
-                y: geo.tipY + sx * py - sy * uy,
-            };
+        const pA = { x: geo.baseAx, y: geo.baseAy };
+        const pB = { x: geo.baseBx, y: geo.baseBy };
+        const pTip = { x: geo.tipX, y: geo.tipY };
+
+        const pull = 0.75;
+
+        const c1 = {
+            x: pA.x + (baseCx - pA.x) * pull,
+            y: pA.y + (baseCy - pA.y) * pull,
+        };
+        const c2 = {
+            x: pTip.x + (baseCx - pTip.x) * 0.15,
+            y: pTip.y + (baseCy - pTip.y) * 0.15,
         };
 
-        const p0 = mapPoint(0, 0);
-        const c1 = mapPoint(-8, -15);
-        const c2 = mapPoint(-3, -35);
-        const p1 = mapPoint(0, -50);
-        const c3 = mapPoint(3, -35);
-        const c4 = mapPoint(8, -15);
-        const p2 = mapPoint(0, 0);
+        const c3 = {
+            x: pTip.x + (baseCx - pTip.x) * 0.15,
+            y: pTip.y + (baseCy - pTip.y) * 0.15,
+        };
+        const c4 = {
+            x: pB.x + (baseCx - pB.x) * pull,
+            y: pB.y + (baseCy - pB.y) * pull,
+        };
 
         ctx.beginPath();
-        ctx.moveTo(p0.x, p0.y);
-        ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, p1.x, p1.y);
-        ctx.bezierCurveTo(c3.x, c3.y, c4.x, c4.y, p2.x, p2.y);
+        ctx.moveTo(pA.x, pA.y);
+        ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, pTip.x, pTip.y);
+        ctx.bezierCurveTo(c3.x, c3.y, c4.x, c4.y, pB.x, pB.y);
         ctx.closePath();
         ctx.fillStyle = "#ffffff";
         ctx.fill();
-
         ctx.lineWidth = sw;
         ctx.lineJoin = "round";
         ctx.lineCap = "round";
