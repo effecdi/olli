@@ -384,14 +384,16 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
         const curvePull = bubble.tailCurve ?? 0.5;
         const baseMidX = (geo.baseAx + geo.baseBx) / 2;
         const baseMidY = (geo.baseAy + geo.baseBy) / 2;
+        const jitter = bubble.tailJitter ?? 0;
+        const rand = seededRandom(bubble.seed + 999);
 
         const c1 = {
-            x: geo.baseAx + (baseMidX - geo.baseAx) * (0.5 + curvePull * 0.45),
-            y: geo.baseAy + (baseMidY - geo.baseAy) * (0.5 + curvePull * 0.45),
+            x: geo.baseAx + (baseMidX - geo.baseAx) * (0.5 + curvePull * 0.45) + (rand() - 0.5) * jitter * 10,
+            y: geo.baseAy + (baseMidY - geo.baseAy) * (0.5 + curvePull * 0.45) + (rand() - 0.5) * jitter * 10,
         };
         const c2 = {
-            x: geo.tipX + (baseMidX - geo.tipX) * 0.3,
-            y: geo.tipY + (baseMidY - geo.tipY) * 0.3,
+            x: geo.tipX + (baseMidX - geo.tipX) * 0.3 + (rand() - 0.5) * jitter * 10,
+            y: geo.tipY + (baseMidY - geo.tipY) * 0.3 + (rand() - 0.5) * jitter * 10,
         };
         const c3 = { x: c2.x, y: c2.y };
         const c4 = {

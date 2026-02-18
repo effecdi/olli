@@ -108,7 +108,9 @@ type DragMode =
   | "move-script-bottom"
   | "resize-script-top"
   | "resize-script-bottom"
-  | "move-tail";
+  | "move-tail"
+  | "tail-ctrl1"
+  | "tail-ctrl2";
 
 const SCRIPT_STYLE_OPTIONS: { value: ScriptStyle; label: string }[] = [
   { value: "filled", label: "채움" },
@@ -1156,6 +1158,19 @@ function PanelCanvas({
         if (Math.abs(x - geo.tipX) < hs && Math.abs(y - geo.tipY) < hs) {
           return "move-tail";
         }
+        const baseMidX = (geo.baseAx + geo.baseBx) / 2;
+        const baseMidY = (geo.baseAy + geo.baseBy) / 2;
+        const pull = 0.5 + (b.tailCurve ?? 0.5) * 0.45;
+        const tipPull = 0.3;
+
+        const cp1x = b.tailCtrl1X ?? (geo.baseAx + (baseMidX - geo.baseAx) * pull);
+        const cp1y = b.tailCtrl1Y ?? (geo.baseAy + (baseMidY - geo.baseAy) * pull);
+        const cp2x = b.tailCtrl2X ?? (geo.tipX + (baseMidX - geo.tipX) * tipPull);
+        const cp2y = b.tailCtrl2Y ?? (geo.tipY + (baseMidY - geo.tipY) * tipPull);
+
+        const hitRadius = 12;
+        if (Math.hypot(x - cp1x, y - cp1y) < hitRadius) return "tail-ctrl1";
+        if (Math.hypot(x - cp2x, y - cp2y) < hitRadius) return "tail-ctrl2";
       }
 
       const handles: { mode: DragMode; hx: number; hy: number }[] = [
@@ -1584,7 +1599,11 @@ function PanelCanvas({
       const bs = dragBubbleStartRef.current;
       const minSize = 40;
 
-      if (mode === "move-tail") {
+      if (mode === "tail-ctrl1") {
+        updateBubbleInPanel(sid, { tailCtrl1X: pos.x, tailCtrl1Y: pos.y });
+      } else if (mode === "tail-ctrl2") {
+        updateBubbleInPanel(sid, { tailCtrl2X: pos.x, tailCtrl2Y: pos.y });
+      } else if (mode === "move-tail") {
         updateBubbleInPanel(sid, { tailTipX: pos.x, tailTipY: pos.y });
       } else if (mode === "move") {
         updateBubbleInPanel(sid, { x: bs.x + dx, y: bs.y + dy });
@@ -2730,6 +2749,12 @@ function EditorPanel({
                   onValueChange={(v) =>
                     updateBubble(selectedBubble.id, {
                       tailDirection: v as SpeechBubble["tailDirection"],
+                      tailTipX: undefined,
+                      tailTipY: undefined,
+                      tailCtrl1X: undefined,
+                      tailCtrl1Y: undefined,
+                      tailCtrl2X: undefined,
+                      tailCtrl2Y: undefined,
                     })
                   }
                 >
@@ -2752,10 +2777,14 @@ function EditorPanel({
                   <Slider
                     value={[selectedBubble.tailLength ?? (selectedBubble.tailStyle === "long" ? 50 : 25)]}
                     onValueChange={([v]) =>
-                      updateBubble(selectedBubble.id, { tailLength: v })
+                      updateBubble(selectedBubble.id, {
+                        tailLength: v,
+                        tailTipX: undefined,
+                        tailTipY: undefined,
+                      })
                     }
                     min={10}
-                    max={120}
+                    max={150}
                     step={2}
                     data-testid="slider-tail-length"
                   />
@@ -2765,10 +2794,16 @@ function EditorPanel({
                   <Slider
                     value={[selectedBubble.tailBaseSpread ?? 8]}
                     onValueChange={([v]) =>
-                      updateBubble(selectedBubble.id, { tailBaseSpread: v })
+                      updateBubble(selectedBubble.id, {
+                        tailBaseSpread: v,
+                        tailCtrl1X: undefined,
+                        tailCtrl1Y: undefined,
+                        tailCtrl2X: undefined,
+                        tailCtrl2Y: undefined,
+                      })
                     }
                     min={4}
-                    max={20}
+                    max={40}
                     step={1}
                     data-testid="slider-tail-spread"
                   />
@@ -2778,10 +2813,16 @@ function EditorPanel({
                   <Slider
                     value={[selectedBubble.tailCurve ?? 0.5]}
                     onValueChange={([v]) =>
-                      updateBubble(selectedBubble.id, { tailCurve: v })
+                      updateBubble(selectedBubble.id, {
+                        tailCurve: v,
+                        tailCtrl1X: undefined,
+                        tailCtrl1Y: undefined,
+                        tailCtrl2X: undefined,
+                        tailCtrl2Y: undefined,
+                      })
                     }
-                    min={0.2}
-                    max={0.8}
+                    min={0}
+                    max={1}
                     step={0.02}
                     data-testid="slider-tail-curve"
                   />
@@ -2794,7 +2835,7 @@ function EditorPanel({
                       updateBubble(selectedBubble.id, { tailJitter: v })
                     }
                     min={0}
-                    max={2}
+                    max={3}
                     step={0.1}
                     data-testid="slider-tail-jitter"
                   />

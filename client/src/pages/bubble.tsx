@@ -996,7 +996,15 @@ export default function BubblePage() {
                       <Select
                         value={selectedBubble.tailDirection}
                         onValueChange={(v: any) =>
-                          updateBubble(selectedBubble.id, { tailDirection: v })
+                          updateBubble(selectedBubble.id, {
+                            tailDirection: v,
+                            tailTipX: undefined,
+                            tailTipY: undefined,
+                            tailCtrl1X: undefined,
+                            tailCtrl1Y: undefined,
+                            tailCtrl2X: undefined,
+                            tailCtrl2Y: undefined,
+                          })
                         }
                       >
                         <SelectTrigger>
@@ -1022,10 +1030,14 @@ export default function BubblePage() {
                           (selectedBubble.tailStyle === "long" ? 50 : 25),
                         ]}
                         onValueChange={([v]) =>
-                          updateBubble(selectedBubble.id, { tailLength: v })
+                          updateBubble(selectedBubble.id, {
+                            tailLength: v,
+                            tailTipX: undefined,
+                            tailTipY: undefined,
+                          })
                         }
                         min={10}
-                        max={120}
+                        max={150}
                         step={2}
                       />
                     </div>
@@ -1034,10 +1046,16 @@ export default function BubblePage() {
                       <Slider
                         value={[selectedBubble.tailBaseSpread ?? 8]}
                         onValueChange={([v]) =>
-                          updateBubble(selectedBubble.id, { tailBaseSpread: v })
+                          updateBubble(selectedBubble.id, {
+                            tailBaseSpread: v,
+                            tailCtrl1X: undefined,
+                            tailCtrl1Y: undefined,
+                            tailCtrl2X: undefined,
+                            tailCtrl2Y: undefined,
+                          })
                         }
                         min={4}
-                        max={20}
+                        max={40}
                         step={1}
                       />
                     </div>
@@ -1046,10 +1064,16 @@ export default function BubblePage() {
                       <Slider
                         value={[selectedBubble.tailCurve ?? 0.5]}
                         onValueChange={([v]) =>
-                          updateBubble(selectedBubble.id, { tailCurve: v })
+                          updateBubble(selectedBubble.id, {
+                            tailCurve: v,
+                            tailCtrl1X: undefined,
+                            tailCtrl1Y: undefined,
+                            tailCtrl2X: undefined,
+                            tailCtrl2Y: undefined,
+                          })
                         }
-                        min={0.2}
-                        max={0.8}
+                        min={0}
+                        max={1}
                         step={0.02}
                       />
                     </div>
@@ -1061,7 +1085,7 @@ export default function BubblePage() {
                           updateBubble(selectedBubble.id, { tailJitter: v })
                         }
                         min={0}
-                        max={2}
+                        max={3}
                         step={0.1}
                       />
                     </div>

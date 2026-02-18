@@ -82,20 +82,19 @@ export function BubbleCanvas({
             if (Math.abs(x - geo.tipX) < hs && Math.abs(y - geo.tipY) < hs) {
                 return "move-tail";
             }
-            const baseCx = (geo.baseAx + geo.baseBx) / 2;
-            const baseCy = (geo.baseAy + geo.baseBy) / 2;
-            const pull = 0.97;
-            const tipPull = 0.6;
-            const cp1x = b.tailCtrl1X ?? (geo.baseAx + (baseCx - geo.baseAx) * pull);
-            const cp1y = b.tailCtrl1Y ?? (geo.baseAy + (baseCy - geo.baseAy) * pull);
-            const cp2x = b.tailCtrl2X ?? (geo.tipX + (baseCx - geo.tipX) * tipPull);
-            const cp2y = b.tailCtrl2Y ?? (geo.tipY + (baseCy - geo.tipY) * tipPull);
-            if (Math.abs(x - cp1x) < hs && Math.abs(y - cp1y) < hs) {
-                return "tail-ctrl1";
-            }
-            if (Math.abs(x - cp2x) < hs && Math.abs(y - cp2y) < hs) {
-                return "tail-ctrl2";
-            }
+            const baseMidX = (geo.baseAx + geo.baseBx) / 2;
+            const baseMidY = (geo.baseAy + geo.baseBy) / 2;
+            const pull = 0.5 + (b.tailCurve ?? 0.5) * 0.45;
+            const tipPull = 0.3;
+
+            const cp1x = b.tailCtrl1X ?? (geo.baseAx + (baseMidX - geo.baseAx) * pull);
+            const cp1y = b.tailCtrl1Y ?? (geo.baseAy + (baseMidY - geo.baseAy) * pull);
+            const cp2x = b.tailCtrl2X ?? (geo.tipX + (baseMidX - geo.tipX) * tipPull);
+            const cp2y = b.tailCtrl2Y ?? (geo.tipY + (baseMidY - geo.tipY) * tipPull);
+
+            const hitRadius = 12;
+            if (Math.hypot(x - cp1x, y - cp1y) < hitRadius) return "tail-ctrl1";
+            if (Math.hypot(x - cp2x, y - cp2y) < hitRadius) return "tail-ctrl2";
         }
 
         const handles: { mode: DragMode; hx: number; hy: number }[] = [
