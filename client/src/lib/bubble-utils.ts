@@ -1074,12 +1074,18 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
     }
 
     if (bubble.text) {
-        ctx.fillStyle = "#222";
+        const isFlash =
+            style === "flash_black" || style === "flash_normal" || style === "flash_dense";
+        const textColor = style === "flash_black" ? "#ffffff" : "#222";
+
+        ctx.fillStyle = textColor;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.font = `${bubble.fontSize}px ${getFontFamily(bubble.fontKey)}`;
         const padding = 10;
-        const maxTextW = w - padding * 2;
+        const innerRadius = isFlash ? (bubble.flashInnerRadius ?? 0.65) : 1;
+        const contentWidth = w * innerRadius;
+        const maxTextW = contentWidth - padding * 2;
         const rawLines = bubble.text.split("\n");
         const wrappedLines: string[] = [];
         rawLines.forEach((rawLine) => {
