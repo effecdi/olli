@@ -370,10 +370,8 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
         if (!isDoubleLine) {
             ctx.fillStyle = "#ffffff";
             ctx.fill();
-            if (!hasTail) {
-                ctx.strokeStyle = "#222";
-                ctx.stroke();
-            }
+            ctx.strokeStyle = "#222";
+            ctx.stroke();
         } else {
             ctx.strokeStyle = "#222";
             ctx.stroke();
@@ -382,22 +380,11 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
 
     if (hasTail) {
         const geo = getTailGeometry(bubble);
-        const cx = bubble.x + bubble.width / 2;
-        const cy = bubble.y + bubble.height / 2;
-        const rx = bubble.width / 2;
-        const ry = bubble.height / 2;
-
-        // ★ 핵심 수정: 타원 파라메트릭 각도로 계산해야 ellipse()가 정확히 동작함
-        // 일반 atan2(y-cy, x-cx)는 원 기준이라 타원에서 점이 어긋남
-        const angleA = Math.atan2((geo.baseAy - cy) / ry, (geo.baseAx - cx) / rx);
-        const angleB = Math.atan2((geo.baseBy - cy) / ry, (geo.baseBx - cx) / rx);
-
         const baseCx = (geo.baseAx + geo.baseBx) / 2;
         const baseCy = (geo.baseAy + geo.baseBy) / 2;
         const pull = 0.97;
         const tipPull = 0.6;
 
-        // 왼쪽 곡선 control points (tailCtrl1 저장값 우선)
         const c1 = {
             x: bubble.tailCtrl1X ?? (geo.baseAx + (baseCx - geo.baseAx) * pull),
             y: bubble.tailCtrl1Y ?? (geo.baseAy + (baseCy - geo.baseAy) * pull),
@@ -406,24 +393,27 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
             x: bubble.tailCtrl2X ?? (geo.tipX + (baseCx - geo.tipX) * tipPull),
             y: bubble.tailCtrl2Y ?? (geo.tipY + (baseCy - geo.tipY) * tipPull),
         };
-        // 오른쪽 곡선 control points (c2와 대칭, 별도 저장값 없으면 미러)
         const c3 = { x: c2.x, y: c2.y };
         const c4 = {
             x: geo.baseBx + (baseCx - geo.baseBx) * pull,
             y: geo.baseBy + (baseCy - geo.baseBy) * pull,
         };
 
+        // STEP 1: 꼬리 전체 흰색으로 fill (바디 접합선 덮기)
         ctx.beginPath();
-        // angleB → angleA 반시계 방향으로 타원 그리기
-        ctx.ellipse(cx, cy, rx, ry, 0, angleB, angleA, true);
-        // baseA → tip
+        ctx.moveTo(geo.baseAx, geo.baseAy);
         ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, geo.tipX, geo.tipY);
-        // tip → baseB
         ctx.bezierCurveTo(c3.x, c3.y, c4.x, c4.y, geo.baseBx, geo.baseBy);
+        ctx.lineTo(geo.baseAx, geo.baseAy);
         ctx.closePath();
-
         ctx.fillStyle = "#ffffff";
         ctx.fill();
+
+        // STEP 2: 꼬리 외곽선만 stroke (베이스 선은 제외)
+        ctx.beginPath();
+        ctx.moveTo(geo.baseAx, geo.baseAy);
+        ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, geo.tipX, geo.tipY);
+        ctx.bezierCurveTo(c3.x, c3.y, c4.x, c4.y, geo.baseBx, geo.baseBy);
         ctx.lineWidth = sw;
         ctx.lineJoin = "round";
         ctx.lineCap = "round";
