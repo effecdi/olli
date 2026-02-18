@@ -86,6 +86,7 @@ type TailStyle =
   | "short"
   | "dots_handwritten"
   | "dots_linedrawing";
+type TailDrawMode = "bezier" | "straight" | "polyline" | "spline";
 type ScriptStyle = "filled" | "box" | "handwritten-box" | "no-bg" | "no-border";
 type DragMode =
   | null
@@ -231,6 +232,20 @@ interface SpeechBubble {
   tailCtrl2Y?: number;
   dotsScale?: number;
   dotsSpacing?: number;
+  tailDrawMode?: TailDrawMode;
+  tailPoints?: { x: number; y: number }[];
+  drawMode?: "both" | "fill_only" | "stroke_only";
+  fillColor?: string;
+  strokeColor?: string;
+  fillOpacity?: number;
+  flashLineCount?: number;
+  flashLineLength?: number;
+  flashLineSpacing?: number;
+  flashLineThickness?: number;
+  flashBumpCount?: number;
+  flashBumpHeight?: number;
+  flashInnerRadius?: number;
+  flashFilled?: boolean;
   strokeWidth: number;
   wobble: number;
   fontSize: number;

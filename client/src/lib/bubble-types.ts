@@ -1,5 +1,25 @@
-export type BubbleStyle = "handwritten" | "linedrawing" | "wobbly" | "thought" | "shout" | "rectangle" | "rounded" | "doubleline" | "wavy" | "image";
+export type BubbleStyle =
+    | "handwritten"
+    | "linedrawing"
+    | "wobbly"
+    | "thought"
+    | "shout"
+    | "rectangle"
+    | "rounded"
+    | "doubleline"
+    | "wavy"
+    | "image"
+    | "flash_black"
+    | "flash_normal"
+    | "flash_dense"
+    | "flash_urchin"
+    | "flash_pop"
+    | "cloud"
+    | "electric"
+    | "sticker";
 export type TailStyle = "none" | "long" | "short" | "dots_handwritten" | "dots_linedrawing";
+
+export type TailDrawMode = "bezier" | "straight" | "polyline" | "spline";
 
 export interface SpeechBubble {
     id: string;
@@ -24,6 +44,20 @@ export interface SpeechBubble {
     tailCtrl2Y?: number;
     dotsScale?: number;
     dotsSpacing?: number;
+    tailDrawMode?: TailDrawMode;
+    tailPoints?: { x: number; y: number }[];
+    drawMode?: "both" | "fill_only" | "stroke_only";
+    fillColor?: string;
+    strokeColor?: string;
+    fillOpacity?: number;
+    flashLineCount?: number;
+    flashLineLength?: number;
+    flashLineSpacing?: number;
+    flashLineThickness?: number;
+    flashBumpCount?: number;
+    flashBumpHeight?: number;
+    flashInnerRadius?: number;
+    flashFilled?: boolean;
     strokeWidth: number;
     wobble: number;
     fontSize: number;
