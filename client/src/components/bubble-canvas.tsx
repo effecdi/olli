@@ -75,12 +75,26 @@ export function BubbleCanvas({
     }, []);
 
     const getHandleAtPos = useCallback((x: number, y: number, b: SpeechBubble): DragMode => {
-        const hs = 10; // Handle size in canvas pixels
+        const hs = 10;
 
         if (b.tailStyle !== "none") {
             const geo = getTailGeometry(b);
             if (Math.abs(x - geo.tipX) < hs && Math.abs(y - geo.tipY) < hs) {
                 return "move-tail";
+            }
+            const baseCx = (geo.baseAx + geo.baseBx) / 2;
+            const baseCy = (geo.baseAy + geo.baseBy) / 2;
+            const pull = 0.97;
+            const tipPull = 0.6;
+            const cp1x = b.tailCtrl1X ?? (geo.baseAx + (baseCx - geo.baseAx) * pull);
+            const cp1y = b.tailCtrl1Y ?? (geo.baseAy + (baseCy - geo.baseAy) * pull);
+            const cp2x = b.tailCtrl2X ?? (geo.tipX + (baseCx - geo.tipX) * tipPull);
+            const cp2y = b.tailCtrl2Y ?? (geo.tipY + (baseCy - geo.tipY) * tipPull);
+            if (Math.abs(x - cp1x) < hs && Math.abs(y - cp1y) < hs) {
+                return "tail-ctrl1";
+            }
+            if (Math.abs(x - cp2x) < hs && Math.abs(y - cp2y) < hs) {
+                return "tail-ctrl2";
             }
         }
 
@@ -332,6 +346,8 @@ export function BubbleCanvas({
                             "resize-t": "n-resize", "resize-b": "s-resize",
                             "resize-l": "w-resize", "resize-r": "e-resize",
                             "move-tail": "crosshair",
+                            "tail-ctrl1": "pointer",
+                            "tail-ctrl2": "pointer",
                         };
                         canvas.style.cursor = cursorMap[handle] || "default";
                         return;
@@ -425,7 +441,13 @@ export function BubbleCanvas({
             return;
         }
 
-        if (mode === "move-tail" && sid) {
+        if ((mode === "tail-ctrl1" || mode === "tail-ctrl2") && sid) {
+            if (mode === "tail-ctrl1") {
+                onUpdateBubble(sid, { tailCtrl1X: pos.x, tailCtrl1Y: pos.y });
+            } else {
+                onUpdateBubble(sid, { tailCtrl2X: pos.x, tailCtrl2Y: pos.y });
+            }
+        } else if (mode === "move-tail" && sid) {
             onUpdateBubble(sid, { tailTipX: pos.x, tailTipY: pos.y });
         } else if (mode === "move" && sid) {
             onUpdateBubble(sid, { x: bs.x + dx, y: bs.y + dy });

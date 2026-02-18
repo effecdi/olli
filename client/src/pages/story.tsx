@@ -223,6 +223,10 @@ interface SpeechBubble {
   tailLength?: number;
   tailCurve?: number;
   tailJitter?: number;
+  tailCtrl1X?: number;
+  tailCtrl1Y?: number;
+  tailCtrl2X?: number;
+  tailCtrl2Y?: number;
   dotsScale?: number;
   dotsSpacing?: number;
   strokeWidth: number;
@@ -641,8 +645,10 @@ function drawBubble(
     if (!isDoubleLine) {
       ctx.fillStyle = "#ffffff";
       ctx.fill();
-      ctx.strokeStyle = "#222";
-      ctx.stroke();
+      if (!hasTail) {
+        ctx.strokeStyle = "#222";
+        ctx.stroke();
+      }
     } else {
       ctx.strokeStyle = "#222";
       ctx.stroke();
@@ -651,37 +657,36 @@ function drawBubble(
 
   if (hasTail) {
     const geo = getTailGeometry(bubble);
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const rx = w / 2;
+    const ry = h / 2;
+
+    const angleA = Math.atan2(geo.baseAy - cy, geo.baseAx - cx);
+    const angleB = Math.atan2(geo.baseBy - cy, geo.baseBx - cx);
     const baseCx = (geo.baseAx + geo.baseBx) / 2;
     const baseCy = (geo.baseAy + geo.baseBy) / 2;
 
-    const pA = { x: geo.baseAx, y: geo.baseAy };
-    const pB = { x: geo.baseBx, y: geo.baseBy };
-    const pTip = { x: geo.tipX, y: geo.tipY };
+    const pull = 0.97;
+    const tipPull = 0.6;
 
-    const pull = 0.75;
+    const cp1x = bubble.tailCtrl1X ?? (geo.baseAx + (baseCx - geo.baseAx) * pull);
+    const cp1y = bubble.tailCtrl1Y ?? (geo.baseAy + (baseCy - geo.baseAy) * pull);
+    const cp2x = bubble.tailCtrl2X ?? (geo.tipX + (baseCx - geo.tipX) * tipPull);
+    const cp2y = bubble.tailCtrl2Y ?? (geo.tipY + (baseCy - geo.tipY) * tipPull);
 
-    const c1 = {
-      x: pA.x + (baseCx - pA.x) * pull,
-      y: pA.y + (baseCy - pA.y) * pull,
-    };
-    const c2 = {
-      x: pTip.x + (baseCx - pTip.x) * 0.15,
-      y: pTip.y + (baseCy - pTip.y) * 0.15,
-    };
-
-    const c3 = {
-      x: pTip.x + (baseCx - pTip.x) * 0.15,
-      y: pTip.y + (baseCy - pTip.y) * 0.15,
-    };
+    const c1 = { x: cp1x, y: cp1y };
+    const c2 = { x: cp2x, y: cp2y };
+    const c3 = { x: cp2x, y: cp2y };
     const c4 = {
-      x: pB.x + (baseCx - pB.x) * pull,
-      y: pB.y + (baseCy - pB.y) * pull,
+      x: geo.baseBx + (baseCx - geo.baseBx) * pull,
+      y: geo.baseBy + (baseCy - geo.baseBy) * pull,
     };
 
     ctx.beginPath();
-    ctx.moveTo(pA.x, pA.y);
-    ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, pTip.x, pTip.y);
-    ctx.bezierCurveTo(c3.x, c3.y, c4.x, c4.y, pB.x, pB.y);
+    ctx.ellipse(cx, cy, rx, ry, 0, angleB, angleA, true);
+    ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, geo.tipX, geo.tipY);
+    ctx.bezierCurveTo(c3.x, c3.y, c4.x, c4.y, geo.baseBx, geo.baseBy);
     ctx.closePath();
     ctx.fillStyle = "#ffffff";
     ctx.fill();

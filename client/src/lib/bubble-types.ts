@@ -18,6 +18,10 @@ export interface SpeechBubble {
     tailLength?: number;
     tailCurve?: number;
     tailJitter?: number;
+    tailCtrl1X?: number;
+    tailCtrl1Y?: number;
+    tailCtrl2X?: number;
+    tailCtrl2Y?: number;
     dotsScale?: number;
     dotsSpacing?: number;
     strokeWidth: number;
@@ -47,7 +51,8 @@ export interface CharacterOverlay {
 }
 
 export type DragMode = null | "move" | "move-tail" | "resize-br" | "resize-bl" | "resize-tr" | "resize-tl" | "resize-r" | "resize-l" | "resize-t" | "resize-b"
-    | "char-move" | "char-resize-br" | "char-resize-bl" | "char-resize-tr" | "char-resize-tl" | "char-rotate";
+    | "char-move" | "char-resize-br" | "char-resize-bl" | "char-resize-tr" | "char-resize-tl" | "char-rotate"
+    | "tail-ctrl1" | "tail-ctrl2";
 
 export interface PageData {
     id: string;

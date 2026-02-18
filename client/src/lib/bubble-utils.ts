@@ -101,10 +101,11 @@ export function getDefaultTailTip(bubble: SpeechBubble) {
 }
 
 export function getTailGeometry(bubble: SpeechBubble) {
-    // bubble.tailDirection is not optional in interface but might be missing in partial
     const cx = bubble.x + bubble.width / 2;
     const cy = bubble.y + bubble.height / 2;
-    const defaultTip = getDefaultTailTip(bubble) || { x: cx + 10, y: bubble.y + bubble.height + 50 }; // fallback
+    const rx = bubble.width / 2;
+    const ry = bubble.height / 2;
+    const defaultTip = getDefaultTailTip(bubble) || { x: cx + 10, y: bubble.y + bubble.height + 50 };
     const tipX = bubble.tailTipX ?? defaultTip.x;
     const tipY = bubble.tailTipY ?? defaultTip.y;
 
@@ -112,16 +113,21 @@ export function getTailGeometry(bubble: SpeechBubble) {
     const perpAngle = angle + Math.PI / 2;
     const baseSpread = bubble.tailBaseSpread ?? 8;
 
-    const edgeX = cx + Math.cos(angle) * (bubble.width / 2);
-    const edgeY = cy + Math.sin(angle) * (bubble.height / 2);
+    const edgeX = cx + rx * Math.cos(angle);
+    const edgeY = cy + ry * Math.sin(angle);
 
-    const baseAx = edgeX + Math.cos(perpAngle) * baseSpread;
-    const baseAy = edgeY + Math.sin(perpAngle) * baseSpread;
-    const baseBx = edgeX - Math.cos(perpAngle) * baseSpread;
-    const baseBy = edgeY - Math.sin(perpAngle) * baseSpread;
+    const perpX = Math.cos(perpAngle) / rx;
+    const perpY = Math.sin(perpAngle) / ry;
+    const perpLen = Math.sqrt(perpX * perpX + perpY * perpY) || 1;
+    const normPerpX = Math.cos(perpAngle) / perpLen;
+    const normPerpY = Math.sin(perpAngle) / perpLen;
+
+    const baseAx = edgeX + normPerpX * baseSpread;
+    const baseAy = edgeY + normPerpY * baseSpread;
+    const baseBx = edgeX - normPerpX * baseSpread;
+    const baseBy = edgeY - normPerpY * baseSpread;
 
     const tailLen = Math.sqrt((tipX - cx) ** 2 + (tipY - cy) ** 2);
-
     return { tipX, tipY, baseAx, baseAy, baseBx, baseBy, tailLen };
 }
 
@@ -389,18 +395,14 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
         const pull = 0.97;
         const tipPull = 0.6;
 
-        const c1 = {
-            x: geo.baseAx + (baseCx - geo.baseAx) * pull,
-            y: geo.baseAy + (baseCy - geo.baseAy) * pull,
-        };
-        const c2 = {
-            x: geo.tipX + (baseCx - geo.tipX) * tipPull,
-            y: geo.tipY + (baseCy - geo.tipY) * tipPull,
-        };
-        const c3 = {
-            x: geo.tipX + (baseCx - geo.tipX) * tipPull,
-            y: geo.tipY + (baseCy - geo.tipY) * tipPull,
-        };
+        const cp1x = bubble.tailCtrl1X ?? (geo.baseAx + (baseCx - geo.baseAx) * pull);
+        const cp1y = bubble.tailCtrl1Y ?? (geo.baseAy + (baseCy - geo.baseAy) * pull);
+        const cp2x = bubble.tailCtrl2X ?? (geo.tipX + (baseCx - geo.tipX) * tipPull);
+        const cp2y = bubble.tailCtrl2Y ?? (geo.tipY + (baseCy - geo.tipY) * tipPull);
+
+        const c1 = { x: cp1x, y: cp1y };
+        const c2 = { x: cp2x, y: cp2y };
+        const c3 = { x: cp2x, y: cp2y };
         const c4 = {
             x: geo.baseBx + (baseCx - geo.baseBx) * pull,
             y: geo.baseBy + (baseCy - geo.baseBy) * pull,
