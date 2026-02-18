@@ -762,14 +762,27 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
         const jitter = bubble.tailJitter ?? 0;
         const rand = seededRandom(bubble.seed + 999);
 
-        const c1 = {
-            x: geo.baseAx + (baseMidX - geo.baseAx) * (0.5 + curvePull * 0.45) + (rand() - 0.5) * jitter * 10,
-            y: geo.baseAy + (baseMidY - geo.baseAy) * (0.5 + curvePull * 0.45) + (rand() - 0.5) * jitter * 10,
-        };
-        const c2 = {
-            x: geo.tipX + (baseMidX - geo.tipX) * 0.3 + (rand() - 0.5) * jitter * 10,
-            y: geo.tipY + (baseMidY - geo.tipY) * 0.3 + (rand() - 0.5) * jitter * 10,
-        };
+        const baseC1x = geo.baseAx + (baseMidX - geo.baseAx) * (0.5 + curvePull * 0.45);
+        const baseC1y = geo.baseAy + (baseMidY - geo.baseAy) * (0.5 + curvePull * 0.45);
+        const baseC2x = geo.tipX + (baseMidX - geo.tipX) * 0.3;
+        const baseC2y = geo.tipY + (baseMidY - geo.tipY) * 0.3;
+
+        const hasCtrl1 = typeof bubble.tailCtrl1X === "number" && typeof bubble.tailCtrl1Y === "number";
+        const hasCtrl2 = typeof bubble.tailCtrl2X === "number" && typeof bubble.tailCtrl2Y === "number";
+        const jitterScale = jitter * 10;
+
+        const c1 = hasCtrl1
+            ? { x: bubble.tailCtrl1X as number, y: bubble.tailCtrl1Y as number }
+            : {
+                x: baseC1x + (rand() - 0.5) * jitterScale,
+                y: baseC1y + (rand() - 0.5) * jitterScale,
+            };
+        const c2 = hasCtrl2
+            ? { x: bubble.tailCtrl2X as number, y: bubble.tailCtrl2Y as number }
+            : {
+                x: baseC2x + (rand() - 0.5) * jitterScale,
+                y: baseC2y + (rand() - 0.5) * jitterScale,
+            };
         const c3 = { x: c2.x, y: c2.y };
         const c4 = {
             x: geo.baseBx + (baseMidX - geo.baseBx) * (0.5 + curvePull * 0.45),

@@ -530,7 +530,6 @@ export function BubbleCanvas({
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
-            onPointerLeave={handlePointerUp}
             onDoubleClick={handleDoubleClick}
         />
     );
