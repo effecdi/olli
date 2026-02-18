@@ -934,7 +934,7 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
                         innerRadius: bubble.flashInnerRadius ?? 0.65,
                         filled: bubble.flashFilled ?? true,
                     });
-                    return;
+                    break;
                 case "cloud":
                     drawCloudPath(ctx, x, y, w, h, sw, seed, bubble);
                     break;
@@ -946,15 +946,17 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
                     break;
             }
 
-            if (drawMode !== "stroke_only") {
-                ctx.fillStyle = fillColor;
-                ctx.globalAlpha = fillOpacity;
-                ctx.fill();
-                ctx.globalAlpha = 1;
-            }
-            if (drawMode !== "fill_only") {
-                ctx.strokeStyle = strokeColor;
-                ctx.stroke();
+            if (!hasTail) {
+                if (drawMode !== "stroke_only") {
+                    ctx.fillStyle = fillColor;
+                    ctx.globalAlpha = fillOpacity;
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                }
+                if (drawMode !== "fill_only") {
+                    ctx.strokeStyle = strokeColor;
+                    ctx.stroke();
+                }
             }
         }
     }
@@ -1014,20 +1016,11 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
         }
 
         if (drawMode !== "fill_only") {
-            ctx.save();
-            ctx.globalCompositeOperation = "destination-out";
-            ctx.lineWidth = sw + 1;
-            ctx.strokeStyle = "rgba(0,0,0,1)";
-            ctx.stroke();
-            ctx.restore();
-
-            ctx.save();
             ctx.lineWidth = sw;
             ctx.lineJoin = "round";
             ctx.lineCap = "round";
             ctx.strokeStyle = strokeColor;
             ctx.stroke();
-            ctx.restore();
         }
     }
 
