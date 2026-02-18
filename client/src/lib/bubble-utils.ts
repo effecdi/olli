@@ -55,10 +55,15 @@ export const STYLE_LABELS: Record<string, string> = {
     rounded: "둥근 사각형",
     rectangle: "사각형",
     thought: "생각 구름",
-    shout: "외침 효과",
+    shout: "외침",
     wobbly: "불안한",
     doubleline: "이중선",
     wavy: "물결",
+    polygon: "다각형",
+    spiky: "뾰족한",
+    cloud: "구름",
+    electric: "번개",
+    sticker: "스티커",
     image: "이미지",
 };
 
@@ -66,8 +71,6 @@ export const FLASH_STYLE_LABELS: Record<string, string> = {
     flash_black: "검은 바탕",
     flash_normal: "플래시",
     flash_dense: "빽빽한",
-    flash_urchin: "성게",
-    flash_pop: "폭죽",
 };
 
 export const TAIL_LABELS: Record<TailStyle, string> = {
@@ -200,6 +203,62 @@ function drawWobblyPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: 
     ctx.closePath();
 }
 
+function drawPolygonPath(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    strokeWidth: number,
+    seed: number,
+    sides: number = 6,
+    cornerRadius: number = 8,
+    wobble: number = 0,
+) {
+    ctx.lineWidth = strokeWidth;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    const rx = w / 2, ry = h / 2;
+    const cx = x + rx, cy = y + ry;
+    const rand = seededRandom(seed + 300);
+    const pts: { x: number; y: number }[] = [];
+    for (let i = 0; i < sides; i++) {
+        const angle = (i / sides) * Math.PI * 2 - Math.PI / 2;
+        const jx = wobble > 0 ? (rand() - 0.5) * wobble * 2 : 0;
+        const jy = wobble > 0 ? (rand() - 0.5) * wobble * 2 : 0;
+        pts.push({
+            x: cx + Math.cos(angle) * (rx - strokeWidth) + jx,
+            y: cy + Math.sin(angle) * (ry - strokeWidth) + jy,
+        });
+    }
+    ctx.beginPath();
+    if (cornerRadius <= 1) {
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.closePath();
+    } else {
+        const cr = Math.min(cornerRadius, 30);
+        for (let i = 0; i < pts.length; i++) {
+            const prev = pts[(i - 1 + pts.length) % pts.length];
+            const curr = pts[i];
+            const next = pts[(i + 1) % pts.length];
+            const d1x = curr.x - prev.x, d1y = curr.y - prev.y;
+            const d2x = next.x - curr.x, d2y = next.y - curr.y;
+            const len1 = Math.hypot(d1x, d1y);
+            const len2 = Math.hypot(d2x, d2y);
+            const r = Math.min(cr, len1 / 2, len2 / 2);
+            const p1x = curr.x - (d1x / len1) * r;
+            const p1y = curr.y - (d1y / len1) * r;
+            const p2x = curr.x + (d2x / len2) * r;
+            const p2y = curr.y + (d2y / len2) * r;
+            if (i === 0) ctx.moveTo(p1x, p1y);
+            else ctx.lineTo(p1x, p1y);
+            ctx.quadraticCurveTo(curr.x, curr.y, p2x, p2y);
+        }
+        ctx.closePath();
+    }
+}
+
 function drawThoughtPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, strokeWidth: number, seed: number) {
     ctx.lineWidth = strokeWidth;
     ctx.lineJoin = "round";
@@ -223,6 +282,87 @@ function drawThoughtPath(ctx: CanvasRenderingContext2D, x: number, y: number, w:
         const py = cy + Math.sin(angle) * (ry + bump);
         if (i === 0) ctx.moveTo(px, py);
         else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+}
+
+function drawSpikyPath(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    strokeWidth: number,
+    seed: number,
+    spikeCount: number = 12,
+    spikeHeight: number = 20,
+    sharpness: number = 0.7,
+    wobble: number = 0,
+) {
+    ctx.lineWidth = strokeWidth;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    const rx = w / 2, ry = h / 2;
+    const cx = x + rx, cy = y + ry;
+    const rand = seededRandom(seed + 400);
+    const total = spikeCount * 2;
+    const pts: { x: number; y: number }[] = [];
+    for (let i = 0; i < total; i++) {
+        const angle = (i / total) * Math.PI * 2 - Math.PI / 2;
+        const isSpike = i % 2 === 0;
+        const baseR = isSpike
+            ? 1 + spikeHeight / Math.min(rx, ry)
+            : 1 - (spikeHeight * sharpness * 0.4) / Math.min(rx, ry);
+        const jitter = wobble > 0 ? (rand() - 0.5) * wobble : 0;
+        const r = Math.max(0.3, baseR + jitter / Math.min(rx, ry));
+        pts.push({ x: cx + Math.cos(angle) * rx * r, y: cy + Math.sin(angle) * ry * r });
+    }
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) {
+        if (sharpness > 0.5) {
+            ctx.lineTo(pts[i].x, pts[i].y);
+        } else {
+            const p = pts[i - 1], c = pts[i];
+            ctx.quadraticCurveTo(p.x, p.y, (p.x + c.x) / 2, (p.y + c.y) / 2);
+        }
+    }
+    ctx.closePath();
+}
+
+function drawCloudPath(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    strokeWidth: number,
+    seed: number,
+    bubble: SpeechBubble,
+) {
+    ctx.lineWidth = strokeWidth;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    const rx = w / 2, ry = h / 2;
+    const cx = x + rx, cy = y + ry;
+    const bumpCount = bubble.shapeBumpCount ?? 8;
+    const bumpSize = bubble.shapeBumpSize ?? 15;
+    const roundness = bubble.shapeBumpRoundness ?? 0.8;
+    const rand = seededRandom(seed + 200);
+    ctx.beginPath();
+    for (let i = 0; i <= bumpCount; i++) {
+        const angle = (i / bumpCount) * Math.PI * 2 - Math.PI / 2;
+        const nextAngle = ((i + 0.5) / bumpCount) * Math.PI * 2 - Math.PI / 2;
+        const bx = cx + Math.cos(angle) * rx;
+        const by = cy + Math.sin(angle) * ry;
+        const jitter = (rand() - 0.5) * bumpSize * 0.3;
+        const outward = 1 + (bumpSize + jitter) / Math.min(rx, ry);
+        const cpx = cx + Math.cos(nextAngle) * rx * (1 + (bumpSize * roundness) / Math.min(rx, ry));
+        const cpy = cy + Math.sin(nextAngle) * ry * (1 + (bumpSize * roundness) / Math.min(rx, ry));
+        const nbx = cx + Math.cos(((i + 1) / bumpCount) * Math.PI * 2 - Math.PI / 2) * rx;
+        const nby = cy + Math.sin(((i + 1) / bumpCount) * Math.PI * 2 - Math.PI / 2) * ry;
+        if (i === 0) ctx.moveTo(bx, by);
+        ctx.quadraticCurveTo(cpx, cpy, nbx, nby);
     }
     ctx.closePath();
 }
@@ -354,7 +494,7 @@ function drawFlashStyle(
     const rand = seededRandom(seed);
     const { lineCount, lineLength, lineSpacing, lineThickness, bumpCount, bumpHeight, innerRadius, filled } = opts;
 
-    if (style === "flash_urchin" || style === "flash_black") {
+    if (style === "flash_black") {
         ctx.beginPath();
         const spikes = bumpCount * 2;
         for (let i = 0; i <= spikes; i++) {
@@ -367,54 +507,29 @@ function drawFlashStyle(
             else ctx.lineTo(px, py);
         }
         ctx.closePath();
-        ctx.fillStyle = style === "flash_black" ? "#222" : "#ffffff";
+        ctx.fillStyle = "#222";
         ctx.fill();
-        if (style !== "flash_black") {
-            ctx.strokeStyle = "#222";
-            ctx.lineWidth = sw;
-            ctx.stroke();
-        }
     }
 
-    if (style !== "flash_urchin") {
-        const actualCount = style === "flash_dense" ? Math.round(lineCount / lineSpacing) : lineCount;
+    const actualCount = style === "flash_dense" ? Math.round(lineCount / lineSpacing) : lineCount;
 
-        for (let i = 0; i < actualCount; i++) {
-            const angle = (i / actualCount) * Math.PI * 2;
-            const lenVariance =
-                style === "flash_pop"
-                    ? rand() * lineLength
-                    : lineLength * (0.7 + rand() * 0.6);
+    for (let i = 0; i < actualCount; i++) {
+        const angle = (i / actualCount) * Math.PI * 2;
+        const lenVariance = lineLength * (0.7 + rand() * 0.6);
 
-            const startR = style === "flash_black" ? 1 : innerRadius;
-            const startX = cx + rx * startR * Math.cos(angle);
-            const startY = cy + ry * startR * Math.sin(angle);
+        const startR = style === "flash_black" ? 1 : innerRadius;
+        const startX = cx + rx * startR * Math.cos(angle);
+        const startY = cy + ry * startR * Math.sin(angle);
 
-            if (style === "flash_pop") {
-                const dotSize = lineThickness * (0.5 + rand() * 1.5);
-                const dist = innerRadius * ((rx + ry) / 2) + rand() * lenVariance;
-                ctx.beginPath();
-                ctx.arc(
-                    cx + dist * Math.cos(angle),
-                    cy + dist * Math.sin(angle),
-                    dotSize,
-                    0,
-                    Math.PI * 2,
-                );
-                ctx.fillStyle = "#222";
-                ctx.fill();
-            } else {
-                const endX = cx + (rx * startR + lenVariance) * Math.cos(angle);
-                const endY = cy + (ry * startR + lenVariance) * Math.sin(angle);
-                ctx.beginPath();
-                ctx.moveTo(startX, startY);
-                ctx.lineTo(endX, endY);
-                ctx.lineWidth = lineThickness;
-                ctx.strokeStyle = "#222";
-                ctx.lineCap = "round";
-                ctx.stroke();
-            }
-        }
+        const endX = cx + (rx * startR + lenVariance) * Math.cos(angle);
+        const endY = cy + (ry * startR + lenVariance) * Math.sin(angle);
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        ctx.lineWidth = lineThickness;
+        ctx.strokeStyle = "#222";
+        ctx.lineCap = "round";
+        ctx.stroke();
     }
 
     ctx.beginPath();
@@ -424,42 +539,6 @@ function drawFlashStyle(
     ctx.strokeStyle = "#222";
     ctx.lineWidth = sw;
     ctx.stroke();
-}
-
-function drawCloudPath(
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    strokeWidth: number,
-    seed: number,
-    bubble: SpeechBubble,
-) {
-    ctx.lineWidth = strokeWidth;
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-
-    const rx = w / 2;
-    const ry = h / 2;
-    const cx = x + rx;
-    const cy = y + ry;
-    const bumps = 12;
-    const bumpSize = Math.min(rx, ry) * 0.16;
-    const rand = seededRandom(seed + 73);
-
-    ctx.beginPath();
-    for (let i = 0; i <= bumps * 4; i++) {
-        const t = i / (bumps * 4);
-        const angle = t * Math.PI * 2;
-        const bumpAngle = angle * bumps;
-        const bump = Math.max(0.4, Math.abs(Math.cos(bumpAngle))) * bumpSize + (rand() - 0.5) * bumpSize * 0.25;
-        const px = cx + Math.cos(angle) * (rx + bump);
-        const py = cy + Math.sin(angle) * (ry + bump);
-        if (i === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
-    }
-    ctx.closePath();
 }
 
 function drawElectricPath(
@@ -572,8 +651,6 @@ function drawBubbleFillOnly(ctx: CanvasRenderingContext2D, bubble: SpeechBubble)
         case "flash_black":
         case "flash_normal":
         case "flash_dense":
-        case "flash_urchin":
-        case "flash_pop":
             drawFlashStyle(ctx, x, y, w, h, sw, seed, style, {
                 lineCount: bubble.flashLineCount ?? 24,
                 lineLength: bubble.flashLineLength ?? 30,
@@ -585,6 +662,35 @@ function drawBubbleFillOnly(ctx: CanvasRenderingContext2D, bubble: SpeechBubble)
                 filled: bubble.flashFilled ?? true,
             });
             return;
+        case "polygon":
+            drawPolygonPath(
+                ctx,
+                x,
+                y,
+                w,
+                h,
+                sw,
+                seed,
+                bubble.shapeSides ?? 6,
+                bubble.shapeCornerRadius ?? 8,
+                bubble.shapeWobble ?? 0,
+            );
+            break;
+        case "spiky":
+            drawSpikyPath(
+                ctx,
+                x,
+                y,
+                w,
+                h,
+                sw,
+                seed,
+                bubble.shapeSpikeCount ?? 12,
+                bubble.shapeSpikeHeight ?? 20,
+                bubble.shapeSpikeSharpness ?? 0.7,
+                bubble.shapeWobble ?? 0,
+            );
+            break;
         case "cloud":
             drawCloudPath(ctx, x, y, w, h, sw, seed, bubble);
             break;
@@ -646,8 +752,6 @@ function drawBubbleStrokeOnly(ctx: CanvasRenderingContext2D, bubble: SpeechBubbl
         case "flash_black":
         case "flash_normal":
         case "flash_dense":
-        case "flash_urchin":
-        case "flash_pop":
             drawFlashStyle(ctx, x, y, w, h, sw, seed, style, {
                 lineCount: bubble.flashLineCount ?? 24,
                 lineLength: bubble.flashLineLength ?? 30,
@@ -659,6 +763,35 @@ function drawBubbleStrokeOnly(ctx: CanvasRenderingContext2D, bubble: SpeechBubbl
                 filled: bubble.flashFilled ?? true,
             });
             return;
+        case "polygon":
+            drawPolygonPath(
+                ctx,
+                x,
+                y,
+                w,
+                h,
+                sw,
+                seed,
+                bubble.shapeSides ?? 6,
+                bubble.shapeCornerRadius ?? 8,
+                bubble.shapeWobble ?? 0,
+            );
+            break;
+        case "spiky":
+            drawSpikyPath(
+                ctx,
+                x,
+                y,
+                w,
+                h,
+                sw,
+                seed,
+                bubble.shapeSpikeCount ?? 12,
+                bubble.shapeSpikeHeight ?? 20,
+                bubble.shapeSpikeSharpness ?? 0.7,
+                bubble.shapeWobble ?? 0,
+            );
+            break;
         case "cloud":
             drawCloudPath(ctx, x, y, w, h, sw, seed, bubble);
             break;
@@ -791,8 +924,6 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
                 case "flash_black":
                 case "flash_normal":
                 case "flash_dense":
-                case "flash_urchin":
-                case "flash_pop":
                     drawFlashStyle(ctx, x, y, w, h, sw, seed, style, {
                         lineCount: bubble.flashLineCount ?? 24,
                         lineLength: bubble.flashLineLength ?? 30,

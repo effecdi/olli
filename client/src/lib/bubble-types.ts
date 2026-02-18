@@ -12,11 +12,11 @@ export type BubbleStyle =
     | "flash_black"
     | "flash_normal"
     | "flash_dense"
-    | "flash_urchin"
-    | "flash_pop"
     | "cloud"
     | "electric"
-    | "sticker";
+    | "sticker"
+    | "polygon"
+    | "spiky";
 export type TailStyle = "none" | "long" | "short" | "dots_handwritten" | "dots_linedrawing";
 
 export type TailDrawMode = "bezier" | "straight" | "polyline" | "spline";
@@ -58,6 +58,15 @@ export interface SpeechBubble {
     flashBumpHeight?: number;
     flashInnerRadius?: number;
     flashFilled?: boolean;
+    shapeSides?: number;
+    shapeCornerRadius?: number;
+    shapeWobble?: number;
+    shapeSpikeCount?: number;
+    shapeSpikeHeight?: number;
+    shapeSpikeSharpness?: number;
+    shapeBumpCount?: number;
+    shapeBumpSize?: number;
+    shapeBumpRoundness?: number;
     strokeWidth: number;
     wobble: number;
     fontSize: number;

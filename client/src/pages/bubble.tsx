@@ -343,6 +343,15 @@ export default function BubblePage() {
       wobble: 5,
       fontSize: 14,
       fontKey: "default",
+      shapeSides: 6,
+      shapeCornerRadius: 8,
+      shapeWobble: 0,
+      shapeSpikeCount: 12,
+      shapeSpikeHeight: 20,
+      shapeSpikeSharpness: 0.7,
+      shapeBumpCount: 8,
+      shapeBumpSize: 15,
+      shapeBumpRoundness: 0.8,
       zIndex: 10,
       groupId: undefined,
     };
@@ -981,7 +990,7 @@ export default function BubblePage() {
 
                 {/* 일반 스타일 버튼 그리드 */}
                 <div className="grid grid-cols-3 gap-1">
-                  {(["linedrawing","handwritten","wobbly","thought","shout","rectangle","rounded","doubleline","wavy"] as BubbleStyle[]).map(s => (
+                  {(["linedrawing","handwritten","wobbly","thought","shout","rectangle","rounded","doubleline","wavy","polygon","spiky","cloud"] as BubbleStyle[]).map(s => (
                     <button
                       key={s}
                       onClick={() => updateBubble(selectedBubble.id, { style: s })}
@@ -995,6 +1004,89 @@ export default function BubblePage() {
                     </button>
                   ))}
                 </div>
+
+                {selectedBubble.style === "polygon" && (
+                  <div className="space-y-1.5 border-t pt-2">
+                    <span className="text-[10px] font-medium text-muted-foreground">다각형 설정</span>
+                    {([
+                      { label: "꼭짓점", key: "shapeSides", min: 3, max: 12, step: 1, def: 6 },
+                      { label: "둥글기", key: "shapeCornerRadius", min: 0, max: 50, step: 1, def: 8 },
+                      { label: "불규칙", key: "shapeWobble", min: 0, max: 20, step: 1, def: 0 },
+                    ] as const).map(({ label, key, min, max, step, def }) => {
+                      const val = (selectedBubble as any)[key] ?? def;
+                      return (
+                        <div key={key} className="flex items-center gap-2">
+                          <span className="text-[10px] text-muted-foreground w-14 shrink-0">
+                            {label} {val}
+                          </span>
+                          <Slider
+                            value={[val]}
+                            onValueChange={([v]) => updateBubble(selectedBubble.id, { [key]: v } as any)}
+                            min={min}
+                            max={max}
+                            step={step}
+                            className="flex-1"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {selectedBubble.style === "spiky" && (
+                  <div className="space-y-1.5 border-t pt-2">
+                    <span className="text-[10px] font-medium text-muted-foreground">뾰족한 설정</span>
+                    {([
+                      { label: "개수", key: "shapeSpikeCount", min: 4, max: 30, step: 1, def: 12 },
+                      { label: "높이", key: "shapeSpikeHeight", min: 2, max: 80, step: 1, def: 20 },
+                      { label: "날카로움", key: "shapeSpikeSharpness", min: 0, max: 1, step: 0.05, def: 0.7 },
+                      { label: "불규칙", key: "shapeWobble", min: 0, max: 20, step: 1, def: 0 },
+                    ] as const).map(({ label, key, min, max, step, def }) => {
+                      const val = (selectedBubble as any)[key] ?? def;
+                      return (
+                        <div key={key} className="flex items-center gap-2">
+                          <span className="text-[10px] text-muted-foreground w-14 shrink-0">
+                            {label} {step < 1 ? (val as number).toFixed(2) : val}
+                          </span>
+                          <Slider
+                            value={[val]}
+                            onValueChange={([v]) => updateBubble(selectedBubble.id, { [key]: v } as any)}
+                            min={min}
+                            max={max}
+                            step={step}
+                            className="flex-1"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {selectedBubble.style === "cloud" && (
+                  <div className="space-y-1.5 border-t pt-2">
+                    <span className="text-[10px] font-medium text-muted-foreground">구름 설정</span>
+                    {([
+                      { label: "bump수", key: "shapeBumpCount", min: 4, max: 20, step: 1, def: 8 },
+                      { label: "bump크기", key: "shapeBumpSize", min: 3, max: 40, step: 1, def: 15 },
+                      { label: "둥글기", key: "shapeBumpRoundness", min: 0, max: 1, step: 0.05, def: 0.8 },
+                    ] as const).map(({ label, key, min, max, step, def }) => {
+                      const val = (selectedBubble as any)[key] ?? def;
+                      return (
+                        <div key={key} className="flex items-center gap-2">
+                          <span className="text-[10px] text-muted-foreground w-14 shrink-0">
+                            {label} {step < 1 ? (val as number).toFixed(2) : val}
+                          </span>
+                          <Slider
+                            value={[val]}
+                            onValueChange={([v]) => updateBubble(selectedBubble.id, { [key]: v } as any)}
+                            min={min}
+                            max={max}
+                            step={step}
+                            className="flex-1"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {/* 선/채색 모드 선택 */}
                 <div className="grid grid-cols-3 gap-1">
@@ -1070,7 +1162,7 @@ export default function BubblePage() {
               <div className="py-3 space-y-2 px-1">
                 <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">⚡ 플래시 / 효과</span>
                 <div className="grid grid-cols-3 gap-1">
-                  {(["flash_black","flash_normal","flash_dense","flash_urchin","flash_pop"] as BubbleStyle[]).map(s => (
+                  {(["flash_black","flash_normal","flash_dense"] as BubbleStyle[]).map(s => (
                     <button
                       key={s}
                       onClick={() => updateBubble(selectedBubble.id, { style: s })}
@@ -1094,7 +1186,7 @@ export default function BubblePage() {
                       { label:"선 길이", key:"flashLineLength",    min:5,    max:100, step:1,    def:30   },
                       { label:"선 개수", key:"flashLineCount",     min:8,    max:60,  step:1,    def:24   },
                       { label:"내부크기",key:"flashInnerRadius",   min:0.2,  max:0.9, step:0.05, def:0.65 },
-                      ...( ["flash_urchin","flash_black"].includes(selectedBubble.style) ? [
+                      ...( selectedBubble.style === "flash_black" ? [
                         { label:"돌기 수",  key:"flashBumpCount",  min:6,  max:60, step:1, def:24 },
                         { label:"돌기 높이",key:"flashBumpHeight", min:1,  max:30, step:1, def:10 },
                       ] : []),
