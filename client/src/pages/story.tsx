@@ -651,39 +651,38 @@ function drawBubble(
 
   if (hasTail) {
     const geo = getTailGeometry(bubble);
-    const r2 = seededRandom(seed + 1000);
-    const jitterScale = bubble.tailJitter ?? 1;
-    const midFactor = bubble.tailCurve ?? 0.5;
     const baseCx = (geo.baseAx + geo.baseBx) / 2;
     const baseCy = (geo.baseAy + geo.baseBy) / 2;
-    const vx = geo.tipX - baseCx;
-    const vy = geo.tipY - baseCy;
-    const vLen = Math.hypot(vx, vy) || 1;
-    const nx = (vy / vLen) * vLen * 0.35;
-    const ny = (-vx / vLen) * vLen * 0.35;
+    const dx = baseCx - geo.tipX;
+    const dy = baseCy - geo.tipY;
+    const len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len;
+    const uy = dy / len;
+    const px = -uy;
+    const py = ux;
+    const scale = len / 50;
+
+    const mapPoint = (lx: number, ly: number) => {
+      const sx = lx * scale;
+      const sy = ly * scale;
+      return {
+        x: geo.tipX + sx * px - sy * ux,
+        y: geo.tipY + sx * py - sy * uy,
+      };
+    };
+
+    const p0 = mapPoint(0, 0);
+    const c1 = mapPoint(-8, -15);
+    const c2 = mapPoint(-3, -35);
+    const p1 = mapPoint(0, -50);
+    const c3 = mapPoint(3, -35);
+    const c4 = mapPoint(8, -15);
+    const p2 = mapPoint(0, 0);
 
     ctx.beginPath();
-    if (style === "handwritten") {
-      const rFill = seededRandom(seed + 1000);
-      const ax = geo.baseAx + (rFill() - 0.5) * 3 * jitterScale;
-      const ay = geo.baseAy + (rFill() - 0.5) * 2 * jitterScale;
-      const bx = geo.baseBx + (rFill() - 0.5) * 3 * jitterScale;
-      const by = geo.baseBy + (rFill() - 0.5) * 2 * jitterScale;
-      const tipX = geo.tipX + (rFill() - 0.5) * 3 * jitterScale;
-      const tipY = geo.tipY + (rFill() - 0.5) * 2 * jitterScale;
-      const midOuterX = baseCx + vx * midFactor + nx;
-      const midOuterY = baseCy + vy * midFactor + ny;
-      const midInnerX = baseCx + vx * midFactor - nx * 0.6;
-      const midInnerY = baseCy + vy * midFactor - ny * 0.6;
-
-      ctx.moveTo(ax, ay);
-      ctx.quadraticCurveTo(midOuterX, midOuterY, tipX, tipY);
-      ctx.quadraticCurveTo(midInnerX, midInnerY, bx, by);
-    } else {
-      ctx.moveTo(geo.baseAx, geo.baseAy);
-      ctx.lineTo(geo.tipX, geo.tipY);
-      ctx.lineTo(geo.baseBx, geo.baseBy);
-    }
+    ctx.moveTo(p0.x, p0.y);
+    ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, p1.x, p1.y);
+    ctx.bezierCurveTo(c3.x, c3.y, c4.x, c4.y, p2.x, p2.y);
     ctx.closePath();
     ctx.fillStyle = "#ffffff";
     ctx.fill();
@@ -692,36 +691,7 @@ function drawBubble(
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
     ctx.strokeStyle = "#222";
-    if (style === "handwritten") {
-      const ax = geo.baseAx + (r2() - 0.5) * 3 * jitterScale;
-      const ay = geo.baseAy + (r2() - 0.5) * 2 * jitterScale;
-      const bx = geo.baseBx + (r2() - 0.5) * 3 * jitterScale;
-      const by = geo.baseBy + (r2() - 0.5) * 2 * jitterScale;
-      const tipX = geo.tipX + (r2() - 0.5) * 3 * jitterScale;
-      const tipY = geo.tipY + (r2() - 0.5) * 2 * jitterScale;
-      const midOuterX = baseCx + vx * midFactor + nx;
-      const midOuterY = baseCy + vy * midFactor + ny;
-      const midInnerX = baseCx + vx * midFactor - nx * 0.6;
-      const midInnerY = baseCy + vy * midFactor - ny * 0.6;
-
-      ctx.beginPath();
-      ctx.moveTo(ax, ay);
-      ctx.quadraticCurveTo(midOuterX, midOuterY, tipX, tipY);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(tipX, tipY);
-      ctx.quadraticCurveTo(midInnerX, midInnerY, bx, by);
-      ctx.stroke();
-    } else {
-      ctx.beginPath();
-      ctx.moveTo(geo.baseAx, geo.baseAy);
-      ctx.lineTo(geo.tipX, geo.tipY);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(geo.tipX, geo.tipY);
-      ctx.lineTo(geo.baseBx, geo.baseBy);
-      ctx.stroke();
-    }
+    ctx.stroke();
   }
 
   if (hasDots) {
