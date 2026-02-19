@@ -19,7 +19,8 @@ export type BubbleStyle =
     | "dashed"
     | "brush"
     | "drip"
-    | "sparkle_ring";
+    | "sparkle_ring"
+    | "flash_eyelash";
 export type TailStyle = "none" | "long" | "short" | "dots_handwritten" | "dots_linedrawing";
 
 export type TailDrawMode = "bezier" | "straight" | "polyline" | "spline";

@@ -70,6 +70,7 @@ export const STYLE_LABELS: Record<string, string> = {
 export const FLASH_STYLE_LABELS: Record<string, string> = {
     flash_black: "검은 바탕",
     flash_dense: "빽빽한",
+    flash_eyelash: "속눈썹",
     dashed: "귓속말",
     brush: "위엄",
     drip: "흐물",
@@ -724,6 +725,84 @@ function drawStickerPath(
     ctx.closePath();
 }
 
+// 속눈썹/바늘 — eyelash/needle flash ring
+function drawEyelashStyle(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    sw: number,
+    seed: number,
+    bubble: SpeechBubble,
+) {
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const rx = w / 2;
+    const ry = h / 2;
+    const rand = seededRandom(seed + 333);
+
+    const needleCount = bubble.flashLineCount ?? 90;
+    const needleLength = bubble.flashLineLength ?? 28;
+    const needleWidth = bubble.flashLineThickness ?? 2.5;
+    const innerR = bubble.flashInnerRadius ?? 0.88;
+    const fillColor = bubble.fillColor ?? "#ffffff";
+    const strokeColor = bubble.strokeColor ?? "#222222";
+    const fillOpacity = bubble.fillOpacity !== undefined ? (bubble.fillOpacity > 1 ? bubble.fillOpacity / 100 : bubble.fillOpacity) : 1;
+    const drawMode = bubble.drawMode ?? "both";
+
+    // Draw needle triangles radiating outward
+    if (drawMode !== "fill_only") {
+        for (let i = 0; i < needleCount; i++) {
+            const baseAngle = (i / needleCount) * Math.PI * 2;
+            const lenVariance = 0.55 + rand() * 0.9;
+            const len = needleLength * lenVariance;
+            const angJitter = (rand() - 0.5) * 0.045;
+            const tipAngle = baseAngle + angJitter;
+            const widthVar = 0.6 + rand() * 0.8;
+            const hw = needleWidth * widthVar * 0.5;
+
+            // Base center on ellipse boundary
+            const bx = cx + Math.cos(baseAngle) * rx;
+            const by = cy + Math.sin(baseAngle) * ry;
+            // Tip point (further out)
+            const tx = cx + Math.cos(tipAngle) * (rx + len);
+            const ty = cy + Math.sin(tipAngle) * (ry + len);
+
+            // Two base corners (perpendicular to tip direction)
+            const perpAngle = tipAngle + Math.PI / 2;
+            const lx = bx + Math.cos(perpAngle) * hw;
+            const ly = by + Math.sin(perpAngle) * hw;
+            const rx2 = bx - Math.cos(perpAngle) * hw;
+            const ry2 = by - Math.sin(perpAngle) * hw;
+
+            ctx.beginPath();
+            ctx.moveTo(lx, ly);
+            ctx.lineTo(tx, ty);
+            ctx.lineTo(rx2, ry2);
+            ctx.closePath();
+            ctx.fillStyle = strokeColor;
+            ctx.fill();
+        }
+    }
+
+    // Inner ellipse fill (white center)
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx * innerR, ry * innerR, 0, 0, Math.PI * 2);
+
+    if (drawMode !== "stroke_only") {
+        ctx.fillStyle = fillColor;
+        ctx.globalAlpha = fillOpacity;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+    if (drawMode !== "fill_only") {
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = sw;
+        ctx.stroke();
+    }
+}
+
 function drawBubbleFillOnly(ctx: CanvasRenderingContext2D, bubble: SpeechBubble) {
     const { x, y, width: w, height: h, style, strokeWidth: sw, wobble: wob, seed } = bubble;
     const isDoubleLine = style === "doubleline";
@@ -825,6 +904,9 @@ function drawBubbleFillOnly(ctx: CanvasRenderingContext2D, bubble: SpeechBubble)
         case "sparkle_ring":
             drawLinedrawingPath(ctx, x, y, w, h, sw); // inner shape for fill
             break;
+        case "flash_eyelash":
+            drawEyelashStyle(ctx, x, y, w, h, sw, seed, bubble);
+            return; // renders itself
         case "image":
             break;
     }
@@ -937,6 +1019,9 @@ function drawBubbleStrokeOnly(ctx: CanvasRenderingContext2D, bubble: SpeechBubbl
         case "sparkle_ring":
             // sparkle renders itself, nothing to stroke here
             break;
+        case "flash_eyelash":
+            // eyelash renders itself fully
+            return;
         case "image":
             break;
     }
@@ -1021,7 +1106,7 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
     const isImage = style === "image";
     const fillColor = bubble.fillColor ?? (style === "flash_black" ? "#000000" : "#ffffff");
     const strokeColor = bubble.strokeColor ?? "#222";
-    const fillOpacity = (bubble.fillOpacity ?? 100) / 100;
+    const fillOpacity = bubble.fillOpacity !== undefined ? (bubble.fillOpacity > 1 ? bubble.fillOpacity / 100 : bubble.fillOpacity) : 1;
     const drawMode = bubble.drawMode ?? "both";
 
     if (isImage && bubble.templateImg) {
@@ -1101,9 +1186,14 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
                     drawSparkleRingPath(ctx, x, y, w, h, sw, seed);
                     ctx.restore();
                     return; // sparkle renders itself (fill/text handled separately below)
+                case "flash_eyelash":
+                    drawEyelashStyle(ctx, x, y, w, h, sw, seed, bubble);
+                    // text drawn below - skip normal fill/stroke
+                    break;
             }
 
-            // body fill + stroke (always, for both hasTail and not)
+            // body fill + stroke (flash_eyelash handles its own fill/stroke above, but path still set to inner ellipse)
+            if (style !== "flash_eyelash") {
             if (drawMode !== "stroke_only") {
                 ctx.fillStyle = fillColor;
                 ctx.globalAlpha = fillOpacity;
@@ -1117,6 +1207,7 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
             }
             // Reset dashed line if dashed style
             ctx.setLineDash([]);
+            }
         }
     }
 
@@ -1229,7 +1320,7 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
 
     if (bubble.text) {
         const isFlash =
-            style === "flash_black" || style === "flash_dense";
+            style === "flash_black" || style === "flash_dense" || style === "flash_eyelash";
         const textColor = style === "flash_black" ? "#ffffff" : "#222";
 
         ctx.fillStyle = textColor;
@@ -1237,7 +1328,7 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
         ctx.textBaseline = "middle";
         ctx.font = `${bubble.fontSize}px ${getFontFamily(bubble.fontKey)}`;
         const padding = 10;
-        const innerRadius = isFlash ? (bubble.flashInnerRadius ?? 0.65) : 1;
+        const innerRadius = isFlash ? (bubble.flashInnerRadius ?? (style === "flash_eyelash" ? 0.88 : 0.65)) : 1;
         const contentWidth = w * innerRadius;
         const maxTextW = contentWidth - padding * 2;
         const rawLines = bubble.text.split("\n");
