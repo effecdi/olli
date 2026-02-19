@@ -223,6 +223,8 @@ interface CharacterPlacement {
   x: number;
   y: number;
   scale: number;
+  width?: number;   // explicit pixel width (optional, overrides scale if set)
+  height?: number;  // explicit pixel height
   rotation?: number;
   imageEl: HTMLImageElement | null;
   zIndex?: number;
@@ -658,6 +660,7 @@ function PanelCanvas({
   zoom,
   fontsReady,
   isPro,
+  onEditBubble,
 }: {
   panel: PanelData;
   onUpdate: (updated: PanelData) => void;
@@ -669,6 +672,7 @@ function PanelCanvas({
   zoom?: number;
   fontsReady?: boolean;
   isPro: boolean;
+  onEditBubble?: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
@@ -769,40 +773,7 @@ function PanelCanvas({
           ctx.translate(ch.x, ch.y);
           ctx.rotate(ch.rotation || 0);
           ctx.drawImage(ch.imageEl, -w / 2, -h / 2, w, h);
-          if (ch.id === selectedCharIdRef.current) {
-            const bx = -w / 2 - 4;
-            const by = -h / 2 - 4;
-            const bw = w + 8;
-            const bh = h + 8;
-            ctx.strokeStyle = "hsl(173, 80%, 45%)";
-            ctx.lineWidth = 2;
-            ctx.setLineDash([4, 3]);
-            ctx.strokeRect(bx, by, bw, bh);
-            ctx.setLineDash([]);
-            const handleSize = 9;
-            const corners = [
-              { hx: bx, hy: by },
-              { hx: bx + bw, hy: by },
-              { hx: bx, hy: by + bh },
-              { hx: bx + bw, hy: by + bh },
-            ];
-            corners.forEach(({ hx, hy }) => {
-              ctx.beginPath();
-              ctx.arc(hx, hy, handleSize / 2, 0, Math.PI * 2);
-              ctx.fillStyle = "rgba(255,255,255,0.96)";
-              ctx.fill();
-              ctx.strokeStyle = "hsl(173, 80%, 45%)";
-              ctx.lineWidth = 1.8;
-              ctx.stroke();
-            });
-            ctx.beginPath();
-            ctx.arc(0, by - 20, 7, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(255,255,255,0.96)";
-            ctx.fill();
-            ctx.strokeStyle = "hsl(173, 80%, 45%)";
-            ctx.lineWidth = 2;
-            ctx.stroke();
-          }
+          // selection box/handles now rendered in SVG overlay (not canvas)
           ctx.restore();
         }
       } else {
@@ -1362,12 +1333,17 @@ function PanelCanvas({
           pos.y <= b.y + b.height
         ) {
           onSelectBubble(b.id);
-          setEditingBubbleId(b.id);
+          // Focus sidebar textarea instead of inline
+          if (onEditBubble) {
+            setTimeout(() => onEditBubble(), 50);
+          } else {
+            setEditingBubbleId(b.id);
+          }
           return;
         }
       }
     },
-    [getCanvasPos, onSelectBubble],
+    [getCanvasPos, onSelectBubble, onEditBubble],
   );
 
   const hasZoom = zoom !== undefined;
@@ -1625,8 +1601,9 @@ function PanelCanvas({
               ? {
                 width: CANVAS_W * zoomScale,
                 height: CANVAS_H * zoomScale,
+                overflow: "visible",
               }
-              : undefined
+              : { overflow: "visible" }
           }
         >
           <canvas
@@ -1659,44 +1636,102 @@ function PanelCanvas({
             onDoubleClick={handleDoubleClick}
             data-testid="panel-canvas"
           />
-          {editingBubbleId &&
-            (() => {
-              const eb = panel.bubbles.find((b) => b.id === editingBubbleId);
-              if (!eb || !canvasRef.current) return null;
-              const canvas = canvasRef.current;
-              const rect = canvas.getBoundingClientRect();
-              const scaleX = rect.width / CANVAS_W;
-              const scaleY = rect.height / CANVAS_H;
-              const fontEntry = KOREAN_FONTS.find((f) => f.value === eb.fontKey);
-              return (
-                <textarea
-                  autoFocus
-                  className="absolute bg-transparent p-1 resize-none outline-none overflow-hidden"
-                  style={{
-                    left: eb.x * scaleX,
-                    top: eb.y * scaleY,
-                    width: eb.width * scaleX,
-                    height: eb.height * scaleY,
-                    fontSize: eb.fontSize * scaleX,
-                    fontFamily: fontEntry?.family || "sans-serif",
-                    textAlign: "center",
-                    lineHeight: 1.3,
-                    color: "black",
-                    border: "1px solid rgba(0, 100, 255, 0.5)",
-                    boxShadow: "0 0 0 1px rgba(0, 100, 255, 0.2)",
-                  }}
-                  value={eb.text}
-                  onChange={(e) =>
-                    updateBubbleInPanel(eb.id, { text: e.target.value })
-                  }
-                  onBlur={() => setEditingBubbleId(null)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") setEditingBubbleId(null);
-                  }}
-                  data-testid="input-inline-bubble-text"
-                />
+
+          {/* SVG handle overlay — rendered outside canvas so handles are visible beyond canvas bounds */}
+          {(() => {
+            const canvas = canvasRef.current;
+            if (!canvas) return null;
+            const rect = canvas.getBoundingClientRect();
+            const wrapRect = canvasWrapperRef.current?.getBoundingClientRect();
+            if (!wrapRect) return null;
+            const scaleX = rect.width / CANVAS_W;
+            const scaleY = rect.height / CANVAS_H;
+            const offsetX = rect.left - wrapRect.left;
+            const offsetY = rect.top - wrapRect.top;
+
+            const toSvgX = (cx: number) => offsetX + cx * scaleX;
+            const toSvgY = (cy: number) => offsetY + cy * scaleY;
+
+            const selBubble = selectedBubbleId ? panel.bubbles.find(b => b.id === selectedBubbleId) : null;
+            const selChar = selectedCharId ? panel.characters.find(c => c.id === selectedCharId) : null;
+
+            const HANDLE_R = 5;
+            const HANDLE_COLOR = "hsl(173,80%,45%)";
+
+            const handles: { x: number; y: number; cursor: string; mode: string }[] = [];
+
+            if (selBubble) {
+              const b = selBubble;
+              handles.push(
+                { x: toSvgX(b.x - 4), y: toSvgY(b.y - 4), cursor: "nwse-resize", mode: "resize-tl" },
+                { x: toSvgX(b.x + b.width / 2), y: toSvgY(b.y - 4), cursor: "ns-resize", mode: "resize-t" },
+                { x: toSvgX(b.x + b.width + 4), y: toSvgY(b.y - 4), cursor: "nesw-resize", mode: "resize-tr" },
+                { x: toSvgX(b.x + b.width + 4), y: toSvgY(b.y + b.height / 2), cursor: "ew-resize", mode: "resize-r" },
+                { x: toSvgX(b.x + b.width + 4), y: toSvgY(b.y + b.height + 4), cursor: "nwse-resize", mode: "resize-br" },
+                { x: toSvgX(b.x + b.width / 2), y: toSvgY(b.y + b.height + 4), cursor: "ns-resize", mode: "resize-b" },
+                { x: toSvgX(b.x - 4), y: toSvgY(b.y + b.height + 4), cursor: "nesw-resize", mode: "resize-bl" },
+                { x: toSvgX(b.x - 4), y: toSvgY(b.y + b.height / 2), cursor: "ew-resize", mode: "resize-l" },
               );
-            })()}
+            }
+
+            if (selChar && selChar.imageEl) {
+              const cw = selChar.imageEl.naturalWidth * selChar.scale;
+              const ch2 = selChar.imageEl.naturalHeight * selChar.scale;
+              const cx = selChar.x - cw / 2;
+              const cy = selChar.y - ch2 / 2;
+              handles.push(
+                { x: toSvgX(cx - 4), y: toSvgY(cy - 4), cursor: "nwse-resize", mode: "resize-char-tl" },
+                { x: toSvgX(cx + cw + 4), y: toSvgY(cy - 4), cursor: "nesw-resize", mode: "resize-char-tr" },
+                { x: toSvgX(cx - 4), y: toSvgY(cy + ch2 + 4), cursor: "nesw-resize", mode: "resize-char-bl" },
+                { x: toSvgX(cx + cw + 4), y: toSvgY(cy + ch2 + 4), cursor: "nwse-resize", mode: "resize-char-br" },
+              );
+            }
+
+            if (handles.length === 0) return null;
+
+            return (
+              <svg
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  overflow: "visible",
+                  pointerEvents: "none",
+                  zIndex: 10,
+                }}
+              >
+                {/* Selection dashed box */}
+                {selBubble && (() => {
+                  const b = selBubble;
+                  const x1 = toSvgX(b.x - 4), y1 = toSvgY(b.y - 4);
+                  const x2 = toSvgX(b.x + b.width + 4), y2 = toSvgY(b.y + b.height + 4);
+                  return <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="none" stroke={HANDLE_COLOR} strokeWidth="1.5" strokeDasharray="5,3" />;
+                })()}
+                {selChar && selChar.imageEl && (() => {
+                  const cw = selChar.imageEl!.naturalWidth * selChar.scale;
+                  const ch2 = selChar.imageEl!.naturalHeight * selChar.scale;
+                  const x1 = toSvgX(selChar.x - cw / 2 - 4), y1 = toSvgY(selChar.y - ch2 / 2 - 4);
+                  const x2 = toSvgX(selChar.x + cw / 2 + 4), y2 = toSvgY(selChar.y + ch2 / 2 + 4);
+                  return <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="none" stroke={HANDLE_COLOR} strokeWidth="1.5" strokeDasharray="5,3" />;
+                })()}
+                {/* Handle circles */}
+                {handles.map((h, i) => (
+                  <circle
+                    key={i}
+                    cx={h.x}
+                    cy={h.y}
+                    r={HANDLE_R}
+                    fill="white"
+                    stroke={HANDLE_COLOR}
+                    strokeWidth="1.8"
+                    style={{ pointerEvents: "all", cursor: h.cursor }}
+                  />
+                ))}
+              </svg>
+            );
+          })()}
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent className="w-48">
@@ -1737,6 +1772,7 @@ function EditorPanel({
   creatorTier,
   isPro,
   mode = "image",
+  bubbleTextareaRef,
 }: {
   panel: PanelData;
   index: number;
@@ -1752,6 +1788,7 @@ function EditorPanel({
   creatorTier: number;
   isPro: boolean;
   mode?: "image" | "bubble" | "template";
+  bubbleTextareaRef?: React.MutableRefObject<HTMLTextAreaElement | null>;
 }) {
   const [showCharPicker, setShowCharPicker] = useState(false);
   const [showBubbleTemplatePicker, setShowBubbleTemplatePicker] = useState(false);
@@ -2204,61 +2241,11 @@ function EditorPanel({
         </div>
       )}
 
-      {/* Background Image Section */}
-      {isImageMode && (
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[13px] font-medium text-muted-foreground">패널 배경 이미지</span>
-            {panel.backgroundImageUrl && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 text-[11px] text-destructive px-1.5"
-                onClick={() => onUpdate({ ...panel, backgroundImageUrl: undefined, backgroundImageEl: null })}
-              >
-                <X className="h-3 w-3 mr-0.5" />삭제
-              </Button>
-            )}
-          </div>
-          {panel.backgroundImageUrl ? (
-            <div className="relative w-full aspect-video rounded-md overflow-hidden border border-border bg-muted">
-              <img src={panel.backgroundImageUrl} alt="배경" className="w-full h-full object-cover" />
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              <button
-                type="button"
-                className="w-full flex items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground hover-elevate"
-                onClick={() => document.getElementById(`story-bg-upload-${index}`)?.click()}
-              >
-                <ImageIcon className="h-3.5 w-3.5" />
-                <span>배경 이미지 업로드</span>
-              </button>
-              <input
-                id={`story-bg-upload-${index}`}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleBackgroundImageUpload}
-              />
-              {charImages.length > 0 && (
-                <>
-                  <p className="text-[11px] text-muted-foreground">또는 갤러리에서 선택:</p>
-                  <div className="grid grid-cols-3 gap-1.5 max-h-[120px] overflow-y-auto">
-                    {charImages.map((gen) => (
-                      <button
-                        key={gen.id}
-                        className="aspect-square rounded-md overflow-hidden border border-border hover-elevate cursor-pointer"
-                        onClick={() => handleBackgroundFromGallery(gen)}
-                      >
-                        <img src={gen.resultImageUrl} alt={gen.prompt} className="w-full h-full object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
+      {/* Character placement note - images are added as moveable characters */}
+      {isImageMode && !showCharPicker && panel.characters.length === 0 && (
+        <div className="rounded-md bg-muted/40 p-3 text-[11px] text-muted-foreground text-center">
+          <ImageIcon className="h-4 w-4 mx-auto mb-1 opacity-50" />
+          이미지를 추가하면 캔버스에서<br/>이동·크기·회전 편집이 가능합니다
         </div>
       )}
 
@@ -2438,6 +2425,7 @@ function EditorPanel({
           <div>
             <Label className="text-[13px] mb-1 block">텍스트</Label>
             <Textarea
+              ref={(el) => { if (bubbleTextareaRef) bubbleTextareaRef.current = el; }}
               value={selectedBubble.text}
               onChange={(e) =>
                 updateBubble(selectedBubble.id, { text: e.target.value })
@@ -2639,6 +2627,66 @@ function EditorPanel({
             </div>
           )}
 
+          {/* 귓속말(dashed) 설정 */}
+          {selectedBubble.style === "dashed" && (
+            <div className="space-y-1.5 rounded-md bg-muted/30 p-2">
+              <p className="text-[11px] font-semibold text-muted-foreground">귓속말 설정</p>
+              {([
+                { label: "점선 길이", key: "flashLineLength", min: 2, max: 30, step: 1, def: 12 },
+                { label: "점선 간격", key: "flashLineSpacing", min: 0.1, max: 3, step: 0.1, def: 1.0 },
+              ]).map(({ label, key, min, max, step, def }) => {
+                const val = (selectedBubble as any)[key] ?? def;
+                return (
+                  <div key={key} className="flex items-center gap-2">
+                    <span className="text-[10px] text-muted-foreground w-14 shrink-0">{label} {step < 1 ? val.toFixed(1) : val}</span>
+                    <Slider value={[val]} onValueChange={([v]) => updateBubble(selectedBubble.id, { [key]: v } as any)} min={min} max={max} step={step} className="flex-1" />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 위엄(brush) 설정 */}
+          {selectedBubble.style === "brush" && (
+            <div className="space-y-1.5 rounded-md bg-muted/30 p-2">
+              <p className="text-[11px] font-semibold text-muted-foreground">위엄 먹선 설정</p>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground w-14 shrink-0">굵기 배율 {(selectedBubble.flashLineThickness ?? 2.5).toFixed(1)}</span>
+                <Slider value={[selectedBubble.flashLineThickness ?? 2.5]} onValueChange={([v]) => updateBubble(selectedBubble.id, { flashLineThickness: v })} min={0.5} max={6} step={0.1} className="flex-1" />
+              </div>
+            </div>
+          )}
+
+          {/* 흐물(drip) 설정 */}
+          {selectedBubble.style === "drip" && (
+            <div className="space-y-1.5 rounded-md bg-muted/30 p-2">
+              <p className="text-[11px] font-semibold text-muted-foreground">흐물 설정</p>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground w-14 shrink-0">흔들림 {selectedBubble.wobble ?? 5}</span>
+                <Slider value={[selectedBubble.wobble ?? 5]} onValueChange={([v]) => updateBubble(selectedBubble.id, { wobble: v })} min={0} max={20} step={0.5} className="flex-1" />
+              </div>
+            </div>
+          )}
+
+          {/* 신비(sparkle_ring) 설정 */}
+          {selectedBubble.style === "sparkle_ring" && (
+            <div className="space-y-1.5 rounded-md bg-muted/30 p-2">
+              <p className="text-[11px] font-semibold text-muted-foreground">신비 설정</p>
+              {([
+                { label: "바늘 수", key: "flashLineCount", min: 12, max: 120, step: 1, def: 48 },
+                { label: "바늘 길이", key: "flashLineLength", min: 2, max: 40, step: 1, def: 12 },
+              ]).map(({ label, key, min, max, step, def }) => {
+                const val = (selectedBubble as any)[key] ?? def;
+                return (
+                  <div key={key} className="flex items-center gap-2">
+                    <span className="text-[10px] text-muted-foreground w-14 shrink-0">{label} {val}</span>
+                    <Slider value={[val]} onValueChange={([v]) => updateBubble(selectedBubble.id, { [key]: v } as any)} min={min} max={max} step={step} className="flex-1" />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {/* 말꼬리 */}
           <div className="space-y-2">
             <Label className="text-[13px] mb-1 block">말꼬리 스타일</Label>
@@ -2698,9 +2746,10 @@ function EditorPanel({
                 <div className="space-y-1.5 rounded-md bg-muted/30 p-2">
                   <p className="text-[11px] font-semibold text-muted-foreground">꼬리 세부 조정</p>
                   {([
-                    { label: "밑넓이", key: "tailBaseSpread", min: 2, max: 40, step: 1, def: 8 },
+                    { label: "밑넓이", key: "tailBaseSpread", min: 1, max: 60, step: 1, def: 8 },
                     { label: "곡선", key: "tailCurve", min: 0, max: 1, step: 0.05, def: 0.5 },
                     { label: "흔들림", key: "tailJitter", min: 0, max: 5, step: 0.1, def: 1 },
+                    { label: "끝 뭉툭함", key: "tailTipSpread", min: 0, max: 30, step: 1, def: 0 },
                   ]).map(({ label, key, min, max, step, def }) => {
                     const val = (selectedBubble as any)[key] ?? def;
                     return (
@@ -3619,6 +3668,7 @@ export default function StoryPage() {
   const [selectedBubbleId, setSelectedBubbleId] = useState<string | null>(null);
   const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
   const panelCanvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map());
+  const bubbleTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   type LeftTab = "image" | "ai" | "script" | "bubble" | "template" | null;
   const [activeLeftTab, setActiveLeftTab] = useState<LeftTab>(null);
@@ -4449,6 +4499,7 @@ export default function StoryPage() {
                       creatorTier={usageData?.creatorTier ?? 0}
                       isPro={isPro}
                       mode="bubble"
+                      bubbleTextareaRef={bubbleTextareaRef}
                     />
                   </>
                 )}
@@ -5052,6 +5103,10 @@ export default function StoryPage() {
                           zoom={zoom}
                           fontsReady={fontsReady}
                           isPro={isPro}
+                          onEditBubble={() => {
+                            // Focus sidebar bubble textarea
+                            setTimeout(() => bubbleTextareaRef.current?.focus(), 80);
+                          }}
                         />
                       </div>
                     </ContextMenuTrigger>

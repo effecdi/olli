@@ -552,14 +552,17 @@ function drawFlashStyle(
     ctx.stroke();
 }
 
-// 귓속말 — 점선 원
-function drawDashedPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, strokeWidth: number) {
+
+// 귓속말 — 이중 점선 원 (부드럽고 실제적인 귓속말 느낌)
+function drawDashedPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, strokeWidth: number, bubble?: SpeechBubble) {
     const rx = w / 2, ry = h / 2;
     const cx = x + rx, cy = y + ry;
+    const dashLen = (bubble as any)?.flashLineLength ?? strokeWidth * 4;
+    const gapLen = (bubble as any)?.flashLineSpacing !== undefined ? (bubble as any).flashLineSpacing * strokeWidth * 10 : strokeWidth * 3;
     ctx.lineWidth = strokeWidth;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
-    ctx.setLineDash([strokeWidth * 3, strokeWidth * 2.5]);
+    ctx.setLineDash([dashLen, gapLen]);
     ctx.beginPath();
     ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
     ctx.closePath();
@@ -628,32 +631,37 @@ function drawDripPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
 }
 
 // 신비/독백 — 반짝이 점선 원
-function drawSparkleRingPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, strokeWidth: number, seed: number) {
+function drawSparkleRingPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, strokeWidth: number, seed: number, bubble?: SpeechBubble) {
     const rx = w / 2, ry = h / 2;
     const cx = x + rx, cy = y + ry;
-    const count = 40;
+    const count = (bubble as any)?.flashLineCount ?? 48;
+    const needleLen = (bubble as any)?.flashLineLength ?? 12;
     const rand = seededRandom(seed + 999);
-    // Draw many tiny dashes around the ellipse
+
+    // Draw sparkle needles around ellipse
     for (let i = 0; i < count; i++) {
         const angle = (i / count) * Math.PI * 2;
-        const len = strokeWidth * (1.5 + rand() * 2.5);
-        const offset = rand() * strokeWidth * 1.5;
-        const startR = 1 + offset / Math.min(rx, ry);
-        const endR = startR + len / Math.min(rx, ry);
+        const len = strokeWidth * (1.0 + rand() * needleLen / strokeWidth);
+        const tw = strokeWidth * (0.3 + rand() * 0.7);
+        const startX = cx + Math.cos(angle) * rx;
+        const startY = cy + Math.sin(angle) * ry;
+        const endX = cx + Math.cos(angle) * (rx + len);
+        const endY = cy + Math.sin(angle) * (ry + len);
         ctx.beginPath();
-        ctx.moveTo(cx + Math.cos(angle) * rx * startR, cy + Math.sin(angle) * ry * startR);
-        ctx.lineTo(cx + Math.cos(angle) * rx * endR, cy + Math.sin(angle) * ry * endR);
-        ctx.lineWidth = strokeWidth * (0.5 + rand() * 0.8);
-        ctx.strokeStyle = "#222";
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        ctx.lineWidth = tw;
+        ctx.strokeStyle = "#333";
         ctx.lineCap = "round";
         ctx.stroke();
     }
-    // Inner ellipse
+    // Dashed inner ellipse
+    const innerR = 0.88;
     ctx.beginPath();
-    ctx.ellipse(cx, cy, rx * 0.9, ry * 0.9, 0, 0, Math.PI * 2);
-    ctx.lineWidth = strokeWidth * 0.6;
-    ctx.strokeStyle = "#aaa";
-    ctx.setLineDash([3, 4]);
+    ctx.ellipse(cx, cy, rx * innerR, ry * innerR, 0, 0, Math.PI * 2);
+    ctx.lineWidth = strokeWidth * 0.8;
+    ctx.strokeStyle = "#555";
+    ctx.setLineDash([strokeWidth * 2, strokeWidth * 2.5]);
     ctx.stroke();
     ctx.setLineDash([]);
 }
@@ -893,7 +901,7 @@ function drawBubbleFillOnly(ctx: CanvasRenderingContext2D, bubble: SpeechBubble)
             drawStickerPath(ctx, x, y, w, h, sw, seed, bubble);
             break;
         case "dashed":
-            drawDashedPath(ctx, x, y, w, h, sw);
+            drawDashedPath(ctx, x, y, w, h, sw, bubble);
             break;
         case "brush":
             drawBrushPath(ctx, x, y, w, h, sw, seed);
@@ -1008,7 +1016,7 @@ function drawBubbleStrokeOnly(ctx: CanvasRenderingContext2D, bubble: SpeechBubbl
             drawStickerPath(ctx, x, y, w, h, sw, seed, bubble);
             break;
         case "dashed":
-            drawDashedPath(ctx, x, y, w, h, sw);
+            drawDashedPath(ctx, x, y, w, h, sw, bubble);
             break;
         case "brush":
             drawBrushPath(ctx, x, y, w, h, sw, seed);
@@ -1174,7 +1182,7 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
                         bubble.shapeSpikeSharpness ?? 0.7, bubble.shapeWobble ?? 0);
                     break;
                 case "dashed":
-                    drawDashedPath(ctx, x, y, w, h, sw);
+                    drawDashedPath(ctx, x, y, w, h, sw, bubble);
                     break;
                 case "brush":
                     drawBrushPath(ctx, x, y, w, h, sw, seed);
@@ -1183,17 +1191,26 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
                     drawDripPath(ctx, x, y, w, h, sw, seed);
                     break;
                 case "sparkle_ring":
-                    drawSparkleRingPath(ctx, x, y, w, h, sw, seed);
-                    ctx.restore();
-                    return; // sparkle renders itself (fill/text handled separately below)
+                    drawSparkleRingPath(ctx, x, y, w, h, sw, seed, bubble);
+                    // fill inner ellipse for sparkle
+                    ctx.beginPath();
+                    ctx.ellipse(x + w/2, y + h/2, w/2 * 0.88, h/2 * 0.88, 0, 0, Math.PI * 2);
+                    if (drawMode !== "stroke_only") {
+                        ctx.fillStyle = fillColor;
+                        ctx.globalAlpha = fillOpacity;
+                        ctx.fill();
+                        ctx.globalAlpha = 1;
+                    }
+                    // No ctx.restore() early return - continue to text rendering below
+                    break;
                 case "flash_eyelash":
                     drawEyelashStyle(ctx, x, y, w, h, sw, seed, bubble);
                     // text drawn below - skip normal fill/stroke
                     break;
             }
 
-            // body fill + stroke (flash_eyelash handles its own fill/stroke above, but path still set to inner ellipse)
-            if (style !== "flash_eyelash") {
+            // body fill + stroke
+            if (style !== "flash_eyelash" && style !== "sparkle_ring") {
             if (drawMode !== "stroke_only") {
                 ctx.fillStyle = fillColor;
                 ctx.globalAlpha = fillOpacity;
@@ -1220,6 +1237,7 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
         const jitter = bubble.tailJitter ?? 0;
         const randT = seededRandom(bubble.seed + 999);
         const jitterScale = jitter * 10;
+        const tipSpread = bubble.tailTipSpread ?? 0;
 
         const baseC1x = geo.baseAx + (baseMidX - geo.baseAx) * (0.5 + curvePull * 0.45);
         const baseC1y = geo.baseAy + (baseMidY - geo.baseAy) * (0.5 + curvePull * 0.45);
@@ -1241,12 +1259,28 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
             y: geo.baseBy + (baseMidY - geo.baseBy) * (0.5 + curvePull * 0.45),
         };
 
+        // For blunt tip: perpendicular offset at tip point
+        const tipAngle = Math.atan2(geo.tipY - baseMidY, geo.tipX - baseMidX);
+        const perpAngle = tipAngle + Math.PI / 2;
+        const tipAx = geo.tipX + Math.cos(perpAngle) * tipSpread * 0.5;
+        const tipAy = geo.tipY + Math.sin(perpAngle) * tipSpread * 0.5;
+        const tipBx = geo.tipX - Math.cos(perpAngle) * tipSpread * 0.5;
+        const tipBy = geo.tipY - Math.sin(perpAngle) * tipSpread * 0.5;
+
+        const drawTailPath = (ctx: CanvasRenderingContext2D) => {
+            ctx.moveTo(geo.baseAx, geo.baseAy);
+            ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, tipSpread > 0 ? tipAx : geo.tipX, tipSpread > 0 ? tipAy : geo.tipY);
+            if (tipSpread > 0) {
+                // blunt flat tip
+                ctx.lineTo(tipBx, tipBy);
+            }
+            ctx.bezierCurveTo(c3.x, c3.y, c4.x, c4.y, geo.baseBx, geo.baseBy);
+        };
+
         // Step 1: Fill tail area with body fill color to cover the body stroke seam
         if (drawMode !== "stroke_only") {
             ctx.beginPath();
-            ctx.moveTo(geo.baseAx, geo.baseAy);
-            ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, geo.tipX, geo.tipY);
-            ctx.bezierCurveTo(c3.x, c3.y, c4.x, c4.y, geo.baseBx, geo.baseBy);
+            drawTailPath(ctx);
             ctx.closePath(); // straight line back: seamlessly covers body stroke in tail zone
             ctx.fillStyle = fillColor;
             ctx.globalAlpha = fillOpacity;
@@ -1257,9 +1291,7 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
         // Step 2: Draw ONLY the two side bezier lines (no base chord = no seam line)
         if (drawMode !== "fill_only") {
             ctx.beginPath();
-            ctx.moveTo(geo.baseAx, geo.baseAy);
-            ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, geo.tipX, geo.tipY);
-            ctx.bezierCurveTo(c3.x, c3.y, c4.x, c4.y, geo.baseBx, geo.baseBy);
+            drawTailPath(ctx);
             // NO closePath → no base chord line drawn
             ctx.lineWidth = sw;
             ctx.lineJoin = "round";
@@ -1328,7 +1360,9 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
         ctx.textBaseline = "middle";
         ctx.font = `${bubble.fontSize}px ${getFontFamily(bubble.fontKey)}`;
         const padding = 10;
-        const innerRadius = isFlash ? (bubble.flashInnerRadius ?? (style === "flash_eyelash" ? 0.88 : 0.65)) : 1;
+        const innerRadius = style === "sparkle_ring"
+            ? 0.86
+            : isFlash ? (bubble.flashInnerRadius ?? (style === "flash_eyelash" ? 0.88 : 0.65)) : 1;
         const contentWidth = w * innerRadius;
         const maxTextW = contentWidth - padding * 2;
         const rawLines = bubble.text.split("\n");

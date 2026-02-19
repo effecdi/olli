@@ -201,24 +201,6 @@ export default function BubblePage() {
     }
   }, [activePage, selectedBubbleId, selectedCharId, updateActivePage]);
 
-  const bringSelectedLayerForward = useCallback(() => {
-    if (!selectedBubbleId && !selectedCharId) return;
-    const idx = layerItems.findIndex((it) =>
-      selectedCharId ? it.type === "char" && it.id === selectedCharId : it.type === "bubble" && it.id === selectedBubbleId
-    );
-    if (idx < 0) return;
-    moveLayer(idx, "up");
-  }, [layerItems, moveLayer, selectedBubbleId, selectedCharId]);
-
-  const sendSelectedLayerBackward = useCallback(() => {
-    if (!selectedBubbleId && !selectedCharId) return;
-    const idx = layerItems.findIndex((it) =>
-      selectedCharId ? it.type === "char" && it.id === selectedCharId : it.type === "bubble" && it.id === selectedBubbleId
-    );
-    if (idx < 0) return;
-    moveLayer(idx, "down");
-  }, [layerItems, moveLayer, selectedBubbleId, selectedCharId]);
-
   const toggleLockSelectedElement = useCallback(() => {
     if (selectedBubbleId) {
       const b = activePage.bubbles.find((bb) => bb.id === selectedBubbleId);
@@ -369,18 +351,11 @@ export default function BubblePage() {
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
         deleteSelectedElement();
-      } else if ((e.ctrlKey || e.metaKey) && (e.key === "]" || e.key === "[")) {
-        e.preventDefault();
-        if (e.key === "]") {
-          bringSelectedLayerForward();
-        } else {
-          sendSelectedLayerBackward();
-        }
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [deleteSelectedElement, bringSelectedLayerForward, sendSelectedLayerBackward, selectedBubbleId, selectedCharId]);
+  }, [deleteSelectedElement, selectedBubbleId, selectedCharId]);
 
   const addPage = () => {
     const newPage: PageData = {
@@ -889,34 +864,7 @@ export default function BubblePage() {
                     <span className="text-xs truncate">{item.label}</span>
                   </div>
                   <div className="flex items-center gap-0.5 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      disabled={i === 0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        moveLayer(i, "up");
-                      }}
-                      title="앞으로"
-                      data-testid={`button-moveup-layer-${i}`}
-                    >
-                      <ChevronUp className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      disabled={i === layerItems.length - 1}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        moveLayer(i, "down");
-                      }}
-                      title="뒤로"
-                      data-testid={`button-movedown-layer-${i}`}
-                    >
-                      <ChevronDown className="h-3.5 w-3.5" />
-                    </Button>
+                    {/* z-index 앞으로/뒤로 버튼 제거 - 드래그만으로 레이어 순서 변경 */}
                     <Button
                       variant="ghost"
                       size="icon"
@@ -1401,8 +1349,6 @@ export default function BubblePage() {
                           <ContextMenuSeparator />
                         </>
                       )}
-                      <ContextMenuItem onClick={bringSelectedLayerForward}>레이어 앞으로</ContextMenuItem>
-                      <ContextMenuItem onClick={sendSelectedLayerBackward}>레이어 뒤로</ContextMenuItem>
                       <ContextMenuItem onClick={toggleLockSelectedElement}>
                         {selectedCharId
                           ? activePage.characters.find((c) => c.id === selectedCharId)?.locked

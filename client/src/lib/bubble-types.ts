@@ -42,6 +42,7 @@ export interface SpeechBubble {
     tailLength?: number;
     tailCurve?: number;
     tailJitter?: number;
+    tailTipSpread?: number;  // bluntness at tail tip (0=sharp, >0=wide/blunt)
     tailCtrl1X?: number;
     tailCtrl1Y?: number;
     tailCtrl2X?: number;
