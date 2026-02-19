@@ -53,6 +53,9 @@ import {
   Loader2,
   ChevronUp,
   ChevronDown,
+  UploadCloud,
+  ImagePlus,
+  CheckCircle2,
 } from "lucide-react";
 import { FlowStepper } from "@/components/flow-stepper";
 import { EditorOnboarding } from "@/components/editor-onboarding";
@@ -3008,6 +3011,16 @@ export default function StoryPage() {
   const [, setLocation] = useLocation();
   const [topic, setTopic] = useState("");
   const [aiMode, setAiMode] = useState<"subtitle" | "instatoonFull" | "instatoonPrompt" | null>(null);
+  // 인스타툰 자동화 생성용 - 기준 캐릭터 이미지
+  const [autoRefImageUrl, setAutoRefImageUrl] = useState<string | null>(null);
+  const [autoRefImageName, setAutoRefImageName] = useState<string>("");
+  const [showAutoGalleryPicker, setShowAutoGalleryPicker] = useState(false);
+  // 프롬프트 자동작성용 - 기준 캐릭터 이미지
+  const [promptRefImageUrl, setPromptRefImageUrl] = useState<string | null>(null);
+  const [promptRefImageName, setPromptRefImageName] = useState<string>("");
+  const [showPromptGalleryPicker, setShowPromptGalleryPicker] = useState(false);
+  const autoRefInputRef = useRef<HTMLInputElement>(null);
+  const promptRefInputRef = useRef<HTMLInputElement>(null);
   const [panels, setPanelsRaw] = useState<PanelData[]>([createPanel()]);
   const [activePanelIndex, setActivePanelIndex] = useState(0);
   const [fontsReady, setFontsReady] = useState(false);
@@ -3304,6 +3317,7 @@ export default function StoryPage() {
         if (expressionPrompt.trim()) body.expressionPrompt = expressionPrompt.trim();
         if (itemPrompt.trim()) body.itemPrompt = itemPrompt.trim();
         if (backgroundPrompt.trim()) body.backgroundPrompt = backgroundPrompt.trim();
+        if (autoRefImageUrl) body.referenceImageUrl = autoRefImageUrl;
       }
       const res = await apiRequest("POST", "/api/story-scripts", body);
       return res.json() as Promise<{ panels: StoryPanelScript[] }>;
@@ -3500,56 +3514,90 @@ export default function StoryPage() {
 
   const instatoonPromptMutation = useMutation({
     mutationFn: async () => {
-      const [poseRes, bgRes] = await Promise.all([
-        apiRequest("POST", "/api/ai-prompt", { type: "pose" }),
-        apiRequest("POST", "/api/ai-prompt", { type: "background" }),
-      ]);
-      const poseData = (await poseRes.json()) as { prompt: string };
-      const bgData = (await bgRes.json()) as { prompt: string };
-      return { posePrompt: poseData.prompt, backgroundRaw: bgData.prompt };
+      const hasPose = posePrompt.trim() || expressionPrompt.trim();
+      if (hasPose) {
+        // 포즈/표정이 이미 있으면 배경/아이템만 자동 생성
+        const context = [posePrompt.trim(), expressionPrompt.trim()].filter(Boolean).join(", ");
+        const res = await apiRequest("POST", "/api/ai-prompt", {
+          type: "background",
+          poseContext: context,
+          referenceImageUrl: promptRefImageUrl ?? undefined,
+        });
+        const data = (await res.json()) as { prompt: string };
+        return { autoFilled: "bg_only" as const, backgroundRaw: data.prompt, poseRaw: null };
+      } else {
+        // 포즈/표정도 없으면 모두 생성
+        const [poseRes, bgRes] = await Promise.all([
+          apiRequest("POST", "/api/ai-prompt", {
+            type: "pose",
+            referenceImageUrl: promptRefImageUrl ?? undefined,
+          }),
+          apiRequest("POST", "/api/ai-prompt", {
+            type: "background",
+            referenceImageUrl: promptRefImageUrl ?? undefined,
+          }),
+        ]);
+        const poseData = (await poseRes.json()) as { prompt: string };
+        const bgData = (await bgRes.json()) as { prompt: string };
+        return { autoFilled: "all" as const, backgroundRaw: bgData.prompt, poseRaw: poseData.prompt };
+      }
     },
     onSuccess: (data) => {
-      setPosePrompt(data.posePrompt);
-      setExpressionPrompt(data.posePrompt);
+      if (data.autoFilled === "all" && data.poseRaw) {
+        setPosePrompt(data.poseRaw);
+        setExpressionPrompt(data.poseRaw);
+      }
       let bg = data.backgroundRaw;
       let items = "";
       try {
         const parsed = JSON.parse(data.backgroundRaw);
         if (parsed && typeof parsed === "object") {
-          if (typeof (parsed as any).background === "string" && (parsed as any).background) {
-            bg = (parsed as any).background;
-          }
-          if (typeof (parsed as any).items === "string") {
-            items = (parsed as any).items;
-          }
+          if (typeof (parsed as any).background === "string" && (parsed as any).background) bg = (parsed as any).background;
+          if (typeof (parsed as any).items === "string") items = (parsed as any).items;
         }
-      } catch {
-      }
+      } catch {}
       setBackgroundPrompt(bg);
       setItemPrompt(items);
       toast({
-        title: "인스타툰 프롬프트 생성 완료",
-        description: "포즈/표정과 배경/아이템 프롬프트를 한 번에 채웠습니다.",
+        title: data.autoFilled === "bg_only" ? "배경/아이템 자동 완성!" : "인스타툰 프롬프트 생성 완료",
+        description: data.autoFilled === "bg_only"
+          ? "입력한 포즈/표정을 기반으로 배경과 아이템을 자동으로 채웠습니다."
+          : "포즈/표정, 배경/아이템 프롬프트를 모두 자동으로 채웠습니다.",
       });
     },
     onError: (error: any) => {
       if (isUnauthorizedError(error)) {
-        redirectToLogin((o) =>
-          toast({
-            title: o.title,
-            description: o.description,
-            variant: o.variant as any,
-          }),
-        );
+        redirectToLogin((o) => toast({ title: o.title, description: o.description, variant: o.variant as any }));
         return;
       }
-      toast({
-        title: "생성 실패",
-        description: error.message || "프롬프트 생성에 실패했습니다",
-        variant: "destructive",
-      });
+      toast({ title: "생성 실패", description: error.message || "프롬프트 생성에 실패했습니다", variant: "destructive" });
     },
   });
+
+  // 이미지 파일 → base64 변환 후 state에 저장
+  const handleAutoRefImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setAutoRefImageUrl(ev.target?.result as string);
+      setAutoRefImageName(file.name);
+      setShowAutoGalleryPicker(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePromptRefImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setPromptRefImageUrl(ev.target?.result as string);
+      setPromptRefImageName(file.name);
+      setShowPromptGalleryPicker(false);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const TIER_NAMES = ["입문 작가", "신인 작가", "인기 작가", "프로 연재러"];
   const TIER_PANEL_LIMITS = [3, 5, 8, 10];
@@ -3992,34 +4040,128 @@ export default function StoryPage() {
                       )}
 
                       {aiMode === "instatoonFull" && (
-                        <div className="mt-4 space-y-3">
-                          <div className="flex gap-2">
-                            <Input
-                              value={topic}
-                              onChange={(e) => setTopic(e.target.value)}
-                              placeholder="주제 입력 (예: 월요일 출근길)"
-                              className="text-sm"
-                              data-testid="input-story-topic"
+                        <div className="mt-4 space-y-4">
+                          {/* STEP 1 : 기준 캐릭터 이미지 */}
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-semibold text-foreground">① 기준 캐릭터 이미지</span>
+                              <span className="text-[10px] text-destructive font-medium">필수</span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground leading-relaxed">
+                              이 캐릭터 이미지를 기반으로 포즈·표정·배경이 자동 변형됩니다.
+                            </p>
+
+                            {/* 이미지 미리보기 */}
+                            {autoRefImageUrl ? (
+                              <div className="relative w-full aspect-square max-w-[100px] rounded-lg overflow-hidden border border-border bg-muted mx-auto">
+                                <img src={autoRefImageUrl} alt="기준 캐릭터" className="w-full h-full object-cover" />
+                                <button
+                                  onClick={() => { setAutoRefImageUrl(null); setAutoRefImageName(""); }}
+                                  className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5 hover:bg-black/80"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[9px] px-1 py-0.5 truncate">
+                                  <CheckCircle2 className="h-2.5 w-2.5 inline mr-0.5 text-green-400" />
+                                  {autoRefImageName || "선택됨"}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-2 gap-2">
+                                {/* 직접 업로드 */}
+                                <button
+                                  onClick={() => autoRefInputRef.current?.click()}
+                                  className="flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border bg-muted/40 p-3 text-xs text-muted-foreground hover:border-primary/50 hover:bg-muted/70 transition-colors"
+                                >
+                                  <UploadCloud className="h-5 w-5 text-muted-foreground/70" />
+                                  <span className="text-[11px] font-medium">이미지 업로드</span>
+                                  <span className="text-[10px] opacity-70">JPG·PNG</span>
+                                </button>
+                                {/* 갤러리에서 가져오기 */}
+                                <button
+                                  onClick={() => setShowAutoGalleryPicker((v) => !v)}
+                                  className={`flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed p-3 text-xs transition-colors ${showAutoGalleryPicker ? "border-primary bg-primary/5 text-primary" : "border-border bg-muted/40 text-muted-foreground hover:border-primary/50 hover:bg-muted/70"}`}
+                                >
+                                  <ImagePlus className="h-5 w-5 opacity-70" />
+                                  <span className="text-[11px] font-medium">갤러리에서</span>
+                                  <span className="text-[10px] opacity-70">생성 이미지</span>
+                                </button>
+                              </div>
+                            )}
+
+                            <input
+                              ref={autoRefInputRef}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleAutoRefImageUpload}
                             />
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              onClick={() => suggestMutation.mutate()}
-                              disabled={suggestMutation.isPending}
-                              data-testid="button-suggest-topic"
-                            >
-                              {suggestMutation.isPending ? (
-                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                              ) : (
-                                <Lightbulb className="h-4 w-4" />
-                              )}
-                            </Button>
+
+                            {/* 갤러리 그리드 */}
+                            {showAutoGalleryPicker && (
+                              <div className="space-y-1.5">
+                                <p className="text-[11px] text-muted-foreground">생성된 이미지 선택:</p>
+                                {galleryLoading ? (
+                                  <div className="flex justify-center py-4">
+                                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                                  </div>
+                                ) : !galleryData?.length ? (
+                                  <p className="text-[11px] text-muted-foreground text-center py-3">
+                                    생성된 이미지가 없어요.<br />먼저 캐릭터를 만들어주세요.
+                                  </p>
+                                ) : (
+                                  <div className="grid grid-cols-3 gap-1.5 max-h-[160px] overflow-y-auto">
+                                    {galleryData.map((gen) => (
+                                      <button
+                                        key={gen.id}
+                                        className="aspect-square rounded-md overflow-hidden border border-border hover:border-primary transition-colors"
+                                        onClick={() => {
+                                          setAutoRefImageUrl(gen.resultImageUrl);
+                                          setAutoRefImageName(gen.prompt?.slice(0, 20) ?? "갤러리 이미지");
+                                          setShowAutoGalleryPicker(false);
+                                        }}
+                                      >
+                                        <img src={gen.resultImageUrl} alt={gen.prompt} className="w-full h-full object-cover" />
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
 
-                          <div className="space-y-3">
+                          {/* STEP 2 : 주제 */}
+                          <div className="space-y-1.5">
+                            <span className="text-xs font-semibold text-foreground">② 인스타툰 주제</span>
+                            <div className="flex gap-2">
+                              <Input
+                                value={topic}
+                                onChange={(e) => setTopic(e.target.value)}
+                                placeholder="주제 입력 (예: 월요일 출근길)"
+                                className="text-sm"
+                                data-testid="input-story-topic"
+                              />
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => suggestMutation.mutate()}
+                                disabled={suggestMutation.isPending}
+                                data-testid="button-suggest-topic"
+                              >
+                                {suggestMutation.isPending ? (
+                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                ) : (
+                                  <Lightbulb className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* STEP 3 : 포즈/표정 (선택) */}
+                          <div className="space-y-2">
                             <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs font-medium text-muted-foreground">
-                                포즈 / 표정 프롬프트
+                              <span className="text-xs font-semibold text-foreground">
+                                ③ 포즈 / 표정 <span className="text-[10px] font-normal text-muted-foreground">(선택 — 비우면 AI가 자동 결정)</span>
                               </span>
                               <Button
                                 size="sm"
@@ -4038,20 +4180,25 @@ export default function StoryPage() {
                               <Textarea
                                 value={posePrompt}
                                 onChange={(e) => setPosePrompt(e.target.value)}
-                                placeholder="포즈 프롬프트 (예: 양팔을 번쩍 들고 놀란 포즈)"
-                                className="text-xs"
+                                placeholder="포즈 (예: 양팔을 번쩍 들고 놀란 포즈)"
+                                className="text-xs resize-none"
+                                rows={2}
                               />
                               <Textarea
                                 value={expressionPrompt}
                                 onChange={(e) => setExpressionPrompt(e.target.value)}
-                                placeholder="표정 프롬프트 (예: 입을 크게 벌리고 동공지진 난 표정)"
-                                className="text-xs"
+                                placeholder="표정 (예: 입을 크게 벌리고 동공지진 난 표정)"
+                                className="text-xs resize-none"
+                                rows={2}
                               />
                             </div>
+                          </div>
 
-                            <div className="flex items-center justify-between gap-2 mt-2">
-                              <span className="text-xs font-medium text-muted-foreground">
-                                배경 / 아이템 프롬프트
+                          {/* STEP 4 : 배경/아이템 (선택) */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-semibold text-foreground">
+                                ④ 배경 / 아이템 <span className="text-[10px] font-normal text-muted-foreground">(선택)</span>
                               </span>
                               <Button
                                 size="sm"
@@ -4070,28 +4217,32 @@ export default function StoryPage() {
                               <Textarea
                                 value={backgroundPrompt}
                                 onChange={(e) => setBackgroundPrompt(e.target.value)}
-                                placeholder="배경 프롬프트 (예: 퇴근길 지하철 안, 붐비는 플랫폼)"
-                                className="text-xs"
+                                placeholder="배경 (예: 퇴근길 지하철 안, 붐비는 플랫폼)"
+                                className="text-xs resize-none"
+                                rows={2}
                               />
                               <Textarea
                                 value={itemPrompt}
                                 onChange={(e) => setItemPrompt(e.target.value)}
-                                placeholder="아이템/소품 프롬프트 (예: 커피컵, 스마트폰, 지각 알람 시계)"
-                                className="text-xs"
+                                placeholder="아이템/소품 (예: 커피컵, 스마트폰)"
+                                className="text-xs resize-none"
+                                rows={2}
                               />
                             </div>
                           </div>
 
+                          {!autoRefImageUrl && (
+                            <p className="text-[11px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-md px-2.5 py-1.5">
+                              ⚠️ 기준 캐릭터 이미지를 선택해야 포즈·표정이 자동 변형됩니다.
+                            </p>
+                          )}
+
                           <Button
                             className="w-full"
                             size="sm"
-                            variant="outline"
                             onClick={() => {
                               const used = getDailyCount("story-ai");
-                              if (used >= 3) {
-                                setAiLimitOpen(true);
-                                return;
-                              }
+                              if (used >= 3) { setAiLimitOpen(true); return; }
                               generateMutation.mutate({ mode: "full" });
                             }}
                             disabled={!topic.trim() || generateMutation.isPending}
@@ -4101,55 +4252,136 @@ export default function StoryPage() {
                             ) : (
                               <Wand2 className="h-4 w-4 mr-2" />
                             )}
-                            인스타툰 자동 생성 실행 (포즈/배경 반영)
+                            인스타툰 자동 생성 실행
                           </Button>
                         </div>
                       )}
 
                       {aiMode === "instatoonPrompt" && (
-                        <div className="mt-4 space-y-3">
-                          <p className="text-xs text-muted-foreground">
-                            인스타툰에 쓸 포즈/표정, 배경, 아이템 프롬프트를 한 번에 작성하고 수정할 수 있어요.
-                          </p>
+                        <div className="mt-4 space-y-4">
+                          {/* 기준 이미지 선택 */}
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-semibold text-foreground">기준 캐릭터 이미지</span>
+                              <span className="text-[10px] text-muted-foreground">(선택 — 있으면 더 정확해요)</span>
+                            </div>
 
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs font-medium text-muted-foreground">
-                                포즈 / 표정 프롬프트
-                              </span>
+                            {promptRefImageUrl ? (
+                              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-2.5 py-2">
+                                <img src={promptRefImageUrl} alt="기준" className="h-10 w-10 rounded object-cover border border-border flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[11px] font-medium truncate">{promptRefImageName || "선택된 이미지"}</p>
+                                  <p className="text-[10px] text-muted-foreground">이 캐릭터 기반으로 프롬프트 자동 작성</p>
+                                </div>
+                                <button
+                                  onClick={() => { setPromptRefImageUrl(null); setPromptRefImageName(""); }}
+                                  className="text-muted-foreground hover:text-foreground flex-shrink-0"
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-2 gap-2">
+                                <button
+                                  onClick={() => promptRefInputRef.current?.click()}
+                                  className="flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border bg-muted/40 p-2.5 text-xs text-muted-foreground hover:border-primary/50 hover:bg-muted/70 transition-colors"
+                                >
+                                  <UploadCloud className="h-4 w-4 opacity-70" />
+                                  <span className="text-[11px]">이미지 업로드</span>
+                                </button>
+                                <button
+                                  onClick={() => setShowPromptGalleryPicker((v) => !v)}
+                                  className={`flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed p-2.5 text-xs transition-colors ${showPromptGalleryPicker ? "border-primary bg-primary/5 text-primary" : "border-border bg-muted/40 text-muted-foreground hover:border-primary/50 hover:bg-muted/70"}`}
+                                >
+                                  <ImagePlus className="h-4 w-4 opacity-70" />
+                                  <span className="text-[11px]">갤러리에서</span>
+                                </button>
+                              </div>
+                            )}
+
+                            <input
+                              ref={promptRefInputRef}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handlePromptRefImageUpload}
+                            />
+
+                            {showPromptGalleryPicker && (
+                              <div className="space-y-1.5">
+                                {galleryLoading ? (
+                                  <div className="flex justify-center py-3"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+                                ) : !galleryData?.length ? (
+                                  <p className="text-[11px] text-muted-foreground text-center py-2">생성된 이미지가 없어요.</p>
+                                ) : (
+                                  <div className="grid grid-cols-3 gap-1.5 max-h-[150px] overflow-y-auto">
+                                    {galleryData.map((gen) => (
+                                      <button
+                                        key={gen.id}
+                                        className="aspect-square rounded-md overflow-hidden border border-border hover:border-primary transition-colors"
+                                        onClick={() => {
+                                          setPromptRefImageUrl(gen.resultImageUrl);
+                                          setPromptRefImageName(gen.prompt?.slice(0, 20) ?? "갤러리 이미지");
+                                          setShowPromptGalleryPicker(false);
+                                        }}
+                                      >
+                                        <img src={gen.resultImageUrl} alt={gen.prompt} className="w-full h-full object-cover" />
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* 포즈/표정 - 입력하면 배경/아이템은 자동 */}
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs font-semibold text-foreground">포즈 / 표정</span>
+                              <span className="text-[10px] text-muted-foreground ml-1">— 입력하면 배경이 자동 완성됩니다</span>
                             </div>
                             <div className="grid grid-cols-1 gap-2">
                               <Textarea
                                 value={posePrompt}
                                 onChange={(e) => setPosePrompt(e.target.value)}
                                 placeholder="포즈 프롬프트 (예: 양팔을 번쩍 들고 놀란 포즈)"
-                                className="text-xs"
+                                className="text-xs resize-none"
+                                rows={2}
                               />
                               <Textarea
                                 value={expressionPrompt}
                                 onChange={(e) => setExpressionPrompt(e.target.value)}
                                 placeholder="표정 프롬프트 (예: 입을 크게 벌리고 동공지진 난 표정)"
-                                className="text-xs"
+                                className="text-xs resize-none"
+                                rows={2}
                               />
                             </div>
+                          </div>
 
-                            <div className="flex items-center justify-between gap-2 mt-2">
-                              <span className="text-xs font-medium text-muted-foreground">
-                                배경 / 아이템 프롬프트
+                          {/* 배경/아이템 - 자동 생성 or 수동 입력 */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-semibold text-foreground">
+                                배경 / 아이템
+                                {(posePrompt.trim() || expressionPrompt.trim()) && (
+                                  <span className="ml-1.5 text-[10px] font-normal text-primary">← 자동 생성 가능</span>
+                                )}
                               </span>
                             </div>
                             <div className="grid grid-cols-1 gap-2">
                               <Textarea
                                 value={backgroundPrompt}
                                 onChange={(e) => setBackgroundPrompt(e.target.value)}
-                                placeholder="배경 프롬프트 (예: 퇴근길 지하철 안, 붐비는 플랫폼)"
-                                className="text-xs"
+                                placeholder="배경 프롬프트 — 비워도 AI가 자동으로 채워줍니다"
+                                className="text-xs resize-none"
+                                rows={2}
                               />
                               <Textarea
                                 value={itemPrompt}
                                 onChange={(e) => setItemPrompt(e.target.value)}
-                                placeholder="아이템/소품 프롬프트 (예: 커피컵, 스마트폰, 지각 알람 시계)"
-                                className="text-xs"
+                                placeholder="아이템/소품 프롬프트 — 비워도 자동 생성됩니다"
+                                className="text-xs resize-none"
+                                rows={2}
                               />
                             </div>
                           </div>
@@ -4157,16 +4389,17 @@ export default function StoryPage() {
                           <Button
                             className="w-full"
                             size="sm"
-                            variant="outline"
                             onClick={() => instatoonPromptMutation.mutate()}
                             disabled={instatoonPromptMutation.isPending}
                           >
                             {instatoonPromptMutation.isPending ? (
-                              <div className="h-4 w-4 animate-spin rounded-full border border-primary border-t-transparent mr-2" />
+                              <div className="h-4 w-4 animate-spin rounded-full border border-primary-foreground border-t-transparent mr-2" />
                             ) : (
                               <Wand2 className="h-4 w-4 mr-2" />
                             )}
-                            인스타툰 자동 프롬프트 작성 실행
+                            {(posePrompt.trim() || expressionPrompt.trim())
+                              ? "배경/아이템 자동 완성"
+                              : "전체 프롬프트 자동 작성"}
                           </Button>
                         </div>
                       )}
