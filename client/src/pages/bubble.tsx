@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/context-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Upload, Download, Plus, Trash2, MessageCircle, ArrowRight, Type, Move, Maximize2, ImagePlus, X, Loader2, Layers, ChevronUp, ChevronDown, Save, Minimize2, ZoomIn, ZoomOut, FolderOpen, Share2, Crown, Lightbulb, Copy, FilePlus, Wand2 } from "lucide-react";
+import { Upload, Download, Plus, Trash2, MessageCircle, ArrowRight, Type, Move, Maximize2, ImagePlus, X, Loader2, Layers, ChevronUp, ChevronDown, Save, Minimize2, ZoomIn, ZoomOut, FolderOpen, Share2, Crown, Lightbulb, Copy, FilePlus, Wand2, Undo2, Redo2, RotateCcw } from "lucide-react";
 import { useLocation } from "wouter";
 import { BubbleCanvas } from "@/components/bubble-canvas";
 import { SpeechBubble, CharacterOverlay, PageData, DragMode, BubbleStyle, TailStyle } from "@/lib/bubble-types";
@@ -52,11 +52,60 @@ export default function BubblePage() {
   const from = searchParams.get("from");
   const canvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map());
 
-  const [pages, setPages] = useState<PageData[]>([
+  const [pages, setPagesRaw] = useState<PageData[]>([
     { id: generateId(), bubbles: [], characters: [], canvasSize: { width: 522, height: 695 } }
   ]);
   const [activePageIndex, setActivePageIndex] = useState(0);
   const activePage = pages[activePageIndex];
+
+  const historyRef = useRef<PageData[][]>([]);
+  const futureRef = useRef<PageData[][]>([]);
+  const skipHistoryRef = useRef(false);
+  const MAX_HISTORY = 100;
+
+  const clonePages = useCallback((src: PageData[]): PageData[] => {
+    return src.map((p) => ({
+      ...p,
+      bubbles: p.bubbles.map((b) => ({ ...b })),
+      characters: p.characters.map((c) => ({ ...c })),
+      canvasSize: { ...p.canvasSize },
+    }));
+  }, []);
+
+  const setPages = useCallback(
+    (updater: PageData[] | ((prev: PageData[]) => PageData[])) => {
+      setPagesRaw((prev) => {
+        if (!skipHistoryRef.current) {
+          historyRef.current = [
+            ...historyRef.current.slice(-(MAX_HISTORY - 1)),
+            clonePages(prev),
+          ];
+          futureRef.current = [];
+        }
+        skipHistoryRef.current = false;
+        return typeof updater === "function" ? (updater as (prev: PageData[]) => PageData[])(prev) : updater;
+      });
+    },
+    [clonePages],
+  );
+
+  const undo = useCallback(() => {
+    if (historyRef.current.length === 0) return;
+    setPagesRaw((prev) => {
+      futureRef.current = [...futureRef.current, clonePages(prev)];
+      const restored = historyRef.current.pop()!;
+      return clonePages(restored);
+    });
+  }, [clonePages]);
+
+  const redo = useCallback(() => {
+    if (futureRef.current.length === 0) return;
+    setPagesRaw((prev) => {
+      historyRef.current = [...historyRef.current, clonePages(prev)];
+      const restored = futureRef.current.pop()!;
+      return clonePages(restored);
+    });
+  }, [clonePages]);
 
   const [selectedBubbleId, setSelectedBubbleId] = useState<string | null>(null);
   const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
@@ -347,6 +396,21 @@ export default function BubblePage() {
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "Z" || (e.key === "z" && e.shiftKey))) {
+        e.preventDefault();
+        redo();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "y") {
+        e.preventDefault();
+        redo();
+        return;
+      }
       if (!selectedBubbleId && !selectedCharId) return;
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
@@ -355,7 +419,7 @@ export default function BubblePage() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [deleteSelectedElement, selectedBubbleId, selectedCharId]);
+  }, [deleteSelectedElement, selectedBubbleId, selectedCharId, undo, redo]);
 
   const addPage = () => {
     const newPage: PageData = {
@@ -466,6 +530,7 @@ export default function BubblePage() {
       try {
         const data = JSON.parse(loadedProject.canvasData);
         if (data.pages) {
+          skipHistoryRef.current = true;
           setPages(data.pages.map((p: PageData) => ({
             ...p,
             bubbles: p.bubbles.map(b => {
@@ -523,6 +588,7 @@ export default function BubblePage() {
               return img;
             })() : undefined
           };
+          skipHistoryRef.current = true;
           setPages([newPage]);
         }
       } catch (e) {
@@ -534,6 +600,17 @@ export default function BubblePage() {
 
   const selectedBubble = activePage.bubbles.find(b => b.id === selectedBubbleId);
   const selectedChar = activePage.characters.find(c => c.id === selectedCharId);
+
+  const resetAll = useCallback(() => {
+    skipHistoryRef.current = true;
+    setPages([
+      { id: generateId(), bubbles: [], characters: [], canvasSize: { width: 522, height: 695 } },
+    ]);
+    setActivePageIndex(0);
+    setSelectedBubbleId(null);
+    setSelectedCharId(null);
+    setZoom(100);
+  }, []);
 
   const handleFlipTailHorizontally = useCallback(() => {
     if (!selectedBubble) return;
@@ -693,6 +770,40 @@ export default function BubblePage() {
             >
               <Download className="h-4 w-4" />
             </Button>
+            <div className="flex items-center gap-0.5">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8"
+                onClick={undo}
+                disabled={historyRef.current.length === 0}
+                title="실행 취소 (Ctrl+Z / Cmd+Z)"
+                data-testid="button-bubble-undo"
+              >
+                <Undo2 className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8"
+                onClick={redo}
+                disabled={futureRef.current.length === 0}
+                title="다시 실행 (Ctrl+Shift+Z / Cmd+Shift+Z)"
+                data-testid="button-bubble-redo"
+              >
+                <Redo2 className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8"
+                onClick={resetAll}
+                title="초기화"
+                data-testid="button-bubble-reset"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            </div>
             <Button
               size="sm"
               variant="outline"

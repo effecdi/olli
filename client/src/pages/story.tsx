@@ -4230,7 +4230,7 @@ export default function StoryPage() {
                           onClick={() => setAiMode("instatoonPrompt")}
                         >
                           <Wand2 className="h-4 w-4 mr-2" />
-                          인스타툰 프롬프트 자동 작성
+                          인스타툰 캐릭터(all create) 자동 생성
                         </Button>
                       </div>
 
