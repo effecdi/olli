@@ -3001,7 +3001,6 @@ export default function StoryPage() {
       return res.json() as Promise<{ panels: StoryPanelScript[] }>;
     },
     onSuccess: (data) => {
-      incDailyCount("story-ai");
       setPanels((prev) =>
         prev.map((panel, i) => {
           if (!data.panels[i]) return panel;
@@ -3067,11 +3066,11 @@ export default function StoryPage() {
         );
         return;
       }
-      if (/^403: /.test(error.message)) {
+      if (/^403: /.test(error.message) && error.message.includes("크레딧을 전부 사용했어요")) {
         setAiLimitOpen(true);
         toast({
-          title: "AI 생성 제한",
-          description: "오늘 무료 AI 생성 3회를 초과했습니다.",
+          title: "크레딧 부족",
+          description: "크레딧을 전부 사용했어요. 충전해주세요.",
           variant: "destructive",
         });
         return;
@@ -3638,7 +3637,11 @@ export default function StoryPage() {
                         </button>
                       </div>
 
-                      <div className="grid grid-cols-1 gap-2 mt-2">
+                      <p className="mt-1 text-[11px] text-muted-foreground leading-relaxed">
+                        무료 3회 이후부터는 스토리 AI 생성마다 크레딧이 사용돼요.
+                      </p>
+
+                      <div className="grid grid-cols-1 gap-2 mt-3">
                         <Button
                           variant={aiMode === "subtitle" ? "default" : "outline"}
                           size="sm"
@@ -3697,11 +3700,6 @@ export default function StoryPage() {
                             className="w-full"
                             size="sm"
                             onClick={() => {
-                              const used = getDailyCount("story-ai");
-                              if (used >= 3) {
-                                setAiLimitOpen(true);
-                                return;
-                              }
                               generateMutation.mutate({ mode: "basic" });
                             }}
                             disabled={!topic.trim() || generateMutation.isPending}
@@ -3919,8 +3917,6 @@ export default function StoryPage() {
                             className="w-full"
                             size="sm"
                             onClick={() => {
-                              const used = getDailyCount("story-ai");
-                              if (used >= 3) { setAiLimitOpen(true); return; }
                               generateMutation.mutate({ mode: "full" });
                             }}
                             disabled={!topic.trim() || generateMutation.isPending}
@@ -4840,14 +4836,21 @@ export default function StoryPage() {
             <Dialog open={aiLimitOpen} onOpenChange={setAiLimitOpen}>
               <DialogContent className="max-w-sm">
                 <DialogHeader>
-                  <DialogTitle className="text-base">AI 생성 제한</DialogTitle>
-                  <DialogDescription>오늘 무료 AI 생성 3회를 초과했습니다.</DialogDescription>
+                  <DialogTitle className="text-base">크레딧 부족</DialogTitle>
+                  <DialogDescription>크레딧을 전부 사용했어요. 충전해주세요.</DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-col gap-2">
                   <Button asChild className="w-full gap-1.5" data-testid="button-upgrade-pro-ai">
-                    <a href="/pricing">Pro 업그레이드</a>
+                    <a href="/pricing">크레딧 충전 / Pro 업그레이드</a>
                   </Button>
-                  <Button variant="outline" className="w-full" onClick={() => setAiLimitOpen(false)} data-testid="button-close-ai-limit">닫기</Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setAiLimitOpen(false)}
+                    data-testid="button-close-ai-limit"
+                  >
+                    닫기
+                  </Button>
                 </div>
               </DialogContent>
             </Dialog>

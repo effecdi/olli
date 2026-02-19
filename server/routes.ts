@@ -458,9 +458,19 @@ export async function registerRoutes(
         return res.status(400).json({ message: parsed.error.errors[0]?.message || "Invalid input" });
       }
 
-      const canUseStory = await storage.deductStoryUse(userId);
-      if (!canUseStory) {
-        return res.status(403).json({ message: "이번 달의 스토리 에디터 무료 사용 횟수(3회)를 모두 사용했습니다." });
+      const credits = await storage.getUserCredits(userId);
+      if (credits.tier !== "pro") {
+        if (credits.storyUsesToday < 3) {
+          const ok = await storage.deductStoryUse(userId);
+          if (!ok) {
+            return res.status(403).json({ message: "크레딧을 전부 사용했어요. 충전해주세요." });
+          }
+        } else {
+          const ok = await storage.deductCredit(userId);
+          if (!ok) {
+            return res.status(403).json({ message: "크레딧을 전부 사용했어요. 충전해주세요." });
+          }
+        }
       }
 
       const result = await generateStoryScripts(parsed.data);
