@@ -69,8 +69,11 @@ export const STYLE_LABELS: Record<string, string> = {
 
 export const FLASH_STYLE_LABELS: Record<string, string> = {
     flash_black: "검은 바탕",
-    flash_normal: "플래시",
     flash_dense: "빽빽한",
+    dashed: "귓속말",
+    brush: "위엄",
+    drip: "흐물",
+    sparkle_ring: "신비",
 };
 
 export const TAIL_LABELS: Record<TailStyle, string> = {
@@ -139,7 +142,7 @@ export function getTailGeometry(bubble: SpeechBubble) {
 }
 
 // Drawing helper functions
-function drawHandwrittenPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, strokeWidth: number, seed: number) {
+function drawHandwrittenPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, strokeWidth: number, seed: number, wobble: number = 3) {
     ctx.lineWidth = strokeWidth;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
@@ -150,12 +153,13 @@ function drawHandwrittenPath(ctx: CanvasRenderingContext2D, x: number, y: number
     const cy = y + ry;
     const segments = 60;
     const rand = seededRandom(seed);
+    const jitterAmt = strokeWidth * 0.8 + wobble * 1.2;
 
     ctx.beginPath();
     for (let i = 0; i <= segments; i++) {
         const angle = (i / segments) * Math.PI * 2;
-        const jitterX = (rand() - 0.5) * strokeWidth * 1.5;
-        const jitterY = (rand() - 0.5) * strokeWidth * 1.5;
+        const jitterX = (rand() - 0.5) * jitterAmt;
+        const jitterY = (rand() - 0.5) * jitterAmt;
         const px = cx + Math.cos(angle) * rx + jitterX;
         const py = cy + Math.sin(angle) * ry + jitterY;
         if (i === 0) ctx.moveTo(px, py);
@@ -349,25 +353,29 @@ function drawCloudPath(
     const bumpSize = bubble.shapeBumpSize ?? 15;
     const roundness = bubble.shapeBumpRoundness ?? 0.8;
     const rand = seededRandom(seed + 200);
-    ctx.beginPath();
-    for (let i = 0; i <= bumpCount; i++) {
+
+    // Pre-compute all vertex positions
+    const verts: { x: number; y: number }[] = [];
+    for (let i = 0; i < bumpCount; i++) {
         const angle = (i / bumpCount) * Math.PI * 2 - Math.PI / 2;
-        const nextAngle = ((i + 0.5) / bumpCount) * Math.PI * 2 - Math.PI / 2;
-        const bx = cx + Math.cos(angle) * rx;
-        const by = cy + Math.sin(angle) * ry;
+        verts.push({ x: cx + Math.cos(angle) * rx, y: cy + Math.sin(angle) * ry });
+    }
+
+    ctx.beginPath();
+    for (let i = 0; i < bumpCount; i++) {
+        const curr = verts[i];
+        const next = verts[(i + 1) % bumpCount];
+        const midAngle = ((i + 0.5) / bumpCount) * Math.PI * 2 - Math.PI / 2;
         const jitter = (rand() - 0.5) * bumpSize * 0.3;
-        const outward = 1 + (bumpSize + jitter) / Math.min(rx, ry);
-        const cpx = cx + Math.cos(nextAngle) * rx * (1 + (bumpSize * roundness) / Math.min(rx, ry));
-        const cpy = cy + Math.sin(nextAngle) * ry * (1 + (bumpSize * roundness) / Math.min(rx, ry));
-        const nbx = cx + Math.cos(((i + 1) / bumpCount) * Math.PI * 2 - Math.PI / 2) * rx;
-        const nby = cy + Math.sin(((i + 1) / bumpCount) * Math.PI * 2 - Math.PI / 2) * ry;
-        if (i === 0) ctx.moveTo(bx, by);
-        ctx.quadraticCurveTo(cpx, cpy, nbx, nby);
+        const cpx = cx + Math.cos(midAngle) * rx * (1 + (bumpSize + jitter) * roundness / Math.min(rx, ry));
+        const cpy = cy + Math.sin(midAngle) * ry * (1 + (bumpSize + jitter) * roundness / Math.min(rx, ry));
+        if (i === 0) ctx.moveTo(curr.x, curr.y);
+        ctx.quadraticCurveTo(cpx, cpy, next.x, next.y);
     }
     ctx.closePath();
 }
 
-function drawShoutPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, strokeWidth: number, seed: number) {
+function drawShoutPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, strokeWidth: number, seed: number, spikeCount: number = 12, spikeHeight: number = 0.25) {
     ctx.lineWidth = strokeWidth;
     ctx.lineJoin = "miter";
     ctx.lineCap = "round";
@@ -376,15 +384,15 @@ function drawShoutPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: n
     const ry = h / 2;
     const cx = x + rx;
     const cy = y + ry;
-    const spikes = 12;
     const rand = seededRandom(seed);
+    const innerR = 0.78;
 
     ctx.beginPath();
-    for (let i = 0; i <= spikes * 2; i++) {
-        const angle = (i / (spikes * 2)) * Math.PI * 2;
+    for (let i = 0; i <= spikeCount * 2; i++) {
+        const angle = (i / (spikeCount * 2)) * Math.PI * 2;
         const isSpike = i % 2 === 0;
-        const spikeLen = isSpike ? 0.25 + rand() * 0.15 : 0;
-        const r = isSpike ? 1 + spikeLen : 0.82;
+        const spikeLen = isSpike ? spikeHeight + rand() * spikeHeight * 0.5 : 0;
+        const r = isSpike ? 1 + spikeLen : innerR;
         const px = cx + Math.cos(angle) * rx * r;
         const py = cy + Math.sin(angle) * ry * r;
         if (i === 0) ctx.moveTo(px, py);
@@ -415,6 +423,8 @@ function drawRoundedPath(ctx: CanvasRenderingContext2D, x: number, y: number, w:
     ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
     ctx.lineTo(x + r, y + h);
     ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x, y, x + r, y, r);
     ctx.closePath();
 }
 
@@ -442,7 +452,7 @@ function drawDoublelinePath(ctx: CanvasRenderingContext2D, x: number, y: number,
     ctx.closePath();
 }
 
-function drawWavyPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, strokeWidth: number) {
+function drawWavyPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, strokeWidth: number, wobble: number = 5) {
     ctx.lineWidth = strokeWidth;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
@@ -452,7 +462,7 @@ function drawWavyPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
     const cx = x + rx;
     const cy = y + ry;
     const waves = 10;
-    const waveAmp = Math.min(rx, ry) * 0.08;
+    const waveAmp = Math.min(rx, ry) * 0.04 + wobble * 0.8;
     const segments = 120;
 
     ctx.beginPath();
@@ -541,6 +551,112 @@ function drawFlashStyle(
     ctx.stroke();
 }
 
+// 귓속말 — 점선 원
+function drawDashedPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, strokeWidth: number) {
+    const rx = w / 2, ry = h / 2;
+    const cx = x + rx, cy = y + ry;
+    ctx.lineWidth = strokeWidth;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.setLineDash([strokeWidth * 3, strokeWidth * 2.5]);
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+    ctx.closePath();
+}
+
+// 위엄 — 굵은 브러시 먹선
+function drawBrushPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, strokeWidth: number, seed: number) {
+    const rx = w / 2, ry = h / 2;
+    const cx = x + rx, cy = y + ry;
+    const segments = 80;
+    const rand = seededRandom(seed + 77);
+    ctx.lineWidth = strokeWidth * 2.5;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    for (let i = 0; i <= segments; i++) {
+        const angle = (i / segments) * Math.PI * 2;
+        // Slight ink-brush wobble + variable thickness via jitter
+        const jx = (rand() - 0.5) * strokeWidth * 1.2;
+        const jy = (rand() - 0.5) * strokeWidth * 1.2;
+        const px = cx + Math.cos(angle) * rx + jx;
+        const py = cy + Math.sin(angle) * ry + jy;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+}
+
+// 흐물 — 멜팅/녹아내리는 말풍선
+function drawDripPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, strokeWidth: number, seed: number) {
+    const rx = w / 2, ry = h / 2;
+    const cx = x + rx, cy = y + ry;
+    const rand = seededRandom(seed + 55);
+    ctx.lineWidth = strokeWidth;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+
+    const segments = 80;
+    const dripCount = 4 + Math.floor(rand() * 3);
+    const dripZoneStart = 0.35; // bottom arc zone (ratio 0=top, 0.5=bottom)
+    const dripZoneEnd = 0.65;
+
+    ctx.beginPath();
+    for (let i = 0; i <= segments; i++) {
+        const t = i / segments;
+        const angle = t * Math.PI * 2 - Math.PI / 2;
+        // bottom half: add drips
+        const isBottom = t > 0.35 && t < 0.65;
+        let extra = 0;
+        if (isBottom) {
+            for (let d = 0; d < dripCount; d++) {
+                const dripCenter = dripZoneStart + (d + 0.5) * (dripZoneEnd - dripZoneStart) / dripCount;
+                const dist = Math.abs(t - dripCenter) / (0.5 * (dripZoneEnd - dripZoneStart) / dripCount);
+                if (dist < 1) {
+                    const dripLen = (0.15 + rand() * 0.25) * Math.min(rx, ry);
+                    extra += dripLen * Math.pow(1 - dist, 2);
+                }
+            }
+        }
+        const px = cx + Math.cos(angle) * rx;
+        const py = cy + Math.sin(angle) * ry + extra;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+}
+
+// 신비/독백 — 반짝이 점선 원
+function drawSparkleRingPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, strokeWidth: number, seed: number) {
+    const rx = w / 2, ry = h / 2;
+    const cx = x + rx, cy = y + ry;
+    const count = 40;
+    const rand = seededRandom(seed + 999);
+    // Draw many tiny dashes around the ellipse
+    for (let i = 0; i < count; i++) {
+        const angle = (i / count) * Math.PI * 2;
+        const len = strokeWidth * (1.5 + rand() * 2.5);
+        const offset = rand() * strokeWidth * 1.5;
+        const startR = 1 + offset / Math.min(rx, ry);
+        const endR = startR + len / Math.min(rx, ry);
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(angle) * rx * startR, cy + Math.sin(angle) * ry * startR);
+        ctx.lineTo(cx + Math.cos(angle) * rx * endR, cy + Math.sin(angle) * ry * endR);
+        ctx.lineWidth = strokeWidth * (0.5 + rand() * 0.8);
+        ctx.strokeStyle = "#222";
+        ctx.lineCap = "round";
+        ctx.stroke();
+    }
+    // Inner ellipse
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx * 0.9, ry * 0.9, 0, 0, Math.PI * 2);
+    ctx.lineWidth = strokeWidth * 0.6;
+    ctx.strokeStyle = "#aaa";
+    ctx.setLineDash([3, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+}
+
 function drawElectricPath(
     ctx: CanvasRenderingContext2D,
     x: number,
@@ -551,8 +667,6 @@ function drawElectricPath(
     seed: number,
     bubble: SpeechBubble,
 ) {
-    ctx.lineWidth = strokeWidth;
-    ctx.lineJoin = "miter";
     ctx.lineCap = "square";
 
     const rx = w / 2;
@@ -622,7 +736,7 @@ function drawBubbleFillOnly(ctx: CanvasRenderingContext2D, bubble: SpeechBubble)
 
     switch (style) {
         case "handwritten":
-            drawHandwrittenPath(ctx, x, y, w, h, sw, seed);
+            drawHandwrittenPath(ctx, x, y, w, h, sw, seed, bubble.wobble ?? 3);
             break;
         case "linedrawing":
             drawLinedrawingPath(ctx, x, y, w, h, sw);
@@ -634,7 +748,7 @@ function drawBubbleFillOnly(ctx: CanvasRenderingContext2D, bubble: SpeechBubble)
             drawThoughtPath(ctx, x, y, w, h, sw, seed);
             break;
         case "shout":
-            drawShoutPath(ctx, x, y, w, h, sw, seed);
+            drawShoutPath(ctx, x, y, w, h, sw, seed, bubble.shapeSpikeCount ?? 12, bubble.shapeWobble ?? 0.25);
             break;
         case "rectangle":
             drawRectanglePath(ctx, x, y, w, h, sw);
@@ -646,10 +760,9 @@ function drawBubbleFillOnly(ctx: CanvasRenderingContext2D, bubble: SpeechBubble)
             drawDoublelinePath(ctx, x, y, w, h, sw);
             break;
         case "wavy":
-            drawWavyPath(ctx, x, y, w, h, sw);
+            drawWavyPath(ctx, x, y, w, h, sw, bubble.wobble ?? 5);
             break;
         case "flash_black":
-        case "flash_normal":
         case "flash_dense":
             drawFlashStyle(ctx, x, y, w, h, sw, seed, style, {
                 lineCount: bubble.flashLineCount ?? 24,
@@ -699,6 +812,18 @@ function drawBubbleFillOnly(ctx: CanvasRenderingContext2D, bubble: SpeechBubble)
             break;
         case "sticker":
             drawStickerPath(ctx, x, y, w, h, sw, seed, bubble);
+            break;
+        case "dashed":
+            drawDashedPath(ctx, x, y, w, h, sw);
+            break;
+        case "brush":
+            drawBrushPath(ctx, x, y, w, h, sw, seed);
+            break;
+        case "drip":
+            drawDripPath(ctx, x, y, w, h, sw, seed);
+            break;
+        case "sparkle_ring":
+            drawLinedrawingPath(ctx, x, y, w, h, sw); // inner shape for fill
             break;
         case "image":
             break;
@@ -723,7 +848,7 @@ function drawBubbleStrokeOnly(ctx: CanvasRenderingContext2D, bubble: SpeechBubbl
 
     switch (style) {
         case "handwritten":
-            drawHandwrittenPath(ctx, x, y, w, h, sw, seed);
+            drawHandwrittenPath(ctx, x, y, w, h, sw, seed, bubble.wobble ?? 3);
             break;
         case "linedrawing":
             drawLinedrawingPath(ctx, x, y, w, h, sw);
@@ -735,7 +860,7 @@ function drawBubbleStrokeOnly(ctx: CanvasRenderingContext2D, bubble: SpeechBubbl
             drawThoughtPath(ctx, x, y, w, h, sw, seed);
             break;
         case "shout":
-            drawShoutPath(ctx, x, y, w, h, sw, seed);
+            drawShoutPath(ctx, x, y, w, h, sw, seed, bubble.shapeSpikeCount ?? 12, bubble.shapeWobble ?? 0.25);
             break;
         case "rectangle":
             drawRectanglePath(ctx, x, y, w, h, sw);
@@ -747,10 +872,9 @@ function drawBubbleStrokeOnly(ctx: CanvasRenderingContext2D, bubble: SpeechBubbl
             drawDoublelinePath(ctx, x, y, w, h, sw);
             break;
         case "wavy":
-            drawWavyPath(ctx, x, y, w, h, sw);
+            drawWavyPath(ctx, x, y, w, h, sw, bubble.wobble ?? 5);
             break;
         case "flash_black":
-        case "flash_normal":
         case "flash_dense":
             drawFlashStyle(ctx, x, y, w, h, sw, seed, style, {
                 lineCount: bubble.flashLineCount ?? 24,
@@ -800,6 +924,18 @@ function drawBubbleStrokeOnly(ctx: CanvasRenderingContext2D, bubble: SpeechBubbl
             break;
         case "sticker":
             drawStickerPath(ctx, x, y, w, h, sw, seed, bubble);
+            break;
+        case "dashed":
+            drawDashedPath(ctx, x, y, w, h, sw);
+            break;
+        case "brush":
+            drawBrushPath(ctx, x, y, w, h, sw, seed);
+            break;
+        case "drip":
+            drawDripPath(ctx, x, y, w, h, sw, seed);
+            break;
+        case "sparkle_ring":
+            // sparkle renders itself, nothing to stroke here
             break;
         case "image":
             break;
@@ -898,7 +1034,7 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
         } else {
             switch (style) {
                 case "handwritten":
-                    drawHandwrittenPath(ctx, x, y, w, h, sw, seed);
+                    drawHandwrittenPath(ctx, x, y, w, h, sw, seed, wob);
                     break;
                 case "linedrawing":
                     drawLinedrawingPath(ctx, x, y, w, h, sw);
@@ -910,7 +1046,7 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
                     drawThoughtPath(ctx, x, y, w, h, sw, seed);
                     break;
                 case "shout":
-                    drawShoutPath(ctx, x, y, w, h, sw, seed);
+                    drawShoutPath(ctx, x, y, w, h, sw, seed, bubble.shapeSpikeCount ?? 12, bubble.shapeWobble ?? 0.25);
                     break;
                 case "rectangle":
                     drawRectanglePath(ctx, x, y, w, h, sw);
@@ -919,10 +1055,9 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
                     drawRoundedPath(ctx, x, y, w, h, sw);
                     break;
                 case "wavy":
-                    drawWavyPath(ctx, x, y, w, h, sw);
+                    drawWavyPath(ctx, x, y, w, h, sw, wob);
                     break;
                 case "flash_black":
-                case "flash_normal":
                 case "flash_dense":
                     drawFlashStyle(ctx, x, y, w, h, sw, seed, style, {
                         lineCount: bubble.flashLineCount ?? 24,
@@ -944,9 +1079,31 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
                 case "sticker":
                     drawStickerPath(ctx, x, y, w, h, sw, seed, bubble);
                     break;
+                case "polygon":
+                    drawPolygonPath(ctx, x, y, w, h, sw, seed,
+                        bubble.shapeSides ?? 6, bubble.shapeCornerRadius ?? 8, bubble.shapeWobble ?? 0);
+                    break;
+                case "spiky":
+                    drawSpikyPath(ctx, x, y, w, h, sw, seed,
+                        bubble.shapeSpikeCount ?? 12, bubble.shapeSpikeHeight ?? 20,
+                        bubble.shapeSpikeSharpness ?? 0.7, bubble.shapeWobble ?? 0);
+                    break;
+                case "dashed":
+                    drawDashedPath(ctx, x, y, w, h, sw);
+                    break;
+                case "brush":
+                    drawBrushPath(ctx, x, y, w, h, sw, seed);
+                    break;
+                case "drip":
+                    drawDripPath(ctx, x, y, w, h, sw, seed);
+                    break;
+                case "sparkle_ring":
+                    drawSparkleRingPath(ctx, x, y, w, h, sw, seed);
+                    ctx.restore();
+                    return; // sparkle renders itself (fill/text handled separately below)
             }
 
-            // 항상 body fill/stroke (hasTail 여부 무관)
+            // body fill + stroke (always, for both hasTail and not)
             if (drawMode !== "stroke_only") {
                 ctx.fillStyle = fillColor;
                 ctx.globalAlpha = fillOpacity;
@@ -955,23 +1112,22 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
             }
             if (drawMode !== "fill_only") {
                 ctx.strokeStyle = strokeColor;
+                ctx.setLineDash([]);
                 ctx.stroke();
             }
+            // Reset dashed line if dashed style
+            ctx.setLineDash([]);
         }
     }
 
     if (hasTail) {
         const geo = getTailGeometry(bubble);
-        const cx = bubble.x + bubble.width / 2;
-        const cy = bubble.y + bubble.height / 2;
-        const rx = bubble.width / 2;
-        const ry = bubble.height / 2;
 
         const curvePull = bubble.tailCurve ?? 0.5;
         const baseMidX = (geo.baseAx + geo.baseBx) / 2;
         const baseMidY = (geo.baseAy + geo.baseBy) / 2;
         const jitter = bubble.tailJitter ?? 0;
-        const rand = seededRandom(bubble.seed + 999);
+        const randT = seededRandom(bubble.seed + 999);
         const jitterScale = jitter * 10;
 
         const baseC1x = geo.baseAx + (baseMidX - geo.baseAx) * (0.5 + curvePull * 0.45);
@@ -984,45 +1140,36 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
 
         const c1 = hasCtrl1
             ? { x: bubble.tailCtrl1X as number, y: bubble.tailCtrl1Y as number }
-            : { x: baseC1x + (rand() - 0.5) * jitterScale, y: baseC1y + (rand() - 0.5) * jitterScale };
+            : { x: baseC1x + (randT() - 0.5) * jitterScale, y: baseC1y + (randT() - 0.5) * jitterScale };
         const c2 = hasCtrl2
             ? { x: bubble.tailCtrl2X as number, y: bubble.tailCtrl2Y as number }
-            : { x: baseC2x + (rand() - 0.5) * jitterScale, y: baseC2y + (rand() - 0.5) * jitterScale };
+            : { x: baseC2x + (randT() - 0.5) * jitterScale, y: baseC2y + (randT() - 0.5) * jitterScale };
         const c3 = { x: c2.x, y: c2.y };
         const c4 = {
             x: geo.baseBx + (baseMidX - geo.baseBx) * (0.5 + curvePull * 0.45),
             y: geo.baseBy + (baseMidY - geo.baseBy) * (0.5 + curvePull * 0.45),
         };
 
-        // Step 1: 꼬리 fill (body fill과 완전히 이어지도록 덮어씀)
-        ctx.beginPath();
-        ctx.moveTo(geo.baseAx, geo.baseAy);
-        ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, geo.tipX, geo.tipY);
-        ctx.bezierCurveTo(c3.x, c3.y, c4.x, c4.y, geo.baseBx, geo.baseBy);
-        ctx.closePath(); // 직선으로 baseB → baseA (body 내부이므로 안 보임)
+        // Step 1: Fill tail area with body fill color to cover the body stroke seam
         if (drawMode !== "stroke_only") {
+            ctx.beginPath();
+            ctx.moveTo(geo.baseAx, geo.baseAy);
+            ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, geo.tipX, geo.tipY);
+            ctx.bezierCurveTo(c3.x, c3.y, c4.x, c4.y, geo.baseBx, geo.baseBy);
+            ctx.closePath(); // straight line back: seamlessly covers body stroke in tail zone
             ctx.fillStyle = fillColor;
             ctx.globalAlpha = fillOpacity;
             ctx.fill();
             ctx.globalAlpha = 1;
         }
 
-        // Step 2: body stroke의 꼬리 부착 구간만 destination-out으로 지우기
+        // Step 2: Draw ONLY the two side bezier lines (no base chord = no seam line)
         if (drawMode !== "fill_only") {
-            ctx.save();
-            ctx.globalCompositeOperation = "destination-out";
-            ctx.beginPath();
-            ctx.ellipse(cx, cy, rx, ry, 0, geo.angleA - 0.06, geo.angleB + 0.06, false);
-            ctx.lineWidth = sw * 4;
-            ctx.strokeStyle = "rgba(0,0,0,1)";
-            ctx.stroke();
-            ctx.restore();
-
-            // Step 3: 꼬리 측면선만 그리기 (arc 제외 - 이음새 없음)
             ctx.beginPath();
             ctx.moveTo(geo.baseAx, geo.baseAy);
             ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, geo.tipX, geo.tipY);
             ctx.bezierCurveTo(c3.x, c3.y, c4.x, c4.y, geo.baseBx, geo.baseBy);
+            // NO closePath → no base chord line drawn
             ctx.lineWidth = sw;
             ctx.lineJoin = "round";
             ctx.lineCap = "round";
@@ -1082,7 +1229,7 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
 
     if (bubble.text) {
         const isFlash =
-            style === "flash_black" || style === "flash_normal" || style === "flash_dense";
+            style === "flash_black" || style === "flash_dense";
         const textColor = style === "flash_black" ? "#ffffff" : "#222";
 
         ctx.fillStyle = textColor;
