@@ -1726,7 +1726,7 @@ function PanelCanvas({
                     fill="white"
                     stroke={HANDLE_COLOR}
                     strokeWidth="1.8"
-                    style={{ pointerEvents: "all", cursor: h.cursor }}
+                    style={{ pointerEvents: "none", cursor: h.cursor }}
                   />
                 ))}
               </svg>
