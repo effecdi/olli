@@ -12,7 +12,6 @@ export type BubbleStyle =
     | "flash_black"
     | "flash_dense"
     | "cloud"
-    | "electric"
     | "sticker"
     | "polygon"
     | "spiky"
@@ -20,7 +19,9 @@ export type BubbleStyle =
     | "brush"
     | "drip"
     | "sparkle_ring"
-    | "flash_eyelash";
+    | "flash_eyelash"
+    | "embarrassed"
+    | "monologue";
 export type TailStyle = "none" | "long" | "short" | "dots_handwritten" | "dots_linedrawing";
 
 export type TailDrawMode = "bezier" | "straight" | "polyline" | "spline";

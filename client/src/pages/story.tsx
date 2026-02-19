@@ -493,6 +493,25 @@ function drawWavyPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
   ctx.closePath();
 }
 
+function scriptWrapLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const lines: string[] = [];
+  for (const raw of text.split("\n")) {
+    if (!raw) { lines.push(""); continue; }
+    let cur = "";
+    for (const ch of raw) {
+      const test = cur + ch;
+      if (ctx.measureText(test).width > maxWidth && cur) {
+        lines.push(cur);
+        cur = ch;
+      } else {
+        cur = test;
+      }
+    }
+    if (cur) lines.push(cur);
+  }
+  return lines;
+}
+
 function getScriptRect(
   ctx: CanvasRenderingContext2D,
   script: ScriptData,
@@ -501,19 +520,22 @@ function getScriptRect(
   canvasH: number,
 ) {
   const fs = script.fontSize || 20;
-  const padX = Math.max(14, fs * 1.1);
-  const padY = Math.max(6, fs * 0.5);
+  const padX = Math.max(14, fs * 0.8);
+  const padY = Math.max(6, fs * 0.4);
   const fontFamily = getFontFamily(script.fontKey || "default");
   const weight = script.bold !== false ? "bold" : "normal";
   ctx.font = `${weight} ${fs}px ${fontFamily}`;
-  const metrics = ctx.measureText(script.text || "");
-  const bw = metrics.width + padX * 2;
-  const bh = fs + padY * 2;
+  const maxW = canvasW - padX * 2 - 8;
+  const lines = scriptWrapLines(ctx, script.text || "", maxW);
+  const lineH = fs * 1.35;
+  const textW = Math.max(...lines.map(l => ctx.measureText(l).width), 20);
+  const bw = Math.min(canvasW - 8, textW + padX * 2);
+  const bh = lines.length * lineH + padY * 2;
   const defaultX = canvasW / 2 - bw / 2;
   const defaultY = type === "top" ? 8 : canvasH - bh - 8;
-  const bx = script.x !== undefined ? script.x : defaultX;
+  const bx = script.x !== undefined ? Math.max(4, Math.min(canvasW - bw - 4, script.x)) : defaultX;
   const by = script.y !== undefined ? script.y : defaultY;
-  return { bx, by, bw, bh, fs };
+  return { bx, by, bw, bh, fs, lines, lineH, padX, padY };
 }
 
 function drawScriptOverlay(
@@ -631,7 +653,12 @@ function drawScriptOverlay(
   } else {
     ctx.fillStyle = colorOpt.text;
   }
-  ctx.fillText(script.text, bx + bw / 2, by + bh / 2);
+  const { lines: dlines, lineH: dlH } = getScriptRect(ctx, script, type, canvasW, canvasH);
+  const totalTH = dlines.length * dlH;
+  dlines.forEach((line, i) => {
+    const ly = by + (bh - totalTH) / 2 + dlH / 2 + i * dlH;
+    ctx.fillText(line, bx + bw / 2, ly);
+  });
 
   const handleSize = 10;
   const hx = bx + bw - 6;
@@ -719,8 +746,17 @@ function PanelCanvas({
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    // DPR scaling for sharp text/graphics on high-DPI screens
+    const dpr = window.devicePixelRatio || 1;
+    const targetW = Math.round(CANVAS_W * dpr);
+    const targetH = Math.round(CANVAS_H * dpr);
+    if (canvas.width !== targetW || canvas.height !== targetH) {
+      canvas.width = targetW;
+      canvas.height = targetH;
+    }
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
 
     ctx.fillStyle = "#ffffff";
@@ -966,6 +1002,27 @@ function PanelCanvas({
           if (d.type === "bubble") {
             const b = d.b;
             if (pos.x >= b.x && pos.x <= b.x + b.width && pos.y >= b.y && pos.y <= b.y + b.height) {
+              // If this bubble is already selected, check if a char is also underneath
+              // If so, prefer switching to the char (fixes char re-selection bug)
+              if (selectedBubbleIdRef.current === b.id) {
+                const charUnderneath = p.characters.find(ch => {
+                  if (!ch.imageEl) return false;
+                  const cw = ch.imageEl.naturalWidth * ch.scale;
+                  const ch2 = ch.imageEl.naturalHeight * ch.scale;
+                  return pos.x >= ch.x - cw/2 && pos.x <= ch.x + cw/2 &&
+                         pos.y >= ch.y - ch2/2 && pos.y <= ch.y + ch2/2;
+                });
+                if (charUnderneath) {
+                  onSelectChar(charUnderneath.id);
+                  onSelectBubble(null);
+                  selectedCharIdRef.current = charUnderneath.id;
+                  selectedBubbleIdRef.current = null;
+                  dragModeRef.current = "move-char";
+                  dragStartRef.current = pos;
+                  dragCharStartRef.current = { x: charUnderneath.x, y: charUnderneath.y, scale: charUnderneath.scale };
+                  return;
+                }
+              }
               onSelectBubble(b.id);
               onSelectChar(null);
               selectedBubbleIdRef.current = b.id;
@@ -1716,17 +1773,33 @@ function PanelCanvas({
                   const x2 = toSvgX(selChar.x + cw / 2 + 4), y2 = toSvgY(selChar.y + ch2 / 2 + 4);
                   return <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="none" stroke={HANDLE_COLOR} strokeWidth="1.5" strokeDasharray="5,3" />;
                 })()}
-                {/* Handle circles */}
+                {/* Handle circles — onPointerDown initiates drag via canvas capture */}
                 {handles.map((h, i) => (
                   <circle
                     key={i}
                     cx={h.x}
                     cy={h.y}
-                    r={HANDLE_R}
+                    r={HANDLE_R + 2}
                     fill="white"
                     stroke={HANDLE_COLOR}
                     strokeWidth="1.8"
                     style={{ pointerEvents: "all", cursor: h.cursor }}
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      const canvas = canvasRef.current;
+                      if (!canvas) return;
+                      canvas.setPointerCapture(e.pointerId);
+                      const pos = getCanvasPos(e.clientX, e.clientY);
+                      dragModeRef.current = h.mode as DragMode;
+                      dragStartRef.current = pos;
+                      const sB = selectedBubbleId ? panel.bubbles.find(b2 => b2.id === selectedBubbleId) : null;
+                      const sC = selectedCharId ? panel.characters.find(c2 => c2.id === selectedCharId) : null;
+                      if (sB) {
+                        dragBubbleStartRef.current = { x: sB.x, y: sB.y, w: sB.width, h: sB.height };
+                      } else if (sC && sC.imageEl) {
+                        dragCharStartRef.current = { x: sC.x, y: sC.y, scale: sC.scale };
+                      }
+                    }}
                   />
                 ))}
               </svg>
@@ -2567,8 +2640,8 @@ function EditorPanel({
             <div className="space-y-1.5 rounded-md bg-muted/30 p-2">
               <p className="text-[11px] font-semibold text-muted-foreground">외침 설정</p>
               {([
-                { label: "가시 수", key: "shapeSpikeCount", min: 4, max: 24, step: 1, def: 12 },
-                { label: "가시 높이", key: "shapeWobble", min: 0.05, max: 0.6, step: 0.01, def: 0.25 },
+                { label: "가시 수", key: "shapeSpikeCount", min: 4, max: 32, step: 1, def: 12 },
+                { label: "가시 높이", key: "shapeWobble", min: 0.02, max: 0.8, step: 0.01, def: 0.25 },
               ]).map(({ label, key, min, max, step, def }) => {
                 const val = (selectedBubble as any)[key] ?? def;
                 return (
@@ -2680,6 +2753,47 @@ function EditorPanel({
                 return (
                   <div key={key} className="flex items-center gap-2">
                     <span className="text-[10px] text-muted-foreground w-14 shrink-0">{label} {val}</span>
+                    <Slider value={[val]} onValueChange={([v]) => updateBubble(selectedBubble.id, { [key]: v } as any)} min={min} max={max} step={step} className="flex-1" />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 난처(embarrassed) 설정 */}
+          {selectedBubble.style === "embarrassed" && (
+            <div className="space-y-1.5 rounded-md bg-muted/30 p-2">
+              <p className="text-[11px] font-semibold text-muted-foreground">난처 설정</p>
+              {([
+                { label: "흔들림", key: "wobble", min: 0, max: 12, step: 0.5, def: 4 },
+                { label: "선 갯수", key: "flashLineCount", min: 1, max: 12, step: 1, def: 5 },
+                { label: "선 길이", key: "flashLineLength", min: 5, max: 50, step: 1, def: 18 },
+                { label: "선 굵기", key: "flashLineThickness", min: 0.5, max: 6, step: 0.5, def: 2 },
+              ]).map(({ label, key, min, max, step, def }) => {
+                const val = (selectedBubble as any)[key] ?? def;
+                return (
+                  <div key={key} className="flex items-center gap-2">
+                    <span className="text-[10px] text-muted-foreground w-14 shrink-0">{label} {step < 1 ? val.toFixed(1) : val}</span>
+                    <Slider value={[val]} onValueChange={([v]) => updateBubble(selectedBubble.id, { [key]: v } as any)} min={min} max={max} step={step} className="flex-1" />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 독백(monologue) 설정 */}
+          {selectedBubble.style === "monologue" && (
+            <div className="space-y-1.5 rounded-md bg-muted/30 p-2">
+              <p className="text-[11px] font-semibold text-muted-foreground">독백 설정</p>
+              {([
+                { label: "꽃잎 수", key: "flashLineCount", min: 8, max: 60, step: 1, def: 28 },
+                { label: "꽃잎 크기", key: "flashLineLength", min: 3, max: 24, step: 1, def: 8 },
+                { label: "내부크기", key: "flashInnerRadius", min: 0.5, max: 0.95, step: 0.01, def: 0.82 },
+              ]).map(({ label, key, min, max, step, def }) => {
+                const val = (selectedBubble as any)[key] ?? def;
+                return (
+                  <div key={key} className="flex items-center gap-2">
+                    <span className="text-[10px] text-muted-foreground w-14 shrink-0">{label} {step < 1 ? val.toFixed(2) : val}</span>
                     <Slider value={[val]} onValueChange={([v]) => updateBubble(selectedBubble.id, { [key]: v } as any)} min={min} max={max} step={step} className="flex-1" />
                   </div>
                 );
