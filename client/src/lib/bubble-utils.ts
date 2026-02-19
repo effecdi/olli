@@ -946,17 +946,16 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
                     break;
             }
 
-            if (!hasTail) {
-                if (drawMode !== "stroke_only") {
-                    ctx.fillStyle = fillColor;
-                    ctx.globalAlpha = fillOpacity;
-                    ctx.fill();
-                    ctx.globalAlpha = 1;
-                }
-                if (drawMode !== "fill_only") {
-                    ctx.strokeStyle = strokeColor;
-                    ctx.stroke();
-                }
+            // 항상 body fill/stroke (hasTail 여부 무관)
+            if (drawMode !== "stroke_only") {
+                ctx.fillStyle = fillColor;
+                ctx.globalAlpha = fillOpacity;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+            if (drawMode !== "fill_only") {
+                ctx.strokeStyle = strokeColor;
+                ctx.stroke();
             }
         }
     }
@@ -973,6 +972,7 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
         const baseMidY = (geo.baseAy + geo.baseBy) / 2;
         const jitter = bubble.tailJitter ?? 0;
         const rand = seededRandom(bubble.seed + 999);
+        const jitterScale = jitter * 10;
 
         const baseC1x = geo.baseAx + (baseMidX - geo.baseAx) * (0.5 + curvePull * 0.45);
         const baseC1y = geo.baseAy + (baseMidY - geo.baseAy) * (0.5 + curvePull * 0.45);
@@ -981,33 +981,25 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
 
         const hasCtrl1 = typeof bubble.tailCtrl1X === "number" && typeof bubble.tailCtrl1Y === "number";
         const hasCtrl2 = typeof bubble.tailCtrl2X === "number" && typeof bubble.tailCtrl2Y === "number";
-        const jitterScale = jitter * 10;
 
         const c1 = hasCtrl1
             ? { x: bubble.tailCtrl1X as number, y: bubble.tailCtrl1Y as number }
-            : {
-                x: baseC1x + (rand() - 0.5) * jitterScale,
-                y: baseC1y + (rand() - 0.5) * jitterScale,
-            };
+            : { x: baseC1x + (rand() - 0.5) * jitterScale, y: baseC1y + (rand() - 0.5) * jitterScale };
         const c2 = hasCtrl2
             ? { x: bubble.tailCtrl2X as number, y: bubble.tailCtrl2Y as number }
-            : {
-                x: baseC2x + (rand() - 0.5) * jitterScale,
-                y: baseC2y + (rand() - 0.5) * jitterScale,
-            };
+            : { x: baseC2x + (rand() - 0.5) * jitterScale, y: baseC2y + (rand() - 0.5) * jitterScale };
         const c3 = { x: c2.x, y: c2.y };
         const c4 = {
             x: geo.baseBx + (baseMidX - geo.baseBx) * (0.5 + curvePull * 0.45),
             y: geo.baseBy + (baseMidY - geo.baseBy) * (0.5 + curvePull * 0.45),
         };
 
+        // Step 1: 꼬리 fill (body fill과 완전히 이어지도록 덮어씀)
         ctx.beginPath();
-        ctx.moveTo(geo.baseBx, geo.baseBy);
-        ctx.ellipse(cx, cy, rx, ry, 0, geo.angleB, geo.angleA, true);
+        ctx.moveTo(geo.baseAx, geo.baseAy);
         ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, geo.tipX, geo.tipY);
         ctx.bezierCurveTo(c3.x, c3.y, c4.x, c4.y, geo.baseBx, geo.baseBy);
-        ctx.closePath();
-
+        ctx.closePath(); // 직선으로 baseB → baseA (body 내부이므로 안 보임)
         if (drawMode !== "stroke_only") {
             ctx.fillStyle = fillColor;
             ctx.globalAlpha = fillOpacity;
@@ -1015,7 +1007,22 @@ export function drawBubble(ctx: CanvasRenderingContext2D, bubble: SpeechBubble, 
             ctx.globalAlpha = 1;
         }
 
+        // Step 2: body stroke의 꼬리 부착 구간만 destination-out으로 지우기
         if (drawMode !== "fill_only") {
+            ctx.save();
+            ctx.globalCompositeOperation = "destination-out";
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, rx, ry, 0, geo.angleA - 0.06, geo.angleB + 0.06, false);
+            ctx.lineWidth = sw * 4;
+            ctx.strokeStyle = "rgba(0,0,0,1)";
+            ctx.stroke();
+            ctx.restore();
+
+            // Step 3: 꼬리 측면선만 그리기 (arc 제외 - 이음새 없음)
+            ctx.beginPath();
+            ctx.moveTo(geo.baseAx, geo.baseAy);
+            ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, geo.tipX, geo.tipY);
+            ctx.bezierCurveTo(c3.x, c3.y, c4.x, c4.y, geo.baseBx, geo.baseBy);
             ctx.lineWidth = sw;
             ctx.lineJoin = "round";
             ctx.lineCap = "round";
