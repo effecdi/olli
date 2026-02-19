@@ -1721,7 +1721,6 @@ function EditorPanel({
   const [showCharPicker, setShowCharPicker] = useState(false);
   const [showBubbleTemplatePicker, setShowBubbleTemplatePicker] = useState(false);
   const [templateCatIdx, setTemplateCatIdx] = useState(0);
-  const [limitOpen, setLimitOpen] = useState(false);
   const [removingBg, setRemovingBg] = useState(false);
   const { toast } = useToast();
 
@@ -1791,14 +1790,8 @@ function EditorPanel({
 
   const addBubble = () => {
     if (!canBubbleEdit) return;
-    const used = getDailyCount("story-bubble");
-    if (used >= 3) {
-      setLimitOpen(true);
-      return;
-    }
     if (panel.bubbles.length >= 5) return;
     const newB = createBubble(CANVAS_W, CANVAS_H);
-    incDailyCount("story-bubble");
     onUpdate({ ...panel, bubbles: [...panel.bubbles, newB] });
     setSelectedBubbleId(newB.id);
     setSelectedCharId(null);
@@ -1811,11 +1804,6 @@ function EditorPanel({
 
   const addBubbleTemplate = (templatePath: string) => {
     if (!canBubbleEdit) return;
-    const used = getDailyCount("story-bubble");
-    if (used >= 3) {
-      setLimitOpen(true);
-      return;
-    }
     if (panel.bubbles.length >= 5) return;
     const img = new Image();
     img.crossOrigin = "anonymous";
@@ -1843,7 +1831,6 @@ function EditorPanel({
         templateSrc: templatePath,
         templateImg: img,
       };
-      incDailyCount("story-bubble");
       onUpdate({ ...panel, bubbles: [...panel.bubbles, newB] });
       setSelectedBubbleId(newB.id);
       setSelectedCharId(null);
@@ -2046,17 +2033,6 @@ function EditorPanel({
 
   return (
     <div className="space-y-5" data-testid={`panel-editor-${index}`}>
-      <Dialog open={limitOpen} onOpenChange={setLimitOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>사용 제한 안내</DialogTitle>
-            <DialogDescription>3회이상 사용이 제한됐어요.</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => setLimitOpen(false)}>닫기</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
       <div className="flex gap-1 flex-wrap">
         {isBubbleMode && (
           <Button
@@ -2578,53 +2554,7 @@ function EditorPanel({
           </div>
         </div>
       )}
-      {(isBubbleMode || isTemplateMode) && !selectedBubble && panel.bubbles.length > 0 && (
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 mb-1">
-            <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-[13px] font-medium text-muted-foreground">
-              말풍선 ({panel.bubbles.length})
-            </span>
-          </div>
-          {panel.bubbles.map((b, bi) => (
-            <div
-              key={b.id}
-              className={`flex items-center justify-between gap-2 px-2 py-1 rounded-md cursor-pointer transition-colors ${b.id === selectedBubbleId ? "bg-primary/10" : "hover-elevate"}`}
-              onClick={() => {
-                setSelectedBubbleId(b.id);
-                setSelectedCharId(null);
-              }}
-              data-testid={`row-bubble-${bi}`}
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                {b.style === "image" && b.templateSrc ? (
-                  <div className="w-6 h-6 rounded-md overflow-hidden shrink-0 bg-muted">
-                    <img src={b.templateSrc} alt="" className="w-full h-full object-contain" />
-                  </div>
-                ) : (
-                  <Badge variant="secondary" className="text-[12px] shrink-0">
-                    {bi + 1}
-                  </Badge>
-                )}
-                <span className="text-sm truncate">
-                  {b.text || STYLE_LABELS[b.style]}
-                </span>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteBubble(b.id);
-                }}
-                data-testid={`button-delete-bubble-${bi}`}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* 말풍선 전용 목록은 제거하고, 상단 레이어 목록만 사용 */}
 
       {
         (isBubbleMode || isTemplateMode) && showBubbleTemplatePicker && (
@@ -3284,63 +3214,47 @@ export default function StoryPage() {
 
   const instatoonPromptMutation = useMutation({
     mutationFn: async () => {
-      const hasPose = posePrompt.trim() || expressionPrompt.trim();
-      if (hasPose) {
-        // 포즈/표정이 이미 있으면 배경/아이템만 자동 생성
-        const context = [posePrompt.trim(), expressionPrompt.trim()].filter(Boolean).join(", ");
-        const res = await apiRequest("POST", "/api/ai-prompt", {
-          type: "background",
-          poseContext: context,
-          referenceImageUrl: promptRefImageUrl ?? undefined,
-        });
-        const data = (await res.json()) as { prompt: string };
-        return { autoFilled: "bg_only" as const, backgroundRaw: data.prompt, poseRaw: null };
-      } else {
-        // 포즈/표정도 없으면 모두 생성
-        const [poseRes, bgRes] = await Promise.all([
-          apiRequest("POST", "/api/ai-prompt", {
-            type: "pose",
-            referenceImageUrl: promptRefImageUrl ?? undefined,
-          }),
-          apiRequest("POST", "/api/ai-prompt", {
-            type: "background",
-            referenceImageUrl: promptRefImageUrl ?? undefined,
-          }),
-        ]);
-        const poseData = (await poseRes.json()) as { prompt: string };
-        const bgData = (await bgRes.json()) as { prompt: string };
-        return { autoFilled: "all" as const, backgroundRaw: bgData.prompt, poseRaw: poseData.prompt };
-      }
+      const res = await apiRequest("POST", "/api/ai-prompt", {
+        type: "background",
+        referenceImageUrl: promptRefImageUrl ?? undefined,
+      });
+      const data = (await res.json()) as { prompt: string };
+      return data.prompt;
     },
-    onSuccess: (data) => {
-      if (data.autoFilled === "all" && data.poseRaw) {
-        setPosePrompt(data.poseRaw);
-        setExpressionPrompt(data.poseRaw);
-      }
-      let bg = data.backgroundRaw;
-      let items = "";
+    onSuccess: (rawPrompt) => {
+      let scene = rawPrompt;
       try {
-        const parsed = JSON.parse(data.backgroundRaw);
+        const parsed = JSON.parse(rawPrompt);
         if (parsed && typeof parsed === "object") {
-          if (typeof (parsed as any).background === "string" && (parsed as any).background) bg = (parsed as any).background;
-          if (typeof (parsed as any).items === "string") items = (parsed as any).items;
+          const bg = (parsed as any).background;
+          const items = (parsed as any).items;
+          if (typeof bg === "string" && bg) {
+            scene = typeof items === "string" && items ? `${bg} / ${items}` : bg;
+          }
         }
       } catch {}
-      setBackgroundPrompt(bg);
-      setItemPrompt(items);
+      setInstatoonScenePrompt(scene);
       toast({
-        title: data.autoFilled === "bg_only" ? "배경/아이템 자동 완성!" : "인스타툰 프롬프트 생성 완료",
-        description: data.autoFilled === "bg_only"
-          ? "입력한 포즈/표정을 기반으로 배경과 아이템을 자동으로 채웠습니다."
-          : "포즈/표정, 배경/아이템 프롬프트를 모두 자동으로 채웠습니다.",
+        title: "인스타툰 프롬프트 생성 완료",
+        description: "인스타툰 전체 프롬프트를 자동으로 채웠습니다.",
       });
     },
     onError: (error: any) => {
       if (isUnauthorizedError(error)) {
-        redirectToLogin((o) => toast({ title: o.title, description: o.description, variant: o.variant as any }));
+        redirectToLogin((o) =>
+          toast({
+            title: o.title,
+            description: o.description,
+            variant: o.variant as any,
+          }),
+        );
         return;
       }
-      toast({ title: "생성 실패", description: error.message || "프롬프트 생성에 실패했습니다", variant: "destructive" });
+      toast({
+        title: "생성 실패",
+        description: error.message || "프롬프트 생성에 실패했습니다",
+        variant: "destructive",
+      });
     },
   });
 
