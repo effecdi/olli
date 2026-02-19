@@ -2707,6 +2707,7 @@ export default function StoryPage() {
   const [expressionPrompt, setExpressionPrompt] = useState("");
   const [itemPrompt, setItemPrompt] = useState("");
   const [backgroundPrompt, setBackgroundPrompt] = useState("");
+  const [instatoonScenePrompt, setInstatoonScenePrompt] = useState("");
 
   const [projectName, setProjectName] = useState("");
   const [currentProjectId, setCurrentProjectId] = useState<number | null>(null);
@@ -2991,10 +2992,14 @@ export default function StoryPage() {
         panelCount: panels.length,
       };
       if (variables.mode === "full") {
-        if (posePrompt.trim()) body.posePrompt = posePrompt.trim();
-        if (expressionPrompt.trim()) body.expressionPrompt = expressionPrompt.trim();
-        if (itemPrompt.trim()) body.itemPrompt = itemPrompt.trim();
-        if (backgroundPrompt.trim()) body.backgroundPrompt = backgroundPrompt.trim();
+        if (instatoonScenePrompt.trim()) {
+          body.backgroundPrompt = instatoonScenePrompt.trim();
+        } else {
+          if (posePrompt.trim()) body.posePrompt = posePrompt.trim();
+          if (expressionPrompt.trim()) body.expressionPrompt = expressionPrompt.trim();
+          if (itemPrompt.trim()) body.itemPrompt = itemPrompt.trim();
+          if (backgroundPrompt.trim()) body.backgroundPrompt = backgroundPrompt.trim();
+        }
         if (autoRefImageUrl) body.referenceImageUrl = autoRefImageUrl;
       }
       const res = await apiRequest("POST", "/api/story-scripts", body);
@@ -3078,6 +3083,94 @@ export default function StoryPage() {
       toast({
         title: "생성 실패",
         description: error.message || "스크립트 생성에 실패했습니다",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const instatoonImageMutation = useMutation({
+    mutationFn: async () => {
+      if (!autoRefImageUrl) {
+        throw new Error("먼저 기준 캐릭터 이미지를 선택해주세요.");
+      }
+      const parts: string[] = [];
+      if (instatoonScenePrompt.trim()) {
+        parts.push(instatoonScenePrompt.trim());
+      } else {
+        if (topic.trim()) parts.push(`주제: ${topic.trim()}`);
+        if (posePrompt.trim() || expressionPrompt.trim()) {
+          parts.push(
+            `포즈/표정: ${[posePrompt.trim(), expressionPrompt.trim()]
+              .filter(Boolean)
+              .join(" ")}`,
+          );
+        }
+        if (backgroundPrompt.trim()) {
+          parts.push(`배경: ${backgroundPrompt.trim()}`);
+        }
+        if (itemPrompt.trim()) {
+          parts.push(`아이템: ${itemPrompt.trim()}`);
+        }
+      }
+      const bgPrompt = parts.length > 0 ? parts.join(" / ") : topic.trim();
+      const items = instatoonScenePrompt.trim()
+        ? undefined
+        : itemPrompt.trim() || undefined;
+      const res = await apiRequest("POST", "/api/generate-background", {
+        sourceImageData: autoRefImageUrl,
+        backgroundPrompt: bgPrompt || undefined,
+        itemsPrompt: items,
+        characterId: null,
+      });
+      return res.json() as Promise<{ imageUrl: string }>;
+    },
+    onSuccess: (data) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const maxDim = 150;
+        const s = Math.min(
+          maxDim / img.naturalWidth,
+          maxDim / img.naturalHeight,
+          1,
+        );
+        const newPanels = panels.map((p) => ({
+          ...p,
+          characters: [
+            ...p.characters,
+            {
+              id: generateId(),
+              imageUrl: data.imageUrl,
+              x: CANVAS_W / 2,
+              y: CANVAS_H / 2,
+              scale: s,
+              imageEl: img,
+              zIndex: 0,
+            },
+          ],
+        }));
+        setPanels(newPanels);
+      };
+      img.src = data.imageUrl;
+      toast({
+        title: "인스타툰 이미지 생성 완료",
+        description: "캐릭터와 배경이 패널에 추가되었습니다.",
+      });
+    },
+    onError: (error: any) => {
+      if (isUnauthorizedError(error)) {
+        redirectToLogin((o) =>
+          toast({
+            title: o.title,
+            description: o.description,
+            variant: o.variant as any,
+          }),
+        );
+        return;
+      }
+      toast({
+        title: "이미지 생성 실패",
+        description: error.message || "인스타툰 이미지를 생성하지 못했습니다",
         variant: "destructive",
       });
     },
@@ -3833,11 +3926,34 @@ export default function StoryPage() {
                             </div>
                           </div>
 
-                          {/* STEP 3 : 포즈/표정 (선택) */}
+                          {/* STEP 3 : 전체 인스타툰 프롬프트 (선택) */}
+                          <div className="space-y-1.5">
+                            <span className="text-xs font-semibold text-foreground">
+                              ③ 인스타툰 전체 프롬프트{" "}
+                              <span className="text-[10px] font-normal text-muted-foreground">
+                                (선택 — 포즈·표정·배경·아이템을 한 번에 적어도 돼요)
+                              </span>
+                            </span>
+                            <Textarea
+                              value={instatoonScenePrompt}
+                              onChange={(e) => setInstatoonScenePrompt(e.target.value)}
+                              placeholder="예: 비 오는 월요일 출근길, 주인공은 커피를 들고 지하철 안에서 멍한 표정으로 서 있고, 뒤에는 붐비는 사람들과 형광 조명이 보인다"
+                              className="text-xs resize-none"
+                              rows={3}
+                            />
+                            <p className="text-[10px] text-muted-foreground">
+                              빈칸으로 두면 아래 포즈/표정·배경/아이템 칸을 기준으로 생성돼요.
+                            </p>
+                          </div>
+
+                          {/* STEP 4 : 포즈/표정 (선택) */}
                           <div className="space-y-2">
                             <div className="flex items-center justify-between gap-2">
                               <span className="text-xs font-semibold text-foreground">
-                                ③ 포즈 / 표정 <span className="text-[10px] font-normal text-muted-foreground">(선택 — 비우면 AI가 자동 결정)</span>
+                                ④ 포즈 / 표정{" "}
+                                <span className="text-[10px] font-normal text-muted-foreground">
+                                  (선택 — 비우면 AI가 자동 결정)
+                                </span>
                               </span>
                               <Button
                                 size="sm"
@@ -3870,7 +3986,7 @@ export default function StoryPage() {
                             </div>
                           </div>
 
-                          {/* STEP 4 : 배경/아이템 (선택) */}
+                          {/* STEP 5 : 배경/아이템 (선택) */}
                           <div className="space-y-2">
                             <div className="flex items-center justify-between gap-2">
                               <span className="text-xs font-semibold text-foreground">
@@ -3917,9 +4033,22 @@ export default function StoryPage() {
                             className="w-full"
                             size="sm"
                             onClick={() => {
+                              if (!autoRefImageUrl) {
+                                toast({
+                                  title: "기준 이미지 필요",
+                                  description: "먼저 기준 캐릭터 이미지를 업로드하거나 갤러리에서 선택해주세요.",
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
                               generateMutation.mutate({ mode: "full" });
+                              instatoonImageMutation.mutate();
                             }}
-                            disabled={!topic.trim() || generateMutation.isPending}
+                            disabled={
+                              !topic.trim() ||
+                              generateMutation.isPending ||
+                              instatoonImageMutation.isPending
+                            }
                           >
                             {generateMutation.isPending ? (
                               <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent mr-2" />
