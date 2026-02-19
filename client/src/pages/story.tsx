@@ -1726,7 +1726,7 @@ function PanelCanvas({
                     fill="white"
                     stroke={HANDLE_COLOR}
                     strokeWidth="1.8"
-                    style={{ pointerEvents: "none", cursor: h.cursor }}
+                    style={{ pointerEvents: "all", cursor: h.cursor }}
                   />
                 ))}
               </svg>
@@ -3378,19 +3378,27 @@ export default function StoryPage() {
       return results;
     },
     onSuccess: (results) => {
-      // Load images and set as panel backgrounds
+      // Add generated images as CharacterPlacements on each panel (moveable/resizable on canvas)
       results.forEach(({ panelId, imageUrl }) => {
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.onload = () => {
+          const maxH = 600 * 0.65;
+          const maxW = 450 * 0.7;
+          const scale = Math.min(maxH / img.naturalHeight, maxW / img.naturalWidth, 1);
+          const newChar: CharacterPlacement = {
+            id: generateId(),
+            imageUrl,
+            x: 450 / 2,
+            y: Math.round(600 * 0.52),
+            scale,
+            imageEl: img,
+            zIndex: 5,
+          };
           setPanels((prev) =>
             prev.map((p) =>
               p.id === panelId
-                ? {
-                    ...p,
-                    backgroundImageUrl: imageUrl,
-                    backgroundImageEl: img,
-                  }
+                ? { ...p, characters: [...p.characters, newChar] }
                 : p,
             ),
           );
@@ -3399,7 +3407,7 @@ export default function StoryPage() {
       });
       toast({
         title: "인스타툰 이미지 생성 완료",
-        description: `${results.length}개 패널에 캐릭터와 배경이 생성되었습니다.`,
+        description: `${results.length}개 패널에 캐릭터가 추가되었습니다. 캔버스에서 위치·크기를 조정해주세요.`,
       });
     },
     onError: (error: any) => {
@@ -3503,10 +3511,38 @@ export default function StoryPage() {
       }
       setBackgroundPrompt(bg);
       setItemPrompt(items);
-      toast({
-        title: "배경/아이템 프롬프트 생성 완료",
-        description: "AI가 제안한 배경과 아이템을 적용했습니다.",
-      });
+
+      // Auto-generate character image if reference image is available (Flow 2)
+      const refImg = promptRefImageUrl;
+      if (refImg) {
+        toast({
+          title: "배경/아이템 완성 — 이미지 생성 시작",
+          description: "캐릭터 이미지를 생성해 캔버스에 추가합니다...",
+        });
+        const currentPanelIds = panels.map(p => p.id);
+        generateAndAddCharacterImages(refImg, {
+          bg,
+          items,
+          pose: posePrompt,
+          expression: expressionPrompt,
+        }, currentPanelIds).then((count) => {
+          toast({
+            title: "캐릭터 이미지 추가 완료",
+            description: `${count}개 패널에 캐릭터가 추가됐습니다. 캔버스에서 위치·크기를 조정하세요.`,
+          });
+        }).catch(() => {
+          toast({
+            title: "이미지 생성 실패",
+            description: "캐릭터 이미지 자동 생성에 실패했습니다.",
+            variant: "destructive",
+          });
+        });
+      } else {
+        toast({
+          title: "배경/아이템 프롬프트 생성 완료",
+          description: "AI가 제안한 배경과 아이템을 적용했습니다.",
+        });
+      }
     },
     onError: (error: any) => {
       if (isUnauthorizedError(error)) {
@@ -3538,21 +3574,53 @@ export default function StoryPage() {
     },
     onSuccess: (rawPrompt) => {
       let scene = rawPrompt;
+      let parsedBg = "";
+      let parsedItems = "";
       try {
         const parsed = JSON.parse(rawPrompt);
         if (parsed && typeof parsed === "object") {
           const bg = (parsed as any).background;
           const items = (parsed as any).items;
           if (typeof bg === "string" && bg) {
+            parsedBg = bg;
             scene = typeof items === "string" && items ? `${bg} / ${items}` : bg;
           }
+          if (typeof items === "string" && items) parsedItems = items;
         }
       } catch {}
       setInstatoonScenePrompt(scene);
-      toast({
-        title: "인스타툰 프롬프트 생성 완료",
-        description: "인스타툰 전체 프롬프트를 자동으로 채웠습니다.",
-      });
+
+      // If a reference character image is provided, auto-generate and place on canvas
+      const refImg = promptRefImageUrl;
+      if (refImg) {
+        toast({
+          title: "프롬프트 완성 — 이미지 생성 시작",
+          description: "캐릭터 이미지를 생성해 캔버스에 추가합니다...",
+        });
+        const currentPanelIds = panels.map(p => p.id);
+        generateAndAddCharacterImages(refImg, {
+          bg: parsedBg || scene,
+          items: parsedItems,
+          pose: posePrompt,
+          expression: expressionPrompt,
+        }, currentPanelIds).then((count) => {
+          toast({
+            title: "캐릭터 이미지 추가 완료",
+            description: `${count}개 패널에 캐릭터가 추가됐습니다. 캔버스에서 위치·크기를 조정하세요.`,
+          });
+        }).catch(() => {
+          toast({
+            title: "이미지 생성 실패",
+            description: "캐릭터 이미지 자동 생성에 실패했습니다. 직접 추가해주세요.",
+            variant: "destructive",
+          });
+        });
+      } else {
+        toast({
+          title: "인스타툰 프롬프트 생성 완료",
+          description: "인스타툰 전체 프롬프트를 자동으로 채웠습니다.",
+        });
+      }
     },
     onError: (error: any) => {
       if (isUnauthorizedError(error)) {
@@ -3572,6 +3640,61 @@ export default function StoryPage() {
       });
     },
   });
+
+  // Helper: generate character images per panel and add as CharacterPlacements on canvas
+  const generateAndAddCharacterImages = async (
+    sourceImageUrl: string,
+    promptParts: { bg?: string; items?: string; pose?: string; expression?: string; topic?: string },
+    panelIds?: string[]
+  ) => {
+    const ids = panelIds ?? panels.map(p => p.id);
+    const results: { panelId: string; imageUrl: string }[] = [];
+    for (let i = 0; i < ids.length; i++) {
+      const parts: string[] = [];
+      if (promptParts.topic) parts.push(`주제: ${promptParts.topic}, 장면 ${i + 1}`);
+      if (promptParts.pose || promptParts.expression) {
+        parts.push(`포즈/표정: ${[promptParts.pose, promptParts.expression].filter(Boolean).join(" ")}`);
+      }
+      if (promptParts.bg) parts.push(`배경: ${promptParts.bg}`);
+      if (promptParts.items) parts.push(`아이템: ${promptParts.items}`);
+      const bgPrompt = parts.join(" / ");
+      const res = await apiRequest("POST", "/api/generate-background", {
+        sourceImageData: sourceImageUrl,
+        backgroundPrompt: bgPrompt || undefined,
+        itemsPrompt: promptParts.items || undefined,
+        characterId: null,
+      });
+      const data = await res.json() as { imageUrl: string };
+      results.push({ panelId: ids[i], imageUrl: data.imageUrl });
+    }
+    results.forEach(({ panelId, imageUrl }) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const maxH = 600 * 0.65;
+        const maxW = 450 * 0.7;
+        const scale = Math.min(maxH / img.naturalHeight, maxW / img.naturalWidth, 1);
+        const newChar: CharacterPlacement = {
+          id: generateId(),
+          imageUrl,
+          x: 450 / 2,
+          y: Math.round(600 * 0.52),
+          scale,
+          imageEl: img,
+          zIndex: 5,
+        };
+        setPanels((prev) =>
+          prev.map((p) =>
+            p.id === panelId
+              ? { ...p, characters: [...p.characters, newChar] }
+              : p,
+          ),
+        );
+      };
+      img.src = imageUrl;
+    });
+    return results.length;
+  };
 
   // 이미지 파일 → base64 변환 후 state에 저장
   const handleAutoRefImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
