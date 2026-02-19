@@ -3484,7 +3484,6 @@ export default function StoryPage() {
           sourceImageData: autoRefImageUrl,
           backgroundPrompt: bgPrompt || undefined,
           itemsPrompt: items,
-          characterId: null,
         });
         const data = await res.json() as { imageUrl: string };
         results.push({ panelId: panels[i].id, imageUrl: data.imageUrl });
@@ -3776,7 +3775,6 @@ export default function StoryPage() {
         sourceImageData: sourceImageUrl,
         backgroundPrompt: bgPrompt || undefined,
         itemsPrompt: promptParts.items || undefined,
-        characterId: null,
       });
       const data = await res.json() as { imageUrl: string };
       results.push({ panelId: ids[i], imageUrl: data.imageUrl });
