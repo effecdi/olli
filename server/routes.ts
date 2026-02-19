@@ -286,8 +286,36 @@ export async function registerRoutes(
   app.get("/api/gallery", isAuthenticated, async (req: AuthRequest, res) => {
     try {
       const userId = req.userId!;
-      const gens = await storage.getGenerationsByUser(userId);
-      res.json(gens);
+      const [gens, chars] = await Promise.all([
+        storage.getGenerationsByUser(userId),
+        storage.getCharactersByUser(userId),
+      ]);
+
+      const existingCharIds = new Set(
+        gens
+          .filter((g) => g.type === "character" && g.characterId != null)
+          .map((g) => g.characterId as number),
+      );
+
+      const charAsGenerations = chars
+        .filter((c) => !existingCharIds.has(c.id))
+        .map((c) => ({
+          id: c.id,
+          userId: c.userId,
+          characterId: c.id,
+          type: "character" as const,
+          prompt: c.prompt,
+          referenceImageUrl: null,
+          resultImageUrl: c.imageUrl,
+          creditsUsed: 0,
+          createdAt: c.createdAt,
+        }));
+
+      const merged = [...gens, ...charAsGenerations].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+
+      res.json(merged);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch gallery" });
     }
