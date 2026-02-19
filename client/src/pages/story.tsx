@@ -3064,22 +3064,23 @@ export default function StoryPage() {
           maxDim / img.naturalHeight,
           1,
         );
-        const newPanels = panels.map((p) => ({
-          ...p,
-          characters: [
-            ...p.characters,
-            {
-              id: generateId(),
-              imageUrl: data.imageUrl,
-              x: CANVAS_W / 2,
-              y: CANVAS_H / 2,
-              scale: s,
-              imageEl: img,
-              zIndex: 0,
-            },
-          ],
-        }));
-        setPanels(newPanels);
+        setPanels((prev) =>
+          prev.map((p) => ({
+            ...p,
+            characters: [
+              ...p.characters,
+              {
+                id: generateId(),
+                imageUrl: data.imageUrl,
+                x: CANVAS_W / 2,
+                y: CANVAS_H / 2,
+                scale: s,
+                imageEl: img,
+                zIndex: 0,
+              },
+            ],
+          })),
+        );
       };
       img.src = data.imageUrl;
       toast({
