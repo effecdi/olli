@@ -70,7 +70,8 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { KOREAN_FONTS, FONT_CSS, getFontFamily } from "@/lib/bubble-utils";
+import { KOREAN_FONTS, FONT_CSS, getFontFamily, getDefaultTailTip, getTailGeometry, drawBubble, STYLE_LABELS, TAIL_LABELS } from "@/lib/bubble-utils";
+import { SpeechBubble, BubbleStyle, TailStyle, TailDrawMode } from "@/lib/bubble-types";
 
 function bubblePath(n: number) {
   return `/assets/bubbles/bubble_${String(n).padStart(3, "0")}.png`;
@@ -82,14 +83,6 @@ const BUBBLE_TEMPLATE_CATEGORIES: TemplateCategory[] = [
   { label: "이펙트 / 스티커", ids: [108, 114, 115, 116, 117] },
 ];
 
-type BubbleStyle = "handwritten" | "linedrawing" | "wobbly" | "thought" | "shout" | "rectangle" | "rounded" | "doubleline" | "wavy" | "image";
-type TailStyle =
-  | "none"
-  | "long"
-  | "short"
-  | "dots_handwritten"
-  | "dots_linedrawing";
-type TailDrawMode = "bezier" | "straight" | "polyline" | "spline";
 type ScriptStyle = "filled" | "box" | "handwritten-box" | "no-bg" | "no-border";
 type DragMode =
   | null
@@ -212,54 +205,6 @@ const SCRIPT_TEXT_COLORS = [
 ];
 
  
-interface SpeechBubble {
-  id: string;
-  seed: number;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  text: string;
-  style: BubbleStyle;
-  tailStyle: TailStyle;
-  tailDirection: "bottom" | "left" | "right" | "top";
-  tailTipX?: number;
-  tailTipY?: number;
-  tailBaseSpread?: number;
-  tailLength?: number;
-  tailCurve?: number;
-  tailJitter?: number;
-  tailCtrl1X?: number;
-  tailCtrl1Y?: number;
-  tailCtrl2X?: number;
-  tailCtrl2Y?: number;
-  dotsScale?: number;
-  dotsSpacing?: number;
-  tailDrawMode?: TailDrawMode;
-  tailPoints?: { x: number; y: number }[];
-  drawMode?: "both" | "fill_only" | "stroke_only";
-  fillColor?: string;
-  strokeColor?: string;
-  fillOpacity?: number;
-  flashLineCount?: number;
-  flashLineLength?: number;
-  flashLineSpacing?: number;
-  flashLineThickness?: number;
-  flashBumpCount?: number;
-  flashBumpHeight?: number;
-  flashInnerRadius?: number;
-  flashFilled?: boolean;
-  strokeWidth: number;
-  wobble: number;
-  fontSize: number;
-  fontKey: string;
-  templateSrc?: string;
-  templateImg?: HTMLImageElement;
-  zIndex?: number;
-  groupId?: string;
-  locked?: boolean;
-}
-
 interface CharacterPlacement {
   id: string;
   imageUrl: string;
@@ -344,27 +289,6 @@ function createPanel(): PanelData {
     characters: [],
   };
 }
-
-const STYLE_LABELS: Record<BubbleStyle, string> = {
-  handwritten: "손글씨",
-  linedrawing: "심플 라인",
-  wobbly: "불안한 말풍선",
-  thought: "생각 구름",
-  shout: "외침 / 효과",
-  rectangle: "사각형",
-  rounded: "둥근 사각형",
-  doubleline: "이중선",
-  wavy: "물결",
-  image: "이미지 말풍선",
-};
-
-const TAIL_LABELS: Record<TailStyle, string> = {
-  none: "없음",
-  long: "길게 빼기",
-  short: "짧게 빼기",
-  dots_handwritten: "점점점 (손글씨)",
-  dots_linedrawing: "점점점 (라인)",
-};
 
 function drawHandwrittenPath(
   ctx: CanvasRenderingContext2D,
@@ -549,289 +473,6 @@ function drawWavyPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
     else ctx.lineTo(px, py);
   }
   ctx.closePath();
-}
-
-function getDefaultTailTip(b: SpeechBubble) {
-  const cx = b.x + b.width / 2,
-    cy = b.y + b.height / 2;
-  const styleLen =
-    b.tailStyle === "long" ||
-      b.tailStyle === "dots_handwritten" ||
-      b.tailStyle === "dots_linedrawing"
-      ? 50
-      : 25;
-  const tailLen = b.tailLength ?? styleLen;
-  switch (b.tailDirection) {
-    case "bottom":
-      return { x: cx + 10, y: b.y + b.height + tailLen };
-    case "top":
-      return { x: cx + 10, y: b.y - tailLen };
-    case "left":
-      return { x: b.x - tailLen, y: cy + 10 };
-    case "right":
-      return { x: b.x + b.width + tailLen, y: cy + 10 };
-  }
-}
-
-function getTailGeometry(b: SpeechBubble) {
-  const cx = b.x + b.width / 2,
-    cy = b.y + b.height / 2;
-  const defaultTip = getDefaultTailTip(b);
-  const tipX = b.tailTipX ?? defaultTip.x;
-  const tipY = b.tailTipY ?? defaultTip.y;
-
-  const angle = Math.atan2(tipY - cy, tipX - cx);
-  const perpAngle = angle + Math.PI / 2;
-  const baseSpread = b.tailBaseSpread ?? 8;
-
-  const edgeX = cx + Math.cos(angle) * (b.width / 2);
-  const edgeY = cy + Math.sin(angle) * (b.height / 2);
-
-  const baseAx = edgeX + Math.cos(perpAngle) * baseSpread;
-  const baseAy = edgeY + Math.sin(perpAngle) * baseSpread;
-  const baseBx = edgeX - Math.cos(perpAngle) * baseSpread;
-  const baseBy = edgeY - Math.sin(perpAngle) * baseSpread;
-
-  const tailLen = Math.sqrt((tipX - cx) ** 2 + (tipY - cy) ** 2);
-  return { tipX, tipY, baseAx, baseAy, baseBx, baseBy, tailLen };
-}
-
-function drawBubble(
-  ctx: CanvasRenderingContext2D,
-  bubble: SpeechBubble,
-  isSelected: boolean,
-) {
-  ctx.save();
-  const {
-    x,
-    y,
-    width: w,
-    height: h,
-    style,
-    strokeWidth: sw,
-    wobble: wob,
-    seed,
-  } = bubble;
-  const hasTail = bubble.tailStyle === "long" || bubble.tailStyle === "short";
-  const hasDots =
-    bubble.tailStyle === "dots_handwritten" ||
-    bubble.tailStyle === "dots_linedrawing";
-  const rand = seededRandom(seed + 1000);
-  const isDoubleLine = style === "doubleline";
-  const isImage = style === "image";
-
-  if (isImage) {
-    if (bubble.templateImg) {
-      ctx.drawImage(bubble.templateImg, x, y, w, h);
-    } else {
-      ctx.save();
-      ctx.strokeStyle = "#ccc";
-      ctx.lineWidth = 1;
-      ctx.setLineDash([4, 4]);
-      ctx.strokeRect(x, y, w, h);
-      ctx.setLineDash([]);
-      ctx.restore();
-    }
-  } else if (!isImage) {
-    switch (style) {
-      case "handwritten":
-        drawHandwrittenPath(ctx, x, y, w, h, sw, seed);
-        break;
-      case "linedrawing":
-        drawLinedrawingPath(ctx, x, y, w, h, sw);
-        break;
-      case "wobbly":
-        drawWobblyPath(ctx, x, y, w, h, sw, wob);
-        break;
-      case "thought":
-        drawThoughtPath(ctx, x, y, w, h, sw, seed);
-        break;
-      case "shout":
-        drawShoutPath(ctx, x, y, w, h, sw, seed);
-        break;
-      case "rectangle":
-        drawRectanglePath(ctx, x, y, w, h, sw);
-        break;
-      case "rounded":
-        drawRoundedPath(ctx, x, y, w, h, sw);
-        break;
-      case "doubleline":
-        drawDoublelinePath(ctx, x, y, w, h, sw);
-        break;
-      case "wavy":
-        drawWavyPath(ctx, x, y, w, h, sw);
-        break;
-    }
-
-    if (!isDoubleLine) {
-      ctx.fillStyle = "#ffffff";
-      ctx.fill();
-      if (!hasTail) {
-        ctx.strokeStyle = "#222";
-        ctx.stroke();
-      }
-    } else {
-      ctx.strokeStyle = "#222";
-      ctx.stroke();
-    }
-  }
-
-  if (hasTail) {
-    const geo = getTailGeometry(bubble);
-    const cx = x + w / 2;
-    const cy = y + h / 2;
-    const rx = w / 2;
-    const ry = h / 2;
-
-    const angleA = Math.atan2(geo.baseAy - cy, geo.baseAx - cx);
-    const angleB = Math.atan2(geo.baseBy - cy, geo.baseBx - cx);
-    const baseCx = (geo.baseAx + geo.baseBx) / 2;
-    const baseCy = (geo.baseAy + geo.baseBy) / 2;
-
-    const pull = 0.97;
-    const tipPull = 0.6;
-
-    const cp1x = bubble.tailCtrl1X ?? (geo.baseAx + (baseCx - geo.baseAx) * pull);
-    const cp1y = bubble.tailCtrl1Y ?? (geo.baseAy + (baseCy - geo.baseAy) * pull);
-    const cp2x = bubble.tailCtrl2X ?? (geo.tipX + (baseCx - geo.tipX) * tipPull);
-    const cp2y = bubble.tailCtrl2Y ?? (geo.tipY + (baseCy - geo.tipY) * tipPull);
-
-    const c1 = { x: cp1x, y: cp1y };
-    const c2 = { x: cp2x, y: cp2y };
-    const c3 = { x: cp2x, y: cp2y };
-    const c4 = {
-      x: geo.baseBx + (baseCx - geo.baseBx) * pull,
-      y: geo.baseBy + (baseCy - geo.baseBy) * pull,
-    };
-
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, rx, ry, 0, angleB, angleA, true);
-    ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, geo.tipX, geo.tipY);
-    ctx.bezierCurveTo(c3.x, c3.y, c4.x, c4.y, geo.baseBx, geo.baseBy);
-    ctx.closePath();
-    ctx.fillStyle = "#ffffff";
-    ctx.fill();
-    ctx.lineWidth = sw;
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-    ctx.strokeStyle = "#222";
-    ctx.stroke();
-  }
-
-  if (hasDots) {
-    const cx2 = x + w / 2,
-      cy2 = y + h / 2;
-    const isHw = bubble.tailStyle === "dots_handwritten";
-    const defaultTip = getDefaultTailTip(bubble);
-    const dotTipX = bubble.tailTipX ?? defaultTip.x;
-    const dotTipY = bubble.tailTipY ?? defaultTip.y;
-    const dotAngle = Math.atan2(dotTipY - cy2, dotTipX - cx2);
-    const startX = cx2 + Math.cos(dotAngle) * (w / 2) + Math.cos(dotAngle) * 5;
-    const startY = cy2 + Math.sin(dotAngle) * (h / 2) + Math.sin(dotAngle) * 5;
-    const dirX = Math.cos(dotAngle);
-    const dirY = Math.sin(dotAngle);
-    const scale = bubble.dotsScale ?? 1;
-    const spacing = bubble.dotsSpacing ?? 1;
-    [
-      { size: 8 * scale, dist: 12 * spacing },
-      { size: 6 * scale, dist: 26 * spacing },
-      { size: 4 * scale, dist: 38 * spacing },
-    ].forEach(({ size, dist }) => {
-      const jitterScale = bubble.tailJitter ?? 1;
-      const dx = startX + dirX * dist + (isHw ? (rand() - 0.5) * 4 * jitterScale : 0);
-      const dy = startY + dirY * dist + (isHw ? (rand() - 0.5) * 4 * jitterScale : 0);
-      ctx.beginPath();
-      if (isHw) {
-        const segs = 12;
-        for (let i = 0; i <= segs; i++) {
-          const a = (i / segs) * Math.PI * 2;
-          const px = dx + Math.cos(a) * size + (rand() - 0.5) * 2 * jitterScale;
-          const py = dy + Math.sin(a) * size + (rand() - 0.5) * 2 * jitterScale;
-          if (i === 0) ctx.moveTo(px, py);
-          else ctx.lineTo(px, py);
-        }
-        ctx.closePath();
-      } else {
-        ctx.arc(dx, dy, size, 0, Math.PI * 2);
-      }
-      ctx.fillStyle = "rgba(255,255,255,0.95)";
-      ctx.fill();
-      ctx.strokeStyle = "#222";
-      ctx.lineWidth = sw * 0.8;
-      ctx.stroke();
-    });
-  }
-
-  if (bubble.text) {
-    ctx.fillStyle = "#222";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.font = `${bubble.fontSize}px ${getFontFamily(bubble.fontKey)}`;
-    const padding = 10;
-    const maxTextW = w - padding * 2;
-    const rawLines = bubble.text.split("\n");
-    const wrappedLines: string[] = [];
-    rawLines.forEach((rawLine) => {
-      if (!rawLine) {
-        wrappedLines.push("");
-        return;
-      }
-      let current = "";
-      for (const ch of rawLine) {
-        const test = current + ch;
-        if (ctx.measureText(test).width > maxTextW && current) {
-          wrappedLines.push(current);
-          current = ch;
-        } else {
-          current = test;
-        }
-      }
-      if (current) wrappedLines.push(current);
-    });
-    const lh = bubble.fontSize * 1.3;
-    const totalH = wrappedLines.length * lh;
-    const startY = y + h / 2 - totalH / 2 + lh / 2;
-    wrappedLines.forEach((line, i) => {
-      ctx.fillText(line, x + w / 2, startY + i * lh);
-    });
-  }
-
-  if (isSelected) {
-    ctx.strokeStyle = "hsl(240, 80%, 60%)";
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([5, 3]);
-    ctx.strokeRect(x - 4, y - 4, w + 8, h + 8);
-    ctx.setLineDash([]);
-    const hs = 8;
-    [
-      { hx: x - 4, hy: y - 4 },
-      { hx: x + w / 2, hy: y - 4 },
-      { hx: x + w + 4, hy: y - 4 },
-      { hx: x + w + 4, hy: y + h / 2 },
-      { hx: x + w + 4, hy: y + h + 4 },
-      { hx: x + w / 2, hy: y + h + 4 },
-      { hx: x - 4, hy: y + h + 4 },
-      { hx: x - 4, hy: y + h / 2 },
-    ].forEach((handle) => {
-      ctx.fillStyle = "white";
-      ctx.fillRect(handle.hx - hs / 2, handle.hy - hs / 2, hs, hs);
-      ctx.strokeStyle = "hsl(240, 80%, 60%)";
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(handle.hx - hs / 2, handle.hy - hs / 2, hs, hs);
-    });
-
-    if (bubble.tailStyle !== "none") {
-      const geo = getTailGeometry(bubble);
-      ctx.beginPath();
-      ctx.arc(geo.tipX, geo.tipY, 6, 0, Math.PI * 2);
-      ctx.fillStyle = "hsl(340, 80%, 55%)";
-      ctx.fill();
-      ctx.strokeStyle = "white";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-  }
-  ctx.restore();
 }
 
 function getScriptRect(
@@ -2765,6 +2406,43 @@ function EditorPanel({
               </Select>
             </div>
           </div>
+
+          {selectedBubble.style.startsWith("flash_") && (
+            <div className="space-y-1.5 pt-1">
+              {[
+                { label: "선 간격", key: "flashLineSpacing", min: 0.05, max: 1, step: 0.05, def: 0.3 },
+                { label: "선 두께", key: "flashLineThickness", min: 0.1, max: 4, step: 0.1, def: 0.8 },
+                { label: "선 길이", key: "flashLineLength", min: 5, max: 100, step: 1, def: 30 },
+                { label: "선 개수", key: "flashLineCount", min: 8, max: 60, step: 1, def: 24 },
+                { label: "내부크기", key: "flashInnerRadius", min: 0.2, max: 0.9, step: 0.05, def: 0.65 },
+                ...(selectedBubble.style === "flash_black"
+                  ? [
+                      { label: "돌기 수", key: "flashBumpCount", min: 6, max: 60, step: 1, def: 24 },
+                      { label: "돌기 높이", key: "flashBumpHeight", min: 1, max: 30, step: 1, def: 10 },
+                    ]
+                  : []),
+              ].map(({ label, key, min, max, step, def }) => {
+                const val = (selectedBubble as any)[key] ?? def;
+                return (
+                  <div key={key} className="flex items-center gap-2">
+                    <span className="text-[10px] text-muted-foreground w-14 shrink-0">
+                      {label} {step < 1 ? (val as number).toFixed(2) : val}
+                    </span>
+                    <Slider
+                      value={[val]}
+                      onValueChange={([v]) =>
+                        updateBubble(selectedBubble.id, { [key]: v } as any)
+                      }
+                      min={min}
+                      max={max}
+                      step={step}
+                      className="flex-1"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-2">
             <div>
