@@ -21,7 +21,9 @@ export type BubbleStyle =
     | "sparkle_ring"
     | "flash_eyelash"
     | "embarrassed"
-    | "monologue";
+    | "monologue"
+    | "tall_rough"
+    | "electric";
 export type TailStyle = "none" | "long" | "short" | "dots_handwritten" | "dots_linedrawing";
 
 export type TailDrawMode = "bezier" | "straight" | "polyline" | "spline";

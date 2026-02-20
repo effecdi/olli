@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback, useState } from "react";
-import { SpeechBubble, CharacterOverlay, DragMode, PageData } from "@/lib/bubble-types";
+import { SpeechBubble, CharacterOverlay, DragMode, PageData } from "@/lib/bubble-types.ts";
 import { drawBubble, drawBubbleGroup, getTailGeometry, FONT_CSS } from "@/lib/bubble-utils";
 
 interface BubbleCanvasProps {

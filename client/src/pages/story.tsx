@@ -228,7 +228,6 @@ interface CharacterPlacement {
   rotation?: number;
   imageEl: HTMLImageElement | null;
   zIndex?: number;
-  flipX?: boolean;
   locked?: boolean;
 }
 
@@ -809,9 +808,6 @@ function PanelCanvas({
           ctx.save();
           ctx.translate(ch.x, ch.y);
           ctx.rotate(ch.rotation || 0);
-          if (ch.flipX) {
-            ctx.scale(-1, 1);
-          }
           ctx.drawImage(ch.imageEl, -w / 2, -h / 2, w, h);
           ctx.restore();
         } else if (ch.imageUrl) {
@@ -820,9 +816,6 @@ function PanelCanvas({
           ctx.save();
           ctx.translate(ch.x, ch.y);
           ctx.rotate(ch.rotation || 0);
-          if (ch.flipX) {
-            ctx.scale(-1, 1);
-          }
           ctx.beginPath();
           ctx.roundRect(-ph/2, -ph/2, ph, ph, 8);
           ctx.fillStyle = "rgba(200,220,240,0.6)";
@@ -844,9 +837,6 @@ function PanelCanvas({
           ctx.save();
           ctx.translate(ch.x, ch.y);
           ctx.rotate(ch.rotation || 0);
-          if (ch.flipX) {
-            ctx.scale(-1, 1);
-          }
           ctx.beginPath();
           ctx.roundRect(-ph/2, -ph/2, ph, ph, 8);
           ctx.fillStyle = "rgba(230,230,230,0.5)";
@@ -2814,9 +2804,10 @@ function EditorPanel({
             <div className="space-y-1.5 rounded-md bg-muted/30 p-2">
               <p className="text-[11px] font-semibold text-muted-foreground">흐물 설정</p>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] text-muted-foreground w-14 shrink-0">흔들림 {selectedBubble.wobble ?? 5}</span>
+                <span className="text-[10px] text-muted-foreground w-14 shrink-0">흐물 길이 {selectedBubble.wobble ?? 5}</span>
                 <Slider value={[selectedBubble.wobble ?? 5]} onValueChange={([v]) => updateBubble(selectedBubble.id, { wobble: v })} min={0} max={20} step={0.5} className="flex-1" />
               </div>
+              <p className="text-[9px] text-muted-foreground">0=없음 → 20=길게 흐물</p>
             </div>
           )}
 
@@ -3249,22 +3240,6 @@ export default function StoryPage() {
       return restored;
     });
   }, [clonePanels, rehydrateImages]);
-
-  const flipAllCharactersHorizontally = useCallback(() => {
-    setPanels((prev) =>
-      prev.map((p, idx) => {
-        if (idx !== activePanelIndex) return p;
-        const hasUnlocked = p.characters.some((c) => !c.locked);
-        if (!hasUnlocked) return p;
-        return {
-          ...p,
-          characters: p.characters.map((c) =>
-            c.locked ? c : { ...c, flipX: !c.flipX },
-          ),
-        };
-      }),
-    );
-  }, [setPanels, activePanelIndex]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -5610,15 +5585,6 @@ export default function StoryPage() {
               data-testid="button-story-fullscreen"
             >
               <Maximize className="h-3.5 w-3.5" />
-            </Button>
-            <div className="h-4 w-px bg-border" />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={flipAllCharactersHorizontally}
-              data-testid="button-story-flip-all-images"
-            >
-              이미지 좌우반전
             </Button>
           </div>
         </div>

@@ -922,8 +922,7 @@ export default function BubblePage() {
               ))}
             </div>
           )}
-          {/* Text/Bubble Controls when selected */}
-          {selectedBubble ? (
+          {selectedBubble && (
             <div className="space-y-3 py-1">
 
               {/* 텍스트 */}
@@ -935,8 +934,6 @@ export default function BubblePage() {
                   className="text-sm min-h-[60px]"
                 />
               </div>
-
-              {/* 글씨체 */}
               <div>
                 <Label className="text-[13px] mb-1 block">글씨체</Label>
                 <Select
@@ -959,7 +956,6 @@ export default function BubblePage() {
                 </Select>
               </div>
 
-              {/* 말풍선 형태 */}
               <div>
                 <Label className="text-[13px] mb-1.5 block">말풍선 형태</Label>
                 <div className="flex flex-wrap gap-1 mb-1.5">
@@ -983,7 +979,6 @@ export default function BubblePage() {
                 </div>
               </div>
 
-              {/* 스타일별 고급 파라미터 */}
               {(["handwritten", "wobbly", "wavy"] as BubbleStyle[]).includes(selectedBubble.style) && (
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-muted-foreground w-14 shrink-0">흔들림 {selectedBubble.wobble ?? 5}</span>
@@ -1144,9 +1139,10 @@ export default function BubblePage() {
                 <div className="space-y-1.5 rounded-md bg-muted/30 p-2">
                   <p className="text-[11px] font-semibold text-muted-foreground">흐물 설정</p>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-muted-foreground w-14 shrink-0">흔들림 {selectedBubble.wobble ?? 5}</span>
+                    <span className="text-[10px] text-muted-foreground w-14 shrink-0">흐물 길이 {selectedBubble.wobble ?? 5}</span>
                     <Slider value={[selectedBubble.wobble ?? 5]} onValueChange={([v]) => updateBubble(selectedBubble.id, { wobble: v })} min={0} max={20} step={0.5} className="flex-1" />
                   </div>
+                  <p className="text-[9px] text-muted-foreground">0=없음 → 20=길게 흐물</p>
                 </div>
               )}
 
@@ -1207,7 +1203,6 @@ export default function BubblePage() {
                 </div>
               )}
 
-              {/* 말꼬리 스타일 */}
               <div className="space-y-2">
                 <Label className="text-[13px] mb-1 block">말꼬리 스타일</Label>
                 <div className="flex flex-wrap gap-1">
@@ -1291,7 +1286,6 @@ export default function BubblePage() {
                 </div>
               )}
 
-              {/* 글자 크기 */}
               <div>
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <Label className="text-[13px]">글자 크기</Label>
@@ -1300,7 +1294,6 @@ export default function BubblePage() {
                 <Slider value={[selectedBubble.fontSize]} onValueChange={([v]) => updateBubble(selectedBubble.id, { fontSize: v })} min={8} max={40} step={1} />
               </div>
 
-              {/* 테두리 두께 */}
               <div>
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <Label className="text-[13px]">테두리 두께</Label>
@@ -1309,7 +1302,6 @@ export default function BubblePage() {
                 <Slider value={[selectedBubble.strokeWidth]} onValueChange={([v]) => updateBubble(selectedBubble.id, { strokeWidth: v })} min={1} max={8} step={0.5} />
               </div>
 
-              {/* 채우기 / 테두리 색 */}
               <div className="space-y-2">
                 <Label className="text-[13px] block">채우기 / 테두리 색</Label>
                 <div className="flex flex-wrap gap-1.5">
@@ -1340,7 +1332,6 @@ export default function BubblePage() {
                 </div>
               </div>
 
-              {/* 그리기 모드 */}
               <div>
                 <Label className="text-[13px] mb-1.5 block">그리기 모드</Label>
                 <div className="flex gap-1 flex-wrap">
@@ -1356,7 +1347,6 @@ export default function BubblePage() {
                 </div>
               </div>
 
-              {/* 채우기 투명도 */}
               <div>
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <Label className="text-[13px]">채우기 투명도</Label>
@@ -1371,7 +1361,8 @@ export default function BubblePage() {
                 />
               </div>
             </div>
-          ) : selectedChar ? (
+          )}
+          {!selectedBubble && selectedChar && (
             <div className="space-y-4">
               <h3 className="font-medium">캐릭터 편집</h3>
               <Button
@@ -1404,7 +1395,7 @@ export default function BubblePage() {
                 {!isPro && <Crown className="h-3 w-3 text-yellow-500" />}
               </Button>
             </div>
-          ) : null}
+          )}
         </div>
 
         {/* Main Canvas Area - Scrollable List */}
