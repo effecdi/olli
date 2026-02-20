@@ -228,6 +228,7 @@ interface CharacterPlacement {
   rotation?: number;
   imageEl: HTMLImageElement | null;
   zIndex?: number;
+  flipX?: boolean;
   locked?: boolean;
 }
 
@@ -808,6 +809,9 @@ function PanelCanvas({
           ctx.save();
           ctx.translate(ch.x, ch.y);
           ctx.rotate(ch.rotation || 0);
+          if (ch.flipX) {
+            ctx.scale(-1, 1);
+          }
           ctx.drawImage(ch.imageEl, -w / 2, -h / 2, w, h);
           ctx.restore();
         } else if (ch.imageUrl) {
@@ -816,6 +820,9 @@ function PanelCanvas({
           ctx.save();
           ctx.translate(ch.x, ch.y);
           ctx.rotate(ch.rotation || 0);
+          if (ch.flipX) {
+            ctx.scale(-1, 1);
+          }
           ctx.beginPath();
           ctx.roundRect(-ph/2, -ph/2, ph, ph, 8);
           ctx.fillStyle = "rgba(200,220,240,0.6)";
@@ -837,6 +844,9 @@ function PanelCanvas({
           ctx.save();
           ctx.translate(ch.x, ch.y);
           ctx.rotate(ch.rotation || 0);
+          if (ch.flipX) {
+            ctx.scale(-1, 1);
+          }
           ctx.beginPath();
           ctx.roundRect(-ph/2, -ph/2, ph, ph, 8);
           ctx.fillStyle = "rgba(230,230,230,0.5)";
@@ -3240,6 +3250,22 @@ export default function StoryPage() {
     });
   }, [clonePanels, rehydrateImages]);
 
+  const flipAllCharactersHorizontally = useCallback(() => {
+    setPanels((prev) =>
+      prev.map((p, idx) => {
+        if (idx !== activePanelIndex) return p;
+        const hasUnlocked = p.characters.some((c) => !c.locked);
+        if (!hasUnlocked) return p;
+        return {
+          ...p,
+          characters: p.characters.map((c) =>
+            c.locked ? c : { ...c, flipX: !c.flipX },
+          ),
+        };
+      }),
+    );
+  }, [setPanels, activePanelIndex]);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
@@ -5584,6 +5610,15 @@ export default function StoryPage() {
               data-testid="button-story-fullscreen"
             >
               <Maximize className="h-3.5 w-3.5" />
+            </Button>
+            <div className="h-4 w-px bg-border" />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={flipAllCharactersHorizontally}
+              data-testid="button-story-flip-all-images"
+            >
+              이미지 좌우반전
             </Button>
           </div>
         </div>
