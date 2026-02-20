@@ -809,7 +809,48 @@ function PanelCanvas({
           ctx.translate(ch.x, ch.y);
           ctx.rotate(ch.rotation || 0);
           ctx.drawImage(ch.imageEl, -w / 2, -h / 2, w, h);
-          // selection box/handles now rendered in SVG overlay (not canvas)
+          ctx.restore();
+        } else if (ch.imageUrl) {
+          // Show loading placeholder while imageEl is loading
+          const ph = 80;
+          ctx.save();
+          ctx.translate(ch.x, ch.y);
+          ctx.rotate(ch.rotation || 0);
+          ctx.beginPath();
+          ctx.roundRect(-ph/2, -ph/2, ph, ph, 8);
+          ctx.fillStyle = "rgba(200,220,240,0.6)";
+          ctx.fill();
+          ctx.strokeStyle = "hsl(173,80%,45%)";
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 3]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = "#888";
+          ctx.font = "11px sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("로딩 중...", 0, 0);
+          ctx.restore();
+        } else if (!ch.imageUrl) {
+          // Empty placeholder (before API returns imageUrl)
+          const ph = 80;
+          ctx.save();
+          ctx.translate(ch.x, ch.y);
+          ctx.rotate(ch.rotation || 0);
+          ctx.beginPath();
+          ctx.roundRect(-ph/2, -ph/2, ph, ph, 8);
+          ctx.fillStyle = "rgba(230,230,230,0.5)";
+          ctx.fill();
+          ctx.strokeStyle = "#aaa";
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 3]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = "#aaa";
+          ctx.font = "11px sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("생성 중...", 0, 0);
           ctx.restore();
         }
       } else {
@@ -944,9 +985,9 @@ function PanelCanvas({
       const selCid = selectedCharIdRef.current;
       if (selCid) {
         const selCh = p.characters.find((c) => c.id === selCid);
-        if (selCh && selCh.imageEl && !selCh.locked) {
-          const cw = selCh.imageEl.naturalWidth * selCh.scale;
-          const ch2 = selCh.imageEl.naturalHeight * selCh.scale;
+        if (selCh && !selCh.locked) {
+          const cw = selCh.imageEl ? selCh.imageEl.naturalWidth * selCh.scale : 80;
+          const ch2 = selCh.imageEl ? selCh.imageEl.naturalHeight * selCh.scale : 80;
           const cx = selCh.x - cw / 2;
           const cy = selCh.y - ch2 / 2;
           const hs = 12;
@@ -1034,9 +1075,9 @@ function PanelCanvas({
             }
           } else {
             const ch = d.ch;
-            if (!ch.imageEl) continue;
-            const w = ch.imageEl.naturalWidth * ch.scale;
-            const h = ch.imageEl.naturalHeight * ch.scale;
+            // Use actual image size if loaded, otherwise fallback bounding box (80x80)
+            const w = ch.imageEl ? ch.imageEl.naturalWidth * ch.scale : 80;
+            const h = ch.imageEl ? ch.imageEl.naturalHeight * ch.scale : 80;
             if (
               pos.x >= ch.x - w / 2 &&
               pos.x <= ch.x + w / 2 &&
@@ -1126,9 +1167,9 @@ function PanelCanvas({
         const scid = selectedCharIdRef.current;
         if (scid) {
           const sch = p.characters.find((c) => c.id === scid);
-          if (sch && sch.imageEl) {
-            const cw = sch.imageEl.naturalWidth * sch.scale;
-            const ch2 = sch.imageEl.naturalHeight * sch.scale;
+          if (sch) {
+            const cw = sch.imageEl ? sch.imageEl.naturalWidth * sch.scale : 80;
+            const ch2 = sch.imageEl ? sch.imageEl.naturalHeight * sch.scale : 80;
             const cx = sch.x - cw / 2;
             const cy = sch.y - ch2 / 2;
             const hs = 12;
@@ -1169,9 +1210,8 @@ function PanelCanvas({
               }
             } else {
               const ch = d.ch;
-              if (!ch.imageEl) continue;
-              const w = ch.imageEl.naturalWidth * ch.scale;
-              const h = ch.imageEl.naturalHeight * ch.scale;
+              const w = ch.imageEl ? ch.imageEl.naturalWidth * ch.scale : 80;
+              const h = ch.imageEl ? ch.imageEl.naturalHeight * ch.scale : 80;
               if (
                 pos.x >= ch.x - w / 2 &&
                 pos.x <= ch.x + w / 2 &&
@@ -1286,11 +1326,13 @@ function PanelCanvas({
         if (cid) {
           const p = panelRef.current;
           const ch = p.characters.find((c) => c.id === cid);
-          if (ch && ch.imageEl) {
-            const origW =
-              ch.imageEl.naturalWidth * dragCharStartRef.current.scale;
-            const origH =
-              ch.imageEl.naturalHeight * dragCharStartRef.current.scale;
+          if (ch) {
+            const origW = ch.imageEl
+              ? ch.imageEl.naturalWidth * dragCharStartRef.current.scale
+              : 80 * dragCharStartRef.current.scale;
+            const origH = ch.imageEl
+              ? ch.imageEl.naturalHeight * dragCharStartRef.current.scale
+              : 80 * dragCharStartRef.current.scale;
             let newW = origW;
             let newH = origH;
             if (mode === "resize-char-br") {
@@ -1493,55 +1535,72 @@ function PanelCanvas({
     const p = panelRef.current;
     const sid = selectedBubbleIdRef.current;
     const cid = selectedCharIdRef.current;
-    if (sid) {
-      const list = p.bubbles.map((b) => ({ id: b.id, z: b.zIndex ?? 0 }));
-      list.sort((a, b) => a.z - b.z);
-      const idx = list.findIndex((x) => x.id === sid);
-      if (idx >= 0 && idx < list.length - 1) {
-        const current = list[idx];
-        const next = list[idx + 1];
-        updateBubbleInPanel(current.id, { zIndex: next.z });
-        updateBubbleInPanel(next.id, { zIndex: current.z });
-      }
-    } else if (cid) {
-      const list = p.characters.map((c) => ({ id: c.id, z: c.zIndex ?? 0 }));
-      list.sort((a, b) => a.z - b.z);
-      const idx = list.findIndex((x) => x.id === cid);
-      if (idx >= 0 && idx < list.length - 1) {
-        const current = list[idx];
-        const next = list[idx + 1];
-        updateCharInPanel(current.id, { zIndex: next.z });
-        updateCharInPanel(next.id, { zIndex: current.z });
-      }
-    }
-  }, [updateBubbleInPanel, updateCharInPanel]);
+    const selectedId = sid || cid;
+    if (!selectedId) return;
+    // Build combined sorted list (asc z)
+    const list: Array<{ id: string; type: "bubble" | "char"; z: number }> = [
+      ...p.bubbles.map((b) => ({ id: b.id, type: "bubble" as const, z: b.zIndex ?? 0 })),
+      ...p.characters.map((c) => ({ id: c.id, type: "char" as const, z: c.zIndex ?? 0 })),
+    ].sort((a, b) => a.z - b.z);
+    const idx = list.findIndex((x) => x.id === selectedId);
+    if (idx < 0 || idx >= list.length - 1) return;
+    const cur = list[idx];
+    const nxt = list[idx + 1];
+    // Swap their z values (ensure distinct)
+    const zHigh = Math.max(cur.z, nxt.z) + 1;
+    const zLow = zHigh - 1;
+    const updates: Array<{ id: string; type: "bubble" | "char"; z: number }> = [
+      { ...cur, z: zHigh }, { ...nxt, z: zLow }
+    ];
+    // Apply all in one panel update
+    const newPanel = {
+      ...p,
+      bubbles: p.bubbles.map((b) => {
+        const u = updates.find((x) => x.type === "bubble" && x.id === b.id);
+        return u ? { ...b, zIndex: u.z } : b;
+      }),
+      characters: p.characters.map((c) => {
+        const u = updates.find((x) => x.type === "char" && x.id === c.id);
+        return u ? { ...c, zIndex: u.z } : c;
+      }),
+    };
+    panelRef.current = newPanel;
+    onUpdate(newPanel);
+  }, [onUpdate]);
 
   const handleSendBackward = useCallback(() => {
     const p = panelRef.current;
     const sid = selectedBubbleIdRef.current;
     const cid = selectedCharIdRef.current;
-    if (sid) {
-      const list = p.bubbles.map((b) => ({ id: b.id, z: b.zIndex ?? 0 }));
-      list.sort((a, b) => a.z - b.z);
-      const idx = list.findIndex((x) => x.id === sid);
-      if (idx > 0) {
-        const current = list[idx];
-        const prev = list[idx - 1];
-        updateBubbleInPanel(current.id, { zIndex: prev.z });
-        updateBubbleInPanel(prev.id, { zIndex: current.z });
-      }
-    } else if (cid) {
-      const list = p.characters.map((c) => ({ id: c.id, z: c.zIndex ?? 0 }));
-      list.sort((a, b) => a.z - b.z);
-      const idx = list.findIndex((x) => x.id === cid);
-      if (idx > 0) {
-        const current = list[idx];
-        const prev = list[idx - 1];
-        updateCharInPanel(current.id, { zIndex: prev.z });
-        updateCharInPanel(prev.id, { zIndex: current.z });
-      }
-    }
-  }, [updateBubbleInPanel, updateCharInPanel]);
+    const selectedId = sid || cid;
+    if (!selectedId) return;
+    const list: Array<{ id: string; type: "bubble" | "char"; z: number }> = [
+      ...p.bubbles.map((b) => ({ id: b.id, type: "bubble" as const, z: b.zIndex ?? 0 })),
+      ...p.characters.map((c) => ({ id: c.id, type: "char" as const, z: c.zIndex ?? 0 })),
+    ].sort((a, b) => a.z - b.z);
+    const idx = list.findIndex((x) => x.id === selectedId);
+    if (idx <= 0) return;
+    const cur = list[idx];
+    const prv = list[idx - 1];
+    const zHigh = Math.max(cur.z, prv.z) + 1;
+    const zLow = zHigh - 1;
+    const updates: Array<{ id: string; type: "bubble" | "char"; z: number }> = [
+      { ...cur, z: zLow }, { ...prv, z: zHigh }
+    ];
+    const newPanel = {
+      ...p,
+      bubbles: p.bubbles.map((b) => {
+        const u = updates.find((x) => x.type === "bubble" && x.id === b.id);
+        return u ? { ...b, zIndex: u.z } : b;
+      }),
+      characters: p.characters.map((c) => {
+        const u = updates.find((x) => x.type === "char" && x.id === c.id);
+        return u ? { ...c, zIndex: u.z } : c;
+      }),
+    };
+    panelRef.current = newPanel;
+    onUpdate(newPanel);
+  }, [onUpdate]);
 
   const handleLock = useCallback(() => {
     const sid = selectedBubbleIdRef.current;
@@ -1731,9 +1790,9 @@ function PanelCanvas({
               );
             }
 
-            if (selChar && selChar.imageEl) {
-              const cw = selChar.imageEl.naturalWidth * selChar.scale;
-              const ch2 = selChar.imageEl.naturalHeight * selChar.scale;
+            if (selChar) {
+              const cw = selChar.imageEl ? selChar.imageEl.naturalWidth * selChar.scale : 80;
+              const ch2 = selChar.imageEl ? selChar.imageEl.naturalHeight * selChar.scale : 80;
               const cx = selChar.x - cw / 2;
               const cy = selChar.y - ch2 / 2;
               handles.push(
@@ -1766,9 +1825,9 @@ function PanelCanvas({
                   const x2 = toSvgX(b.x + b.width + 4), y2 = toSvgY(b.y + b.height + 4);
                   return <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="none" stroke={HANDLE_COLOR} strokeWidth="1.5" strokeDasharray="5,3" />;
                 })()}
-                {selChar && selChar.imageEl && (() => {
-                  const cw = selChar.imageEl!.naturalWidth * selChar.scale;
-                  const ch2 = selChar.imageEl!.naturalHeight * selChar.scale;
+                {selChar && (() => {
+                  const cw = selChar.imageEl ? selChar.imageEl.naturalWidth * selChar.scale : 80;
+                  const ch2 = selChar.imageEl ? selChar.imageEl.naturalHeight * selChar.scale : 80;
                   const x1 = toSvgX(selChar.x - cw / 2 - 4), y1 = toSvgY(selChar.y - ch2 / 2 - 4);
                   const x2 = toSvgX(selChar.x + cw / 2 + 4), y2 = toSvgY(selChar.y + ch2 / 2 + 4);
                   return <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="none" stroke={HANDLE_COLOR} strokeWidth="1.5" strokeDasharray="5,3" />;
@@ -1796,7 +1855,7 @@ function PanelCanvas({
                       const sC = selectedCharId ? panel.characters.find(c2 => c2.id === selectedCharId) : null;
                       if (sB) {
                         dragBubbleStartRef.current = { x: sB.x, y: sB.y, w: sB.width, h: sB.height };
-                      } else if (sC && sC.imageEl) {
+                      } else if (sC) {
                         dragCharStartRef.current = { x: sC.x, y: sC.y, scale: sC.scale };
                       }
                     }}
@@ -2054,43 +2113,41 @@ function EditorPanel({
     const bIdx = direction === "up" ? index - 1 : index + 1;
     const a = items[aIdx];
     const b = items[bIdx];
-    const newAz = b.z;
-    const newBz = a.z;
-    if (a.type === "char") {
-      onUpdate({
-        ...panel,
-        characters: panel.characters.map((c) => (c.id === a.id ? { ...c, zIndex: newAz } : c)),
-      });
-    } else {
-      onUpdate({
-        ...panel,
-        bubbles: panel.bubbles.map((bb) => (bb.id === a.id ? { ...bb, zIndex: newAz } : bb)),
-      });
-    }
-    if (b.type === "char") {
-      onUpdate({
-        ...panel,
-        characters: panel.characters.map((c) => (c.id === b.id ? { ...c, zIndex: newBz } : c)),
-      });
-    } else {
-      onUpdate({
-        ...panel,
-        bubbles: panel.bubbles.map((bb) => (bb.id === b.id ? { ...bb, zIndex: newBz } : bb)),
-      });
-    }
+    // Ensure distinct z values so swap is meaningful
+    const zTop = Math.max(a.z, b.z, items.length);
+    const zA = zTop;
+    const zB = zTop - 1;
+    const [newAz, newBz] = direction === "up" ? [zA, zB] : [zB, zA];
+    // Apply BOTH changes in a single onUpdate call to avoid overwrites
+    onUpdate({
+      ...panel,
+      characters: panel.characters.map((c) => {
+        if (c.id === a.id && a.type === "char") return { ...c, zIndex: newAz };
+        if (c.id === b.id && b.type === "char") return { ...c, zIndex: newBz };
+        return c;
+      }),
+      bubbles: panel.bubbles.map((bb) => {
+        if (bb.id === a.id && a.type === "bubble") return { ...bb, zIndex: newAz };
+        if (bb.id === b.id && b.type === "bubble") return { ...bb, zIndex: newBz };
+        return bb;
+      }),
+    });
   };
 
   const [dragLayerIdx, setDragLayerIdx] = useState<number | null>(null);
   const applyLayerOrder = useCallback((ordered: Array<{ type: "char" | "bubble"; id: string }>) => {
+    // layerItems is displayed high→low (index 0 = topmost layer).
+    // zIndex must reflect this: ordered[0] → highest zIndex = ordered.length-1
+    const n = ordered.length;
     onUpdate({
       ...panel,
       characters: panel.characters.map((c) => {
         const idx = ordered.findIndex((it) => it.type === "char" && it.id === c.id);
-        return idx >= 0 ? { ...c, zIndex: idx } : c;
+        return idx >= 0 ? { ...c, zIndex: n - 1 - idx } : c;
       }),
       bubbles: panel.bubbles.map((b) => {
         const idx = ordered.findIndex((it) => it.type === "bubble" && it.id === b.id);
-        return idx >= 0 ? { ...b, zIndex: idx } : b;
+        return idx >= 0 ? { ...b, zIndex: n - 1 - idx } : b;
       }),
     });
   }, [panel, onUpdate]);
@@ -2362,14 +2419,19 @@ function EditorPanel({
           {layerItems.map((item, i) => (
             <div
               key={`${item.type}:${item.id}`}
-              className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${item.type === "char"
-                ? selectedCharId === item.id
+              className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-md cursor-grab transition-colors ${
+                dragLayerIdx !== null && dragLayerIdx !== i
+                  ? "border border-dashed border-primary/40"
+                  : dragLayerIdx === i
+                  ? "opacity-40 scale-95"
+                  : item.type === "char"
+                  ? selectedCharId === item.id
+                    ? "bg-primary/10"
+                    : "hover-elevate"
+                  : selectedBubbleId === item.id
                   ? "bg-primary/10"
                   : "hover-elevate"
-                : selectedBubbleId === item.id
-                  ? "bg-primary/10"
-                  : "hover-elevate"
-                }`}
+              }`}
               onClick={() => {
                 if (item.type === "char") {
                   setSelectedCharId(item.id);
@@ -2380,14 +2442,21 @@ function EditorPanel({
                 }
               }}
               draggable
-              onDragStart={() => setDragLayerIdx(i)}
+              onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; setDragLayerIdx(i); }}
+              onDragEnd={() => setDragLayerIdx(null)}
               onDragOver={(e) => e.preventDefault()}
-              onDrop={() => {
-                if (dragLayerIdx === null || dragLayerIdx === i) return;
+              onDrop={(e) => {
+                e.preventDefault();
+                if (dragLayerIdx === null || dragLayerIdx === i) {
+                  setDragLayerIdx(null);
+                  return;
+                }
                 const base = layerItems.map((li) => ({ type: li.type, id: li.id }));
                 const moved = base[dragLayerIdx];
                 const rest = base.filter((_, idx) => idx !== dragLayerIdx);
-                const newOrder = [...rest.slice(0, i), moved, ...rest.slice(i)];
+                // Adjust target index after removal
+                const insertAt = dragLayerIdx < i ? Math.max(0, i - 1) : i;
+                const newOrder = [...rest.slice(0, insertAt), moved, ...rest.slice(insertAt)];
                 applyLayerOrder(newOrder);
                 setDragLayerIdx(null);
               }}
@@ -3484,6 +3553,7 @@ export default function StoryPage() {
           sourceImageData: autoRefImageUrl,
           backgroundPrompt: bgPrompt || undefined,
           itemsPrompt: items,
+          characterId: null,
         });
         const data = await res.json() as { imageUrl: string };
         results.push({ panelId: panels[i].id, imageUrl: data.imageUrl });
@@ -3491,32 +3561,54 @@ export default function StoryPage() {
       return results;
     },
     onSuccess: (results) => {
-      // Add generated images as CharacterPlacements on each panel (moveable/resizable on canvas)
-      results.forEach(({ panelId, imageUrl }) => {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.onload = () => {
-          const maxH = 600 * 0.65;
-          const maxW = 450 * 0.7;
-          const scale = Math.min(maxH / img.naturalHeight, maxW / img.naturalWidth, 1);
+      // Step 1: IMMEDIATELY add characters to panels (imageEl will load async)
+      const charIds: Record<string, string> = {};
+      setPanels((prev) => {
+        const updated = prev.map((p) => {
+          const result = results.find((r) => r.panelId === p.id);
+          if (!result) return p;
+          const cid = generateId();
+          charIds[result.panelId] = cid;
           const newChar: CharacterPlacement = {
-            id: generateId(),
-            imageUrl,
+            id: cid,
+            imageUrl: result.imageUrl,
             x: 450 / 2,
             y: Math.round(600 * 0.52),
-            scale,
-            imageEl: img,
+            scale: 0.6,
+            imageEl: null,
             zIndex: 5,
           };
-          setPanels((prev) =>
-            prev.map((p) =>
-              p.id === panelId
-                ? { ...p, characters: [...p.characters, newChar] }
-                : p,
-            ),
-          );
+          return { ...p, characters: [...p.characters, newChar] };
+        });
+        return updated;
+      });
+
+      // Step 2: Load images and update imageEl when ready
+      results.forEach(({ panelId, imageUrl }) => {
+        const loadImg = (useCors: boolean) => {
+          const img = new Image();
+          if (useCors) img.crossOrigin = "anonymous";
+          img.onload = () => {
+            const maxH = 600 * 0.65;
+            const maxW = 450 * 0.7;
+            const scale = Math.min(maxH / img.naturalHeight, maxW / img.naturalWidth, 1);
+            const cid = charIds[panelId];
+            setPanels((prev) =>
+              prev.map((p) =>
+                p.id === panelId
+                  ? { ...p, characters: p.characters.map((c) =>
+                      c.id === cid ? { ...c, scale, imageEl: img } : c
+                    )}
+                  : p,
+              ),
+            );
+          };
+          img.onerror = () => {
+            if (useCors) loadImg(false); // retry without CORS
+          };
+          img.src = imageUrl;
         };
-        img.src = imageUrl;
+        loadImg(true);
       });
       toast({
         title: "인스타툰 이미지 생성 완료",
@@ -3625,8 +3717,9 @@ export default function StoryPage() {
       setBackgroundPrompt(bg);
       setItemPrompt(items);
 
-      // Auto-generate character image if reference image is available (Flow 2)
-      const refImg = promptRefImageUrl;
+      // Auto-generate character image if reference image is available
+      // backgroundPromptMutation is used in instatoonFull flow (autoRefImageUrl)
+      const refImg = autoRefImageUrl || promptRefImageUrl;
       if (refImg) {
         toast({
           title: "배경/아이템 완성 — 이미지 생성 시작",
@@ -3704,7 +3797,7 @@ export default function StoryPage() {
       setInstatoonScenePrompt(scene);
 
       // If a reference character image is provided, auto-generate and place on canvas
-      const refImg = promptRefImageUrl;
+      const refImg = promptRefImageUrl || autoRefImageUrl;
       if (refImg) {
         toast({
           title: "프롬프트 완성 — 이미지 생성 시작",
@@ -3761,8 +3854,34 @@ export default function StoryPage() {
     panelIds?: string[]
   ) => {
     const ids = panelIds ?? panels.map(p => p.id);
-    const results: { panelId: string; imageUrl: string }[] = [];
+
+    // Step 1: Pre-create placeholder characters in panels (so canvas shows something immediately)
+    const charIdMap: Record<string, string> = {};
+    setPanels((prev) =>
+      prev.map((p) => {
+        if (!ids.includes(p.id)) return p;
+        const cid = generateId();
+        charIdMap[p.id] = cid;
+        const placeholder: CharacterPlacement = {
+          id: cid,
+          imageUrl: "",       // will be filled when API returns
+          x: 450 / 2,
+          y: Math.round(600 * 0.52),
+          scale: 0.6,
+          imageEl: null,
+          zIndex: 5,
+        };
+        return { ...p, characters: [...p.characters, placeholder] };
+      })
+    );
+
+    // Step 2: Generate images panel-by-panel, update imageUrl + imageEl as each finishes
+    let successCount = 0;
     for (let i = 0; i < ids.length; i++) {
+      const panelId = ids[i];
+      const cid = charIdMap[panelId];
+      if (!cid) continue;
+
       const parts: string[] = [];
       if (promptParts.topic) parts.push(`주제: ${promptParts.topic}, 장면 ${i + 1}`);
       if (promptParts.pose || promptParts.expression) {
@@ -3771,41 +3890,74 @@ export default function StoryPage() {
       if (promptParts.bg) parts.push(`배경: ${promptParts.bg}`);
       if (promptParts.items) parts.push(`아이템: ${promptParts.items}`);
       const bgPrompt = parts.join(" / ");
-      const res = await apiRequest("POST", "/api/generate-background", {
-        sourceImageData: sourceImageUrl,
-        backgroundPrompt: bgPrompt || undefined,
-        itemsPrompt: promptParts.items || undefined,
-      });
-      const data = await res.json() as { imageUrl: string };
-      results.push({ panelId: ids[i], imageUrl: data.imageUrl });
-    }
-    results.forEach(({ panelId, imageUrl }) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        const maxH = 600 * 0.65;
-        const maxW = 450 * 0.7;
-        const scale = Math.min(maxH / img.naturalHeight, maxW / img.naturalWidth, 1);
-        const newChar: CharacterPlacement = {
-          id: generateId(),
-          imageUrl,
-          x: 450 / 2,
-          y: Math.round(600 * 0.52),
-          scale,
-          imageEl: img,
-          zIndex: 5,
-        };
+
+      try {
+        const res = await apiRequest("POST", "/api/generate-background", {
+          sourceImageData: sourceImageUrl,
+          backgroundPrompt: bgPrompt || undefined,
+          itemsPrompt: promptParts.items || undefined,
+          characterId: null,
+        });
+        const data = await res.json() as { imageUrl: string };
+        const imageUrl = data.imageUrl;
+
+        if (!imageUrl) continue;
+
+        // Update imageUrl in state immediately
         setPanels((prev) =>
           prev.map((p) =>
             p.id === panelId
-              ? { ...p, characters: [...p.characters, newChar] }
-              : p,
-          ),
+              ? { ...p, characters: p.characters.map((c) =>
+                  c.id === cid ? { ...c, imageUrl } : c
+                )}
+              : p
+          )
         );
-      };
-      img.src = imageUrl;
-    });
-    return results.length;
+
+        // Load image element and update again
+        const loadImg = (useCors: boolean): Promise<void> =>
+          new Promise((resolve) => {
+            const img = new Image();
+            if (useCors) img.crossOrigin = "anonymous";
+            img.onload = () => {
+              const maxH = 600 * 0.65;
+              const maxW = 450 * 0.7;
+              const scale = Math.min(maxH / img.naturalHeight, maxW / img.naturalWidth, 1);
+              setPanels((prev) =>
+                prev.map((p) =>
+                  p.id === panelId
+                    ? { ...p, characters: p.characters.map((c) =>
+                        c.id === cid ? { ...c, scale, imageEl: img } : c
+                      )}
+                    : p
+                )
+              );
+              successCount++;
+              resolve();
+            };
+            img.onerror = () => {
+              if (useCors) {
+                loadImg(false).then(resolve).catch(resolve);
+              } else {
+                resolve(); // give up, but imageUrl is already in state
+              }
+            };
+            img.src = imageUrl;
+          });
+
+        await loadImg(true);
+      } catch (err) {
+        // Remove the placeholder if generation failed for this panel
+        setPanels((prev) =>
+          prev.map((p) =>
+            p.id === panelId
+              ? { ...p, characters: p.characters.filter((c) => c.id !== cid) }
+              : p
+          )
+        );
+      }
+    }
+    return successCount;
   };
 
   // 이미지 파일 → base64 변환 후 state에 저장
@@ -4165,14 +4317,14 @@ export default function StoryPage() {
     <div className="editor-page h-[calc(100vh-3.5rem)] flex overflow-hidden bg-muted/30 dark:bg-background relative">
       <EditorOnboarding editor="story" />
       <div
-        className="flex flex-col items-center py-3 px-1.5 gap-5 w-[100px] shrink-0 bg-card dark:bg-card border-r"
+        className="flex flex-col items-center py-3 px-1.5 gap-5 w-[56px] shrink-0 bg-card dark:bg-card border-r"
         data-testid="left-icon-sidebar"
       >
         {LEFT_TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => toggleLeftTab(tab.id)}
-            className={`flex flex-col items-center justify-center w-[90px] h-11 rounded-lg text-[10px] gap-0.5 transition-colors ${activeLeftTab === tab.id ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover-elevate"}`}
+            className={`flex flex-col items-center justify-center w-11 h-11 rounded-lg text-[10px] gap-0.5 transition-colors ${activeLeftTab === tab.id ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover-elevate"}`}
             data-testid={`button-left-tab-${tab.id}`}
           >
             <tab.icon className="h-[18px] w-[18px]" />
@@ -4230,7 +4382,7 @@ export default function StoryPage() {
                           onClick={() => setAiMode("instatoonPrompt")}
                         >
                           <Wand2 className="h-4 w-4 mr-2" />
-                          인스타툰 캐릭터(all create) 자동 생성
+                          인스타툰 프롬프트 자동 작성
                         </Button>
                       </div>
 

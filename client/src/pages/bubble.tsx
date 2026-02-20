@@ -157,14 +157,16 @@ export default function BubblePage() {
   const [dragLayerIdx, setDragLayerIdx] = useState<number | null>(null);
 
   const applyLayerOrder = useCallback((ordered: Array<{ type: "char" | "bubble"; id: string }>) => {
+    // layerItems is displayed high→low (index 0 = topmost). Give highest zIndex to index 0.
+    const n = ordered.length;
     updateActivePage({
       characters: activePage.characters.map((c) => {
         const idx = ordered.findIndex((it) => it.type === "char" && it.id === c.id);
-        return idx >= 0 ? { ...c, zIndex: idx } : c;
+        return idx >= 0 ? { ...c, zIndex: n - 1 - idx } : c;
       }),
       bubbles: activePage.bubbles.map((b) => {
         const idx = ordered.findIndex((it) => it.type === "bubble" && it.id === b.id);
-        return idx >= 0 ? { ...b, zIndex: idx } : b;
+        return idx >= 0 ? { ...b, zIndex: n - 1 - idx } : b;
       }),
     });
   }, [activePage, updateActivePage]);
@@ -173,30 +175,24 @@ export default function BubblePage() {
     const items = layerItems;
     if (direction === "up" && index <= 0) return;
     if (direction === "down" && index >= items.length - 1) return;
-    const aIdx = index;
-    const bIdx = direction === "up" ? index - 1 : index + 1;
-    const a = items[aIdx];
-    const b = items[bIdx];
-    const newAz = b.z;
-    const newBz = a.z;
-    if (a.type === "char") {
-      updateActivePage({
-        characters: activePage.characters.map((c) => (c.id === a.id ? { ...c, zIndex: newAz } : c)),
-      });
-    } else {
-      updateActivePage({
-        bubbles: activePage.bubbles.map((bb) => (bb.id === a.id ? { ...bb, zIndex: newAz } : bb)),
-      });
-    }
-    if (b.type === "char") {
-      updateActivePage({
-        characters: activePage.characters.map((c) => (c.id === b.id ? { ...c, zIndex: newBz } : c)),
-      });
-    } else {
-      updateActivePage({
-        bubbles: activePage.bubbles.map((bb) => (bb.id === b.id ? { ...bb, zIndex: newBz } : bb)),
-      });
-    }
+    const a = items[index];
+    const b = items[direction === "up" ? index - 1 : index + 1];
+    // Ensure distinct z values so swap is always visible
+    const zTop = Math.max(a.z, b.z, items.length);
+    const [newAz, newBz] = direction === "up" ? [zTop, zTop - 1] : [zTop - 1, zTop];
+    // Single updateActivePage call to avoid state overwrites
+    updateActivePage({
+      characters: activePage.characters.map((c) => {
+        if (c.id === a.id && a.type === "char") return { ...c, zIndex: newAz };
+        if (c.id === b.id && b.type === "char") return { ...c, zIndex: newBz };
+        return c;
+      }),
+      bubbles: activePage.bubbles.map((bb) => {
+        if (bb.id === a.id && a.type === "bubble") return { ...bb, zIndex: newAz };
+        if (bb.id === b.id && b.type === "bubble") return { ...bb, zIndex: newBz };
+        return bb;
+      }),
+    });
   };
 
   const deleteSelectedElement = useCallback(() => {
@@ -831,14 +827,18 @@ export default function BubblePage() {
               {layerItems.map((item, i) => (
                 <div
                   key={`${item.type}:${item.id}`}
-                  className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${
-                    item.type === "char"
+                  className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-md transition-colors ${
+                    dragLayerIdx !== null && dragLayerIdx !== i
+                      ? "border border-dashed border-primary/40 cursor-grab"
+                      : dragLayerIdx === i
+                      ? "opacity-40 scale-95 cursor-grabbing"
+                      : item.type === "char"
                       ? selectedCharId === item.id
-                        ? "bg-primary/10"
-                        : "hover-elevate"
+                        ? "bg-primary/10 cursor-pointer"
+                        : "hover-elevate cursor-pointer"
                       : selectedBubbleId === item.id
-                        ? "bg-primary/10"
-                        : "hover-elevate"
+                      ? "bg-primary/10 cursor-pointer"
+                      : "hover-elevate cursor-pointer"
                   }`}
                   onClick={() => {
                     if (item.type === "char") {
@@ -850,14 +850,17 @@ export default function BubblePage() {
                     }
                   }}
                   draggable
-                  onDragStart={() => setDragLayerIdx(i)}
+                  onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; setDragLayerIdx(i); }}
+                  onDragEnd={() => setDragLayerIdx(null)}
                   onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => {
-                    if (dragLayerIdx === null || dragLayerIdx === i) return;
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (dragLayerIdx === null || dragLayerIdx === i) { setDragLayerIdx(null); return; }
                     const base = layerItems.map((li) => ({ type: li.type, id: li.id }));
                     const moved = base[dragLayerIdx];
                     const rest = base.filter((_, idx) => idx !== dragLayerIdx);
-                    const newOrder = [...rest.slice(0, i), moved, ...rest.slice(i)];
+                    const insertAt = dragLayerIdx < i ? Math.max(0, i - 1) : i;
+                    const newOrder = [...rest.slice(0, insertAt), moved, ...rest.slice(insertAt)];
                     applyLayerOrder(newOrder);
                     setDragLayerIdx(null);
                   }}
@@ -876,26 +879,38 @@ export default function BubblePage() {
                     <span className="text-xs truncate">{item.label}</span>
                   </div>
                   <div className="flex items-center gap-0.5 shrink-0">
-                    {/* z-index 앞으로/뒤로 버튼 제거 - 드래그만으로 레이어 순서 변경 */}
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="h-6 w-6"
+                      disabled={i === 0}
+                      onClick={(e) => { e.stopPropagation(); moveLayer(i, "up"); }}
+                      title="앞으로"
+                    >
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      disabled={i === layerItems.length - 1}
+                      onClick={(e) => { e.stopPropagation(); moveLayer(i, "down"); }}
+                      title="뒤로"
+                    >
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
                       onClick={(e) => {
                         e.stopPropagation();
                         if (item.type === "char") {
-                          updateActivePage({
-                            characters: activePage.characters.filter((c) => c.id !== item.id),
-                          });
-                          if (selectedCharId === item.id) {
-                            setSelectedCharId(null);
-                          }
+                          updateActivePage({ characters: activePage.characters.filter((c) => c.id !== item.id) });
+                          if (selectedCharId === item.id) setSelectedCharId(null);
                         } else {
-                          updateActivePage({
-                            bubbles: activePage.bubbles.filter((b) => b.id !== item.id),
-                          });
-                          if (selectedBubbleId === item.id) {
-                            setSelectedBubbleId(null);
-                          }
+                          updateActivePage({ bubbles: activePage.bubbles.filter((b) => b.id !== item.id) });
+                          if (selectedBubbleId === item.id) setSelectedBubbleId(null);
                         }
                       }}
                       data-testid={`button-delete-layer-${i}`}
