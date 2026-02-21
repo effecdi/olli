@@ -1184,24 +1184,7 @@ export default function BubblePage() {
                 </div>
               )}
 
-              {selectedBubble.style === "monologue" && (
-                <div className="space-y-1.5 rounded-md bg-muted/30 p-2">
-                  <p className="text-[11px] font-semibold text-muted-foreground">독백 설정</p>
-                  {([
-                    { label: "꽃잎 수", key: "flashLineCount", min: 8, max: 60, step: 1, def: 28 },
-                    { label: "꽃잎 크기", key: "flashLineLength", min: 3, max: 24, step: 1, def: 8 },
-                    { label: "내부크기", key: "flashInnerRadius", min: 0.5, max: 0.95, step: 0.01, def: 0.82 },
-                  ]).map(({ label, key, min, max, step, def }) => {
-                    const val = (selectedBubble as any)[key] ?? def;
-                    return (
-                      <div key={key} className="flex items-center gap-2">
-                        <span className="text-[10px] text-muted-foreground w-14 shrink-0">{label} {step < 1 ? val.toFixed(2) : val}</span>
-                        <Slider value={[val]} onValueChange={([v]) => updateBubble(selectedBubble.id, { [key]: v } as any)} min={min} max={max} step={step} className="flex-1" />
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+
 
               <div className="space-y-2">
                 <Label className="text-[13px] mb-1 block">말꼬리 스타일</Label>
@@ -1258,7 +1241,7 @@ export default function BubblePage() {
                         { label: "밑넓이", key: "tailBaseSpread", min: 1, max: 60, step: 1, def: 8 },
                         { label: "곡선", key: "tailCurve", min: 0, max: 1, step: 0.05, def: 0.5 },
                         { label: "흔들림", key: "tailJitter", min: 0, max: 5, step: 0.1, def: 1 },
-                        { label: "끝 뭉툭함", key: "tailTipSpread", min: 0, max: 30, step: 1, def: 0 },
+                        { label: "끝 타원", key: "tailRoundness", min: 0, max: 25, step: 1, def: 0 },
                       ]).map(({ label, key, min, max, step, def }) => {
                         const val = (selectedBubble as any)[key] ?? def;
                         return (
@@ -1272,21 +1255,47 @@ export default function BubblePage() {
                   )}
 
                   {selectedBubble.tailStyle.startsWith("dots_") && (
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <Label className="text-[13px] mb-1 block">점 크기</Label>
-                        <Slider value={[selectedBubble.dotsScale ?? 1]} onValueChange={([v]) => updateBubble(selectedBubble.id, { dotsScale: v })} min={0.5} max={1.5} step={0.05} />
-                      </div>
-                      <div>
-                        <Label className="text-[13px] mb-1 block">점 간격</Label>
-                        <Slider value={[selectedBubble.dotsSpacing ?? 1]} onValueChange={([v]) => updateBubble(selectedBubble.id, { dotsSpacing: v })} min={0.5} max={1.5} step={0.05} />
-                      </div>
+                    <div className="space-y-1.5 rounded-md bg-muted/30 p-2">
+                      <p className="text-[11px] font-semibold text-muted-foreground">점점점 꼬리 조정</p>
+                      {([
+                        { label: "점 크기", key: "dotsScale", min: 0.3, max: 2.5, step: 0.1, def: 1 },
+                        { label: "점 간격", key: "dotsSpacing", min: 0.5, max: 3.0, step: 0.1, def: 1 },
+                        { label: "흔들림", key: "tailJitter", min: 0, max: 5, step: 0.1, def: 1 },
+                      ]).map(({ label, key, min, max, step, def }) => {
+                        const val = (selectedBubble as any)[key] ?? def;
+                        return (
+                          <div key={key} className="flex items-center gap-2">
+                            <span className="text-[10px] text-muted-foreground w-14 shrink-0">{label} {step < 1 ? val.toFixed(2) : val}</span>
+                            <Slider value={[val]} onValueChange={([v]) => updateBubble(selectedBubble.id, { [key]: v } as any)} min={min} max={max} step={step} className="flex-1" />
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
               )}
 
-              <div>
+              {selectedBubble.style === "tall_rough" && (
+                <div className="space-y-1.5 rounded-md bg-muted/30 p-2">
+                  <p className="text-[11px] font-semibold text-muted-foreground">거친 직사각형 뾰족 조정</p>
+                  {([
+                    { label: "뾰족 수", key: "shapeSpikeCount", min: 0, max: 16, step: 1, def: 0 },
+                    { label: "뾰족 높이", key: "shapeSpikeHeight", min: 0, max: 60, step: 2, def: 0 },
+                    { label: "흔들림", key: "shapeWobble", min: 0.1, max: 5, step: 0.1, def: 1 },
+                  ]).map(({ label, key, min, max, step, def }) => {
+                    const val = (selectedBubble as any)[key] ?? def;
+                    return (
+                      <div key={key} className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground w-16 shrink-0">{label} {step < 1 ? val.toFixed(1) : val}</span>
+                        <Slider value={[val]} onValueChange={([v]) => updateBubble(selectedBubble.id, { [key]: v } as any)} min={min} max={max} step={step} className="flex-1" />
+                      </div>
+                    );
+                  })}
+                  <p className="text-[10px] text-muted-foreground/70 mt-1">뾰족 수 0 = 오목한 직사각형, 1+ = 가시 추가</p>
+                </div>
+              )}
+
+                            <div>
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <Label className="text-[13px]">글자 크기</Label>
                   <span className="text-[12px] text-muted-foreground tabular-nums">{selectedBubble.fontSize}px</span>

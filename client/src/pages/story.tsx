@@ -56,6 +56,9 @@ import {
   UploadCloud,
   ImagePlus,
   CheckCircle2,
+  Sparkles,
+  Zap,
+  Star,
 } from "lucide-react";
 import { FlowStepper } from "@/components/flow-stepper";
 import { EditorOnboarding } from "@/components/editor-onboarding";
@@ -107,7 +110,12 @@ type DragMode =
   | "resize-script-bottom"
   | "move-tail"
   | "tail-ctrl1"
-  | "tail-ctrl2";
+  | "tail-ctrl2"
+  | "move-effect"
+  | "resize-effect-br"
+  | "resize-effect-bl"
+  | "resize-effect-tr"
+  | "resize-effect-tl";
 
 const SCRIPT_STYLE_OPTIONS: { value: ScriptStyle; label: string }[] = [
   { value: "filled", label: "채움" },
@@ -243,12 +251,30 @@ interface ScriptData {
   y?: number;
 }
 
+// Effect layer for canvas-rendered effects (arrows, flash lines, sparkles, etc.)
+interface EffectLayer {
+  id: string;
+  type: string;  // "flash_lines"|"speed_lines"|"firework"|"star"|"sparkle"|"monologue_circles"|"anger"|"surprise"|"collapse"|"arrow_up"|"arrow_down"|"exclamation"|"question"
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation?: number;
+  opacity?: number;
+  zIndex?: number;
+  locked?: boolean;
+  color?: string;
+  strokeColor?: string;
+  seed?: number;
+}
+
 interface PanelData {
   id: string;
   topScript: ScriptData | null;
   bottomScript: ScriptData | null;
   bubbles: SpeechBubble[];
   characters: CharacterPlacement[];
+  effects?: EffectLayer[];
   backgroundImageUrl?: string;
   backgroundImageEl?: HTMLImageElement | null;
 }
@@ -264,6 +290,325 @@ function seededRandom(seed: number) {
     return (s - 1) / 2147483646;
   };
 }
+// Draw an effect layer on canvas
+function drawEffectLayer(ctx: CanvasRenderingContext2D, ef: EffectLayer) {
+  const { x, y, width: w, height: h, type, rotation = 0, opacity = 1, seed = 42 } = ef;
+  const cx = x + w / 2, cy = y + h / 2;
+  const rand = (s: number) => {
+    let v = s; return () => { v = (v * 16807) % 2147483647; return (v - 1) / 2147483646; };
+  };
+  const r = rand(seed + 1);
+  const color = ef.color ?? "#222222";
+  const strokeColor = ef.strokeColor ?? "#222222";
+
+  ctx.save();
+  ctx.globalAlpha = opacity;
+  ctx.translate(cx, cy);
+  ctx.rotate(rotation);
+
+  switch (type) {
+    case "flash_lines": {
+      // 파열 효果선 - radial burst lines from center
+      const lineCount = 24;
+      const innerR = Math.min(w, h) * 0.18;
+      const outerR = Math.min(w, h) * 0.5;
+      ctx.strokeStyle = strokeColor;
+      for (let i = 0; i < lineCount; i++) {
+        const angle = (i / lineCount) * Math.PI * 2;
+        const variance = (r() - 0.5) * 0.15;
+        const a = angle + variance;
+        const ir = innerR * (0.7 + r() * 0.6);
+        const or = outerR * (0.7 + r() * 0.3);
+        ctx.lineWidth = 1.5 + r() * 1.5;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * ir, Math.sin(a) * ir);
+        ctx.lineTo(Math.cos(a) * or, Math.sin(a) * or);
+        ctx.stroke();
+      }
+      break;
+    }
+    case "flash_dense": {
+      // 집중선 - dense speed lines (image 1 top row middle)
+      const lineCount = 60;
+      const innerR = Math.min(w, h) * 0.22;
+      const outerR = Math.min(w, h) * 0.52;
+      ctx.strokeStyle = strokeColor;
+      for (let i = 0; i < lineCount; i++) {
+        const angle = (i / lineCount) * Math.PI * 2;
+        const jitter = (r() - 0.5) * 0.08;
+        const a = angle + jitter;
+        const ir = innerR * (0.8 + r() * 0.4);
+        const or = outerR * (0.85 + r() * 0.15);
+        ctx.lineWidth = 0.6 + r() * 0.8;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * ir, Math.sin(a) * ir);
+        ctx.lineTo(Math.cos(a) * or, Math.sin(a) * or);
+        ctx.stroke();
+      }
+      break;
+    }
+    case "flash_small": {
+      // 작은 파열 - small radial burst
+      const lineCount = 16;
+      const innerR = Math.min(w, h) * 0.12;
+      const outerR = Math.min(w, h) * 0.45;
+      ctx.strokeStyle = strokeColor;
+      for (let i = 0; i < lineCount; i++) {
+        const angle = (i / lineCount) * Math.PI * 2;
+        const a = angle + (r() - 0.5) * 0.2;
+        ctx.lineWidth = 1 + r() * 1.2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * innerR, Math.sin(a) * innerR);
+        ctx.lineTo(Math.cos(a) * outerR * (0.7 + r() * 0.3), Math.sin(a) * outerR * (0.7 + r() * 0.3));
+        ctx.stroke();
+      }
+      break;
+    }
+    case "firework": {
+      // 짜잔! / 불꽃 - firework sparkles (image 1 bottom left)
+      const starCount = 8;
+      const burstR = Math.min(w, h) * 0.42;
+      for (let i = 0; i < starCount; i++) {
+        const angle = (i / starCount) * Math.PI * 2;
+        const dist = burstR * (0.55 + r() * 0.45);
+        const px = Math.cos(angle) * dist;
+        const py = Math.sin(angle) * dist;
+        const starSize = 6 + r() * 8;
+        const spikes = 4 + Math.round(r() * 2);
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(angle);
+        ctx.fillStyle = color;
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let s = 0; s < spikes * 2; s++) {
+          const a2 = (s / (spikes * 2)) * Math.PI * 2;
+          const sr = s % 2 === 0 ? starSize : starSize * 0.4;
+          s === 0 ? ctx.moveTo(Math.cos(a2) * sr, Math.sin(a2) * sr) 
+                   : ctx.lineTo(Math.cos(a2) * sr, Math.sin(a2) * sr);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+      break;
+    }
+    case "monologue_circles": {
+      // 몽글몽글 / 생각하는 효과 (image 1 bottom row, image 3)
+      const circles = [
+        { dx: -w * 0.15, dy: h * 0.12, r: Math.min(w, h) * 0.28 },
+        { dx: w * 0.2, dy: -h * 0.18, r: Math.min(w, h) * 0.22 },
+        { dx: -w * 0.3, dy: -h * 0.22, r: Math.min(w, h) * 0.18 },
+        { dx: w * 0.32, dy: h * 0.2, r: Math.min(w, h) * 0.12 },
+      ];
+      for (const c of circles) {
+        ctx.save();
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath();
+        ctx.arc(c.dx, c.dy, c.r, 0, Math.PI * 2);
+        ctx.fillStyle = "#aaaaaa";
+        ctx.fill();
+        ctx.globalAlpha = opacity;
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+      }
+      break;
+    }
+    case "speed_lines": {
+      // 두둥 등장선 (image 2 - vertical speed lines from top to bottom)
+      const lineCount = 30;
+      const hw = w / 2, hh = h / 2;
+      ctx.strokeStyle = strokeColor;
+      for (let i = 0; i < lineCount; i++) {
+        const lx = -hw + (i / lineCount) * w + (r() - 0.5) * (w / lineCount) * 1.5;
+        const lineW = 0.5 + r() * 2.5;
+        const startY = -hh * (0.5 + r() * 0.5);
+        ctx.lineWidth = lineW;
+        ctx.beginPath();
+        ctx.moveTo(lx, startY);
+        ctx.lineTo(lx, hh);
+        ctx.stroke();
+      }
+      break;
+    }
+    case "anger": {
+      // 화를 내는 효果 - anger veins/marks
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 2.5;
+      const marks = 4;
+      for (let i = 0; i < marks; i++) {
+        const angle = (i / marks) * Math.PI * 2 + Math.PI / 8;
+        const dist = Math.min(w, h) * 0.3;
+        const px = Math.cos(angle) * dist;
+        const py = Math.sin(angle) * dist;
+        const sz = 10 + r() * 8;
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.beginPath();
+        // Cross/plus shaped anger mark
+        ctx.moveTo(-sz, 0); ctx.lineTo(-sz * 0.3, -sz * 0.3);
+        ctx.moveTo(-sz * 0.3, -sz * 0.3); ctx.lineTo(0, -sz);
+        ctx.moveTo(0, -sz); ctx.lineTo(sz * 0.3, -sz * 0.3);
+        ctx.moveTo(sz * 0.3, -sz * 0.3); ctx.lineTo(sz, 0);
+        ctx.stroke();
+        ctx.restore();
+      }
+      break;
+    }
+    case "surprise": {
+      // 놀라는 효果 - exclamation + stars + lines
+      ctx.strokeStyle = strokeColor;
+      ctx.fillStyle = color;
+      // Large exclamation in center
+      ctx.font = `bold ${Math.min(w, h) * 0.4}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("!", 0, 0);
+      // Small lines around
+      const lineCount = 10;
+      const r2 = Math.min(w, h) * 0.45;
+      ctx.lineWidth = 2;
+      for (let i = 0; i < lineCount; i++) {
+        const angle = (i / lineCount) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(angle) * r2 * 0.6, Math.sin(angle) * r2 * 0.6);
+        ctx.lineTo(Math.cos(angle) * r2, Math.sin(angle) * r2);
+        ctx.stroke();
+      }
+      break;
+    }
+    case "collapse": {
+      // 무너지는 효果 - crumbling/falling debris
+      ctx.fillStyle = color;
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 1.5;
+      const pieceCount = 12;
+      for (let i = 0; i < pieceCount; i++) {
+        const angle = (i / pieceCount) * Math.PI * 2;
+        const dist = Math.min(w, h) * (0.2 + r() * 0.3);
+        const px = Math.cos(angle) * dist;
+        const py = Math.sin(angle) * dist + h * 0.1 * r();
+        const sz = 6 + r() * 10;
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(r() * Math.PI * 2);
+        ctx.fillRect(-sz/2, -sz/3, sz, sz * 0.65);
+        ctx.strokeRect(-sz/2, -sz/3, sz, sz * 0.65);
+        ctx.restore();
+      }
+      break;
+    }
+    case "star": {
+      // 별 - star shape
+      const spikes = 5;
+      const outerR2 = Math.min(w, h) * 0.45;
+      const innerR2 = outerR2 * 0.4;
+      ctx.fillStyle = color;
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (let s = 0; s < spikes * 2; s++) {
+        const a = (s / (spikes * 2)) * Math.PI * 2 - Math.PI / 2;
+        const sr = s % 2 === 0 ? outerR2 : innerR2;
+        s === 0 ? ctx.moveTo(Math.cos(a) * sr, Math.sin(a) * sr) 
+                 : ctx.lineTo(Math.cos(a) * sr, Math.sin(a) * sr);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      break;
+    }
+    case "sparkle": {
+      // 빛나는 효果 - 4-pointed sparkle (image 3 top left)
+      const sSize = Math.min(w, h) * 0.45;
+      ctx.fillStyle = color;
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 1;
+      // Large 4-pointed star
+      ctx.beginPath();
+      const pts = 4;
+      for (let s = 0; s < pts * 2; s++) {
+        const a = (s / (pts * 2)) * Math.PI * 2 - Math.PI / 4;
+        const sr = s % 2 === 0 ? sSize : sSize * 0.15;
+        s === 0 ? ctx.moveTo(Math.cos(a) * sr, Math.sin(a) * sr) 
+                 : ctx.lineTo(Math.cos(a) * sr, Math.sin(a) * sr);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      break;
+    }
+    case "arrow_up": {
+      const ah = Math.min(w, h) * 0.45;
+      const aw = ah * 0.55;
+      ctx.fillStyle = color;
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, -ah);
+      ctx.lineTo(aw, 0);
+      ctx.lineTo(aw * 0.45, 0);
+      ctx.lineTo(aw * 0.45, ah);
+      ctx.lineTo(-aw * 0.45, ah);
+      ctx.lineTo(-aw * 0.45, 0);
+      ctx.lineTo(-aw, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      break;
+    }
+    case "arrow_down": {
+      const ah = Math.min(w, h) * 0.45;
+      const aw = ah * 0.55;
+      ctx.fillStyle = color;
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, ah);
+      ctx.lineTo(aw, 0);
+      ctx.lineTo(aw * 0.45, 0);
+      ctx.lineTo(aw * 0.45, -ah);
+      ctx.lineTo(-aw * 0.45, -ah);
+      ctx.lineTo(-aw * 0.45, 0);
+      ctx.lineTo(-aw, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      break;
+    }
+    case "exclamation": {
+      const fSize = Math.min(w, h) * 0.7;
+      ctx.font = `bold ${fSize}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = color;
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 2;
+      ctx.strokeText("!", 0, 0);
+      ctx.fillText("!", 0, 0);
+      break;
+    }
+    case "question": {
+      const fSize = Math.min(w, h) * 0.7;
+      ctx.font = `bold ${fSize}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = color;
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 2;
+      ctx.strokeText("?", 0, 0);
+      ctx.fillText("?", 0, 0);
+      break;
+    }
+  }
+
+  ctx.restore();
+}
+
 
 function createBubble(
   canvasW: number,
@@ -303,6 +648,7 @@ function createPanel(): PanelData {
     bottomScript: null,
     bubbles: [],
     characters: [],
+    effects: [],
     backgroundImageUrl: undefined,
     backgroundImageEl: null,
   };
@@ -688,6 +1034,9 @@ function PanelCanvas({
   fontsReady,
   isPro,
   onEditBubble,
+  onSelectEffect,
+  selectedEffectId,
+  onDoubleClickBubble,
 }: {
   panel: PanelData;
   onUpdate: (updated: PanelData) => void;
@@ -700,6 +1049,9 @@ function PanelCanvas({
   fontsReady?: boolean;
   isPro: boolean;
   onEditBubble?: () => void;
+  onSelectEffect?: (id: string | null) => void;
+  selectedEffectId?: string | null;
+  onDoubleClickBubble?: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
@@ -708,6 +1060,8 @@ function PanelCanvas({
   const dragStartRef = useRef({ x: 0, y: 0 });
   const dragBubbleStartRef = useRef({ x: 0, y: 0, w: 0, h: 0 });
   const dragCharStartRef = useRef({ x: 0, y: 0, scale: 1 });
+  const dragEffectStartRef = useRef({ x: 0, y: 0, w: 0, h: 0 });
+  const selectedEffectIdRef = useRef<string | null>(null);
   const dragScriptStartRef = useRef({ x: 0, y: 0 });
   const dragScriptFontStartRef = useRef(20);
   const selectedBubbleIdRef = useRef(selectedBubbleId);
@@ -721,6 +1075,9 @@ function PanelCanvas({
   useEffect(() => {
     selectedCharIdRef.current = selectedCharId;
   }, [selectedCharId]);
+  useEffect(() => {
+    selectedEffectIdRef.current = selectedEffectId ?? null;
+  }, [selectedEffectId]);
   useEffect(() => {
     panelRef.current = panel;
   }, [panel]);
@@ -786,6 +1143,7 @@ function PanelCanvas({
     const drawables: Array<
       | { type: "char"; z: number; ch: CharacterPlacement }
       | { type: "bubble"; z: number; b: SpeechBubble }
+      | { type: "effect"; z: number; ef: EffectLayer }
     > = [
         ...p.characters.map((ch) => ({
           type: "char" as const,
@@ -797,9 +1155,18 @@ function PanelCanvas({
           z: b.zIndex ?? 10,
           b,
         })),
+        ...(p.effects ?? []).map((ef) => ({
+          type: "effect" as const,
+          z: ef.zIndex ?? 20,
+          ef,
+        })),
       ];
     drawables.sort((a, b) => a.z - b.z);
     drawables.forEach((d) => {
+      if (d.type === "effect") {
+        drawEffectLayer(ctx, d.ef);
+        return;
+      }
       if (d.type === "char") {
         const ch = d.ch;
         if (ch.imageEl) {
@@ -1033,13 +1400,30 @@ function PanelCanvas({
         const drawables: Array<
           | { type: "char"; z: number; ch: CharacterPlacement }
           | { type: "bubble"; z: number; b: SpeechBubble }
+          | { type: "effect"; z: number; ef: EffectLayer }
         > = [
             ...p.characters.map((ch) => ({ type: "char" as const, z: ch.zIndex ?? 0, ch })),
             ...p.bubbles.map((b) => ({ type: "bubble" as const, z: b.zIndex ?? 10, b })),
+            ...(p.effects ?? []).map((ef) => ({ type: "effect" as const, z: ef.zIndex ?? 20, ef })),
           ];
         drawables.sort((a, b) => a.z - b.z);
         for (let i = drawables.length - 1; i >= 0; i--) {
           const d = drawables[i];
+          if (d.type === "effect") {
+            const ef = d.ef;
+            if (pos.x >= ef.x && pos.x <= ef.x + ef.width && pos.y >= ef.y && pos.y <= ef.y + ef.height) {
+              if (onSelectEffect) onSelectEffect(ef.id);
+              selectedEffectIdRef.current = ef.id;
+              onSelectBubble(null);
+              onSelectChar(null);
+              selectedBubbleIdRef.current = null;
+              selectedCharIdRef.current = null;
+              dragModeRef.current = "move-effect";
+              dragStartRef.current = pos;
+              dragEffectStartRef.current = { x: ef.x, y: ef.y, w: ef.width, h: ef.height };
+              return;
+            }
+          }
           if (d.type === "bubble") {
             const b = d.b;
             if (pos.x >= b.x && pos.x <= b.x + b.width && pos.y >= b.y && pos.y <= b.y + b.height) {
@@ -1066,6 +1450,8 @@ function PanelCanvas({
               }
               onSelectBubble(b.id);
               onSelectChar(null);
+              if (onSelectEffect) onSelectEffect(null);
+              selectedEffectIdRef.current = null;
               selectedBubbleIdRef.current = b.id;
               selectedCharIdRef.current = null;
               dragModeRef.current = "move";
@@ -1073,24 +1459,45 @@ function PanelCanvas({
               dragBubbleStartRef.current = { x: b.x, y: b.y, w: b.width, h: b.height };
               return;
             }
-          } else {
+          } else if (d.type === "char") {
             const ch = d.ch;
             // Use actual image size if loaded, otherwise fallback bounding box (80x80)
-            const w = ch.imageEl ? ch.imageEl.naturalWidth * ch.scale : 80;
-            const h = ch.imageEl ? ch.imageEl.naturalHeight * ch.scale : 80;
+            const cw2 = ch.imageEl ? ch.imageEl.naturalWidth * ch.scale : 80;
+            const ch2h = ch.imageEl ? ch.imageEl.naturalHeight * ch.scale : 80;
             if (
-              pos.x >= ch.x - w / 2 &&
-              pos.x <= ch.x + w / 2 &&
-              pos.y >= ch.y - h / 2 &&
-              pos.y <= ch.y + h / 2
+              pos.x >= ch.x - cw2 / 2 &&
+              pos.x <= ch.x + cw2 / 2 &&
+              pos.y >= ch.y - ch2h / 2 &&
+              pos.y <= ch.y + ch2h / 2
             ) {
               onSelectChar(ch.id);
               onSelectBubble(null);
-              selectedCharIdRef.current = ch.id;
+              if (onSelectEffect) onSelectEffect(null);
+              selectedEffectIdRef.current = null;
               selectedBubbleIdRef.current = null;
-              dragModeRef.current = "move-char";
+              selectedCharIdRef.current = ch.id;
               dragStartRef.current = pos;
               dragCharStartRef.current = { x: ch.x, y: ch.y, scale: ch.scale };
+              // Check if click is near a resize corner — start resize immediately
+              // (no need to click twice to activate handles)
+              const cxL = ch.x - cw2 / 2;
+              const cyT = ch.y - ch2h / 2;
+              const hs2 = 20;
+              const corners2: { mode: DragMode; hx: number; hy: number }[] = [
+                { mode: "resize-char-tl", hx: cxL, hy: cyT },
+                { mode: "resize-char-tr", hx: cxL + cw2, hy: cyT },
+                { mode: "resize-char-bl", hx: cxL, hy: cyT + ch2h },
+                { mode: "resize-char-br", hx: cxL + cw2, hy: cyT + ch2h },
+              ];
+              let foundCorner = false;
+              for (const corner of corners2) {
+                if (Math.abs(pos.x - corner.hx) < hs2 && Math.abs(pos.y - corner.hy) < hs2) {
+                  dragModeRef.current = corner.mode;
+                  foundCorner = true;
+                  break;
+                }
+              }
+              if (!foundCorner) dragModeRef.current = "move-char";
               return;
             }
           }
@@ -1195,14 +1602,22 @@ function PanelCanvas({
           const drawables: Array<
             | { type: "char"; z: number; ch: CharacterPlacement }
             | { type: "bubble"; z: number; b: SpeechBubble }
+            | { type: "effect"; z: number; ef: EffectLayer }
           > = [
               ...p.characters.map((ch) => ({ type: "char" as const, z: ch.zIndex ?? 0, ch })),
               ...p.bubbles.map((b) => ({ type: "bubble" as const, z: b.zIndex ?? 10, b })),
+              ...(p.effects ?? []).map((ef) => ({ type: "effect" as const, z: ef.zIndex ?? 20, ef })),
             ];
           drawables.sort((a, b) => a.z - b.z);
           for (let i = drawables.length - 1; i >= 0; i--) {
             const d = drawables[i];
-            if (d.type === "bubble") {
+            if (d.type === "effect") {
+              const ef = d.ef;
+              if (pos.x >= ef.x && pos.x <= ef.x + ef.width && pos.y >= ef.y && pos.y <= ef.y + ef.height) {
+                if (canvas) canvas.style.cursor = "move";
+                return;
+              }
+            } else if (d.type === "bubble") {
               const b = d.b;
               if (pos.x >= b.x && pos.x <= b.x + b.width && pos.y >= b.y && pos.y <= b.y + b.height) {
                 if (canvas) canvas.style.cursor = "move";
@@ -1370,6 +1785,43 @@ function PanelCanvas({
         updateBubbleInPanel(sid, { tailCtrl2X: pos.x, tailCtrl2Y: pos.y });
       } else if (mode === "move-tail") {
         updateBubbleInPanel(sid, { tailTipX: pos.x, tailTipY: pos.y });
+      } else if (mode === "move-effect") {
+        const eid = selectedEffectIdRef.current;
+        if (eid) {
+          const p = panelRef.current;
+          const es = dragEffectStartRef.current;
+          const newEffects = (p.effects ?? []).map((ef) =>
+            ef.id === eid ? { ...ef, x: es.x + dx, y: es.y + dy } : ef
+          );
+          onUpdate({ ...p, effects: newEffects });
+        }
+        return;
+      } else if (mode === "resize-effect-br") {
+        const eid = selectedEffectIdRef.current;
+        if (eid) {
+          const p = panelRef.current;
+          const es = dragEffectStartRef.current;
+          const newW = Math.max(30, es.w + dx);
+          const newH = Math.max(30, es.h + dy);
+          const newEffects = (p.effects ?? []).map((ef) =>
+            ef.id === eid ? { ...ef, width: newW, height: newH } : ef
+          );
+          onUpdate({ ...p, effects: newEffects });
+        }
+        return;
+      } else if (mode === "resize-effect-tl") {
+        const eid = selectedEffectIdRef.current;
+        if (eid) {
+          const p = panelRef.current;
+          const es = dragEffectStartRef.current;
+          const newW = Math.max(30, es.w - dx);
+          const newH = Math.max(30, es.h - dy);
+          const newEffects = (p.effects ?? []).map((ef) =>
+            ef.id === eid ? { ...ef, x: es.x + es.w - newW, y: es.y + es.h - newH, width: newW, height: newH } : ef
+          );
+          onUpdate({ ...p, effects: newEffects });
+        }
+        return;
       } else if (mode === "move") {
         updateBubbleInPanel(sid, { x: bs.x + dx, y: bs.y + dy });
       } else if (mode === "resize-br") {
@@ -1432,9 +1884,12 @@ function PanelCanvas({
           pos.y <= b.y + b.height
         ) {
           onSelectBubble(b.id);
-          // Focus sidebar textarea instead of inline
+          // Switch to bubble tab + focus textarea
+          if (onDoubleClickBubble) {
+            onDoubleClickBubble();
+          }
           if (onEditBubble) {
-            setTimeout(() => onEditBubble(), 50);
+            setTimeout(() => onEditBubble(), 80);
           } else {
             setEditingBubbleId(b.id);
           }
@@ -1442,7 +1897,7 @@ function PanelCanvas({
         }
       }
     },
-    [getCanvasPos, onSelectBubble, onEditBubble],
+    [getCanvasPos, onSelectBubble, onEditBubble, onDoubleClickBubble],
   );
 
   const hasZoom = zoom !== undefined;
@@ -1538,8 +1993,9 @@ function PanelCanvas({
     const selectedId = sid || cid;
     if (!selectedId) return;
     // Build combined sorted list (asc z)
-    const list: Array<{ id: string; type: "bubble" | "char"; z: number }> = [
+    const list: Array<{ id: string; type: "bubble" | "char" | "effect"; z: number }> = [
       ...p.bubbles.map((b) => ({ id: b.id, type: "bubble" as const, z: b.zIndex ?? 0 })),
+      ...(p.effects ?? []).map((ef) => ({ id: ef.id, type: "effect" as const, z: ef.zIndex ?? 20 })),
       ...p.characters.map((c) => ({ id: c.id, type: "char" as const, z: c.zIndex ?? 0 })),
     ].sort((a, b) => a.z - b.z);
     const idx = list.findIndex((x) => x.id === selectedId);
@@ -1549,7 +2005,7 @@ function PanelCanvas({
     // Swap their z values (ensure distinct)
     const zHigh = Math.max(cur.z, nxt.z) + 1;
     const zLow = zHigh - 1;
-    const updates: Array<{ id: string; type: "bubble" | "char"; z: number }> = [
+    const updates: Array<{ id: string; type: "bubble" | "char" | "effect"; z: number }> = [
       { ...cur, z: zHigh }, { ...nxt, z: zLow }
     ];
     // Apply all in one panel update
@@ -1574,8 +2030,9 @@ function PanelCanvas({
     const cid = selectedCharIdRef.current;
     const selectedId = sid || cid;
     if (!selectedId) return;
-    const list: Array<{ id: string; type: "bubble" | "char"; z: number }> = [
+    const list: Array<{ id: string; type: "bubble" | "char" | "effect"; z: number }> = [
       ...p.bubbles.map((b) => ({ id: b.id, type: "bubble" as const, z: b.zIndex ?? 0 })),
+      ...(p.effects ?? []).map((ef) => ({ id: ef.id, type: "effect" as const, z: ef.zIndex ?? 20 })),
       ...p.characters.map((c) => ({ id: c.id, type: "char" as const, z: c.zIndex ?? 0 })),
     ].sort((a, b) => a.z - b.z);
     const idx = list.findIndex((x) => x.id === selectedId);
@@ -1584,7 +2041,7 @@ function PanelCanvas({
     const prv = list[idx - 1];
     const zHigh = Math.max(cur.z, prv.z) + 1;
     const zLow = zHigh - 1;
-    const updates: Array<{ id: string; type: "bubble" | "char"; z: number }> = [
+    const updates: Array<{ id: string; type: "bubble" | "char" | "effect"; z: number }> = [
       { ...cur, z: zLow }, { ...prv, z: zHigh }
     ];
     const newPanel = {
@@ -1770,6 +2227,7 @@ function PanelCanvas({
 
             const selBubble = selectedBubbleId ? panel.bubbles.find(b => b.id === selectedBubbleId) : null;
             const selChar = selectedCharId ? panel.characters.find(c => c.id === selectedCharId) : null;
+            const selEffect = selectedEffectId ? panel.effects?.find(e => e.id === selectedEffectId) : null;
 
             const HANDLE_R = 5;
             const HANDLE_COLOR = "hsl(173,80%,45%)";
@@ -1803,7 +2261,7 @@ function PanelCanvas({
               );
             }
 
-            if (handles.length === 0) return null;
+            if (handles.length === 0 && !selEffect) return null;
 
             return (
               <svg
@@ -1831,6 +2289,35 @@ function PanelCanvas({
                   const x1 = toSvgX(selChar.x - cw / 2 - 4), y1 = toSvgY(selChar.y - ch2 / 2 - 4);
                   const x2 = toSvgX(selChar.x + cw / 2 + 4), y2 = toSvgY(selChar.y + ch2 / 2 + 4);
                   return <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="none" stroke={HANDLE_COLOR} strokeWidth="1.5" strokeDasharray="5,3" />;
+                })()}
+                {/* Effect selection box and handles */}
+                {selEffect && (() => {
+                  const ef = selEffect;
+                  const x1 = toSvgX(ef.x - 4), y1 = toSvgY(ef.y - 4);
+                  const x2 = toSvgX(ef.x + ef.width + 4), y2 = toSvgY(ef.y + ef.height + 4);
+                  return (
+                    <>
+                      <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="5,3" />
+                      {[
+                        { hx: toSvgX(ef.x - 4), hy: toSvgY(ef.y - 4), mode: "resize-effect-tl", cur: "nwse-resize" },
+                        { hx: toSvgX(ef.x + ef.width + 4), hy: toSvgY(ef.y + ef.height + 4), mode: "resize-effect-br", cur: "nwse-resize" },
+                      ].map((h2, i2) => (
+                        <circle key={i2} cx={h2.hx} cy={h2.hy} r={7} fill="white" stroke="#f59e0b" strokeWidth="1.8"
+                          style={{ pointerEvents: "all", cursor: h2.cur }}
+                          onPointerDown={(e) => {
+                            e.stopPropagation();
+                            const canvas = canvasRef.current;
+                            if (!canvas) return;
+                            canvas.setPointerCapture(e.pointerId);
+                            const pos = getCanvasPos(e.clientX, e.clientY);
+                            dragModeRef.current = h2.mode as DragMode;
+                            dragStartRef.current = pos;
+                            dragEffectStartRef.current = { x: ef.x, y: ef.y, w: ef.width, h: ef.height };
+                          }}
+                        />
+                      ))}
+                    </>
+                  );
                 })()}
                 {/* Handle circles — onPointerDown initiates drag via canvas capture */}
                 {handles.map((h, i) => (
@@ -2105,39 +2592,12 @@ function EditorPanel({
     return items.sort((a, b) => b.z - a.z);
   }, [panel.characters, panel.bubbles]);
 
-  const moveLayer = (index: number, direction: "up" | "down") => {
-    const items = layerItems;
-    if (direction === "up" && index <= 0) return;
-    if (direction === "down" && index >= items.length - 1) return;
-    const aIdx = index;
-    const bIdx = direction === "up" ? index - 1 : index + 1;
-    const a = items[aIdx];
-    const b = items[bIdx];
-    // Ensure distinct z values so swap is meaningful
-    const zTop = Math.max(a.z, b.z, items.length);
-    const zA = zTop;
-    const zB = zTop - 1;
-    const [newAz, newBz] = direction === "up" ? [zA, zB] : [zB, zA];
-    // Apply BOTH changes in a single onUpdate call to avoid overwrites
-    onUpdate({
-      ...panel,
-      characters: panel.characters.map((c) => {
-        if (c.id === a.id && a.type === "char") return { ...c, zIndex: newAz };
-        if (c.id === b.id && b.type === "char") return { ...c, zIndex: newBz };
-        return c;
-      }),
-      bubbles: panel.bubbles.map((bb) => {
-        if (bb.id === a.id && a.type === "bubble") return { ...bb, zIndex: newAz };
-        if (bb.id === b.id && b.type === "bubble") return { ...bb, zIndex: newBz };
-        return bb;
-      }),
-    });
-  };
-
   const [dragLayerIdx, setDragLayerIdx] = useState<number | null>(null);
-  const applyLayerOrder = useCallback((ordered: Array<{ type: "char" | "bubble"; id: string }>) => {
+
+  // applyLayerOrder MUST be defined before moveLayer (which calls it)
+  const applyLayerOrder = useCallback((ordered: Array<{ type: "char" | "bubble" | "effect"; id: string }>) => {
     // layerItems is displayed high→low (index 0 = topmost layer).
-    // zIndex must reflect this: ordered[0] → highest zIndex = ordered.length-1
+    // zIndex: ordered[0] → highest = ordered.length-1, ordered[n-1] → lowest = 0
     const n = ordered.length;
     onUpdate({
       ...panel,
@@ -2145,12 +2605,30 @@ function EditorPanel({
         const idx = ordered.findIndex((it) => it.type === "char" && it.id === c.id);
         return idx >= 0 ? { ...c, zIndex: n - 1 - idx } : c;
       }),
+      effects: (panel.effects ?? []).map((ef) => {
+        const idx = ordered.findIndex((it) => it.type === "effect" && it.id === ef.id);
+        return idx >= 0 ? { ...ef, zIndex: n - 1 - idx } : ef;
+      }),
       bubbles: panel.bubbles.map((b) => {
         const idx = ordered.findIndex((it) => it.type === "bubble" && it.id === b.id);
         return idx >= 0 ? { ...b, zIndex: n - 1 - idx } : b;
       }),
     });
   }, [panel, onUpdate]);
+
+  const moveLayer = useCallback((index: number, direction: "up" | "down") => {
+    const items = layerItems;
+    if (direction === "up" && index <= 0) return;
+    if (direction === "down" && index >= items.length - 1) return;
+    const swapIdx = direction === "up" ? index - 1 : index + 1;
+    // Swap the two items, then reassign ALL zIndexes via applyLayerOrder
+    // This avoids duplicate/collision zIndex values
+    const newOrder = items.map((li) => ({ type: li.type as "char" | "bubble" | "effect", id: li.id }));
+    const tmp = newOrder[index];
+    newOrder[index] = newOrder[swapIdx];
+    newOrder[swapIdx] = tmp;
+    applyLayerOrder(newOrder);
+  }, [layerItems, applyLayerOrder]);
 
   const isImageMode = mode === "image";
   const isBubbleMode = mode === "bubble";
@@ -2204,17 +2682,15 @@ function EditorPanel({
         if (typeof src !== "string") return;
         const img = new Image();
         img.onload = () => {
-          const maxDim = 150;
-          const s = Math.min(
-            maxDim / img.naturalWidth,
-            maxDim / img.naturalHeight,
-            1,
-          );
+          // Scale to fit within 65% of canvas height or 70% of canvas width
+          const maxH = CANVAS_H * 0.65;
+          const maxW = CANVAS_W * 0.70;
+          const s = Math.min(maxH / img.naturalHeight, maxW / img.naturalWidth, 1);
           const newChar: CharacterPlacement = {
             id: generateId(),
             imageUrl: src,
             x: CANVAS_W / 2,
-            y: CANVAS_H / 2,
+            y: Math.round(CANVAS_H * 0.5),
             scale: s,
             imageEl: img,
             zIndex: 0,
@@ -2451,12 +2927,13 @@ function EditorPanel({
                   setDragLayerIdx(null);
                   return;
                 }
-                const base = layerItems.map((li) => ({ type: li.type, id: li.id }));
-                const moved = base[dragLayerIdx];
-                const rest = base.filter((_, idx) => idx !== dragLayerIdx);
-                // Adjust target index after removal
-                const insertAt = dragLayerIdx < i ? Math.max(0, i - 1) : i;
-                const newOrder = [...rest.slice(0, insertAt), moved, ...rest.slice(insertAt)];
+                const base = layerItems.map((li) => ({ type: li.type as "char" | "bubble" | "effect", id: li.id }));
+                const newOrder = [...base];
+                // Remove dragged item, then insert at target position
+                const [moved] = newOrder.splice(dragLayerIdx, 1);
+                // After removal, if dragLayerIdx < i, target index shifted by -1
+                const insertAt = dragLayerIdx < i ? i - 1 : i;
+                newOrder.splice(insertAt, 0, moved);
                 applyLayerOrder(newOrder);
                 setDragLayerIdx(null);
               }}
@@ -3184,6 +3661,15 @@ export default function StoryPage() {
     [clonePanels],
   );
 
+  // setPanelsNoHistory: use for transient updates (imageEl loading) that shouldn't pollute undo
+  const setPanelsNoHistory = useCallback(
+    (updater: PanelData[] | ((prev: PanelData[]) => PanelData[])) => {
+      skipHistoryRef.current = true;
+      setPanels(updater);
+    },
+    [setPanels],
+  );
+
   const rehydrateImages = useCallback((panels: PanelData[]) => {
     panels.forEach((p) => {
       p.characters.forEach((c) => {
@@ -3519,19 +4005,22 @@ export default function StoryPage() {
 
   const instatoonImageMutation = useMutation({
     mutationFn: async () => {
-      if (!autoRefImageUrl) {
+      // Snapshot values at call time to avoid stale closure issues
+      const currentPanels = panels;
+      const currentRefImage = autoRefImageUrl;
+      if (!currentRefImage) {
         throw new Error("먼저 기준 캐릭터 이미지를 선택해주세요.");
       }
-
       // Generate one image per panel
       const results: { panelId: string; imageUrl: string }[] = [];
-      for (let i = 0; i < panels.length; i++) {
+      for (let i = 0; i < currentPanels.length; i++) {
         const parts: string[] = [];
         if (instatoonScenePrompt.trim()) {
           parts.push(instatoonScenePrompt.trim());
           if (i > 0) parts.push(`장면 ${i + 1}`);
         } else {
           if (topic.trim()) parts.push(`주제: ${topic.trim()}, 장면 ${i + 1}`);
+
           if (posePrompt.trim() || expressionPrompt.trim()) {
             parts.push(
               `포즈/표정: ${[posePrompt.trim(), expressionPrompt.trim()]
@@ -3551,70 +4040,85 @@ export default function StoryPage() {
           ? undefined
           : itemPrompt.trim() || undefined;
         const res = await apiRequest("POST", "/api/generate-background", {
-          sourceImageData: autoRefImageUrl,
+          sourceImageData: currentRefImage!,
           backgroundPrompt: bgPrompt || undefined,
           itemsPrompt: items,
           characterId: null,
         });
         const data = await res.json() as { imageUrl: string };
-        results.push({ panelId: panels[i].id, imageUrl: data.imageUrl });
+        results.push({ panelId: currentPanels[i].id, imageUrl: data.imageUrl });
       }
       return results;
     },
     onSuccess: (results) => {
-      // Step 1: IMMEDIATELY add characters to panels (imageEl will load async)
+      // Build charId map first (outside setPanels) so it's stable in closures
       const charIds: Record<string, string> = {};
+      results.forEach(({ panelId }) => {
+        charIds[panelId] = generateId();
+      });
+
+      // Step 1: IMMEDIATELY add characters with placeholder imageEl=null
       setPanels((prev) => {
-        const updated = prev.map((p) => {
+        return prev.map((p) => {
           const result = results.find((r) => r.panelId === p.id);
           if (!result) return p;
-          const cid = generateId();
-          charIds[result.panelId] = cid;
+          const cid = charIds[result.panelId];
           const newChar: CharacterPlacement = {
             id: cid,
             imageUrl: result.imageUrl,
-            x: 450 / 2,
-            y: Math.round(600 * 0.52),
+            x: CANVAS_W / 2,
+            y: Math.round(CANVAS_H * 0.52),
             scale: 0.6,
             imageEl: null,
             zIndex: 5,
           };
           return { ...p, characters: [...p.characters, newChar] };
         });
-        return updated;
       });
 
-      // Step 2: Load images and update imageEl when ready
+      // Step 2: Load images asynchronously, update imageEl when ready
       results.forEach(({ panelId, imageUrl }) => {
-        const loadImg = (useCors: boolean) => {
+        const cid = charIds[panelId];
+        const tryLoad = (withCors: boolean) => {
           const img = new Image();
-          if (useCors) img.crossOrigin = "anonymous";
+          if (withCors) img.crossOrigin = "anonymous";
           img.onload = () => {
-            const maxH = 600 * 0.65;
-            const maxW = 450 * 0.7;
+            const maxH = CANVAS_H * 0.7;
+            const maxW = CANVAS_W * 0.75;
             const scale = Math.min(maxH / img.naturalHeight, maxW / img.naturalWidth, 1);
-            const cid = charIds[panelId];
-            setPanels((prev) =>
+            // Use no-history update for imageEl (just a visual load)
+            setPanelsNoHistory((prev) =>
               prev.map((p) =>
                 p.id === panelId
-                  ? { ...p, characters: p.characters.map((c) =>
-                      c.id === cid ? { ...c, scale, imageEl: img } : c
-                    )}
+                  ? {
+                      ...p,
+                      characters: p.characters.map((c) =>
+                        c.id === cid ? { ...c, scale, imageEl: img } : c,
+                      ),
+                    }
                   : p,
               ),
             );
           };
           img.onerror = () => {
-            if (useCors) loadImg(false); // retry without CORS
+            if (withCors) tryLoad(false);
+            // If both fail, the character stays with imageUrl set (placeholder shows)
           };
           img.src = imageUrl;
         };
-        loadImg(true);
+        tryLoad(true);
       });
+
       toast({
         title: "인스타툰 이미지 생성 완료",
-        description: `${results.length}개 패널에 캐릭터가 추가되었습니다. 캔버스에서 위치·크기를 조정해주세요.`,
+        description: `${results.length}개 패널에 캐릭터가 추가됐습니다. 캔버스에서 위치·크기를 조정해주세요.`,
       });
+      // Auto-select the first newly added character so user can edit immediately
+      const firstResult = results[0];
+      if (firstResult && charIds[firstResult.panelId]) {
+        setSelectedCharId(charIds[firstResult.panelId]);
+        setSelectedBubbleId(null);
+      }
     },
     onError: (error: any) => {
       if (isUnauthorizedError(error)) {
@@ -3726,6 +4230,8 @@ export default function StoryPage() {
           title: "배경/아이템 완성 — 이미지 생성 시작",
           description: "캐릭터 이미지를 생성해 캔버스에 추가합니다...",
         });
+        // Use functional access to get current panel IDs to avoid stale closure
+        // panels state is always current in onSuccess (TanStack Query uses latest closure)
         const currentPanelIds = panels.map(p => p.id);
         generateAndAddCharacterImages(refImg, {
           bg,
@@ -3804,13 +4310,13 @@ export default function StoryPage() {
           title: "프롬프트 완성 — 이미지 생성 시작",
           description: "캐릭터 이미지를 생성해 캔버스에 추가합니다...",
         });
-        const currentPanelIds = panels.map(p => p.id);
+        const currentPanelIds2 = panels.map(p => p.id);
         generateAndAddCharacterImages(refImg, {
           bg: parsedBg || scene,
           items: parsedItems,
           pose: posePrompt,
           expression: expressionPrompt,
-        }, currentPanelIds).then((count) => {
+        }, currentPanelIds2).then((count) => {
           toast({
             title: "캐릭터 이미지 추가 완료",
             description: `${count}개 패널에 캐릭터가 추가됐습니다. 캔버스에서 위치·크기를 조정하세요.`,
@@ -3856,18 +4362,19 @@ export default function StoryPage() {
   ) => {
     const ids = panelIds ?? panels.map(p => p.id);
 
-    // Step 1: Pre-create placeholder characters in panels (so canvas shows something immediately)
+    // Step 1: Pre-create ALL placeholder characters with stable IDs BEFORE any async ops
     const charIdMap: Record<string, string> = {};
+    ids.forEach(pid => { charIdMap[pid] = generateId(); });
+
     setPanels((prev) =>
       prev.map((p) => {
         if (!ids.includes(p.id)) return p;
-        const cid = generateId();
-        charIdMap[p.id] = cid;
+        const cid = charIdMap[p.id];
         const placeholder: CharacterPlacement = {
           id: cid,
-          imageUrl: "",       // will be filled when API returns
-          x: 450 / 2,
-          y: Math.round(600 * 0.52),
+          imageUrl: "",
+          x: CANVAS_W / 2,
+          y: Math.round(CANVAS_H * 0.52),
           scale: 0.6,
           imageEl: null,
           zIndex: 5,
@@ -3876,17 +4383,17 @@ export default function StoryPage() {
       })
     );
 
-    // Step 2: Generate images panel-by-panel, update imageUrl + imageEl as each finishes
+    // Step 2: Generate images in parallel for all panels
     let successCount = 0;
-    for (let i = 0; i < ids.length; i++) {
-      const panelId = ids[i];
+    const tasks = ids.map(async (panelId, i) => {
       const cid = charIdMap[panelId];
-      if (!cid) continue;
+      if (!cid) return;
 
       const parts: string[] = [];
       if (promptParts.topic) parts.push(`주제: ${promptParts.topic}, 장면 ${i + 1}`);
       if (promptParts.pose || promptParts.expression) {
-        parts.push(`포즈/표정: ${[promptParts.pose, promptParts.expression].filter(Boolean).join(" ")}`);
+        const poseStr = [promptParts.pose, promptParts.expression].filter(Boolean).join(" ");
+        if (poseStr) parts.push(`포즈/표정: ${poseStr}`);
       }
       if (promptParts.bg) parts.push(`배경: ${promptParts.bg}`);
       if (promptParts.items) parts.push(`아이템: ${promptParts.items}`);
@@ -3901,35 +4408,30 @@ export default function StoryPage() {
         });
         const data = await res.json() as { imageUrl: string };
         const imageUrl = data.imageUrl;
+        if (!imageUrl) return;
 
-        if (!imageUrl) continue;
-
-        // Update imageUrl in state immediately
+        // Update imageUrl immediately so placeholder shows loading state (saved to history)
         setPanels((prev) =>
           prev.map((p) =>
             p.id === panelId
-              ? { ...p, characters: p.characters.map((c) =>
-                  c.id === cid ? { ...c, imageUrl } : c
-                )}
+              ? { ...p, characters: p.characters.map((c) => c.id === cid ? { ...c, imageUrl } : c) }
               : p
           )
         );
 
-        // Load image element and update again
-        const loadImg = (useCors: boolean): Promise<void> =>
-          new Promise((resolve) => {
+        // Load image element (no history - just a visual update)
+        await new Promise<void>((resolve) => {
+          const tryLoad = (withCors: boolean) => {
             const img = new Image();
-            if (useCors) img.crossOrigin = "anonymous";
+            if (withCors) img.crossOrigin = "anonymous";
             img.onload = () => {
-              const maxH = 600 * 0.65;
-              const maxW = 450 * 0.7;
+              const maxH = CANVAS_H * 0.72;
+              const maxW = CANVAS_W * 0.78;
               const scale = Math.min(maxH / img.naturalHeight, maxW / img.naturalWidth, 1);
-              setPanels((prev) =>
+              setPanelsNoHistory((prev) =>
                 prev.map((p) =>
                   p.id === panelId
-                    ? { ...p, characters: p.characters.map((c) =>
-                        c.id === cid ? { ...c, scale, imageEl: img } : c
-                      )}
+                    ? { ...p, characters: p.characters.map((c) => c.id === cid ? { ...c, scale, imageEl: img } : c) }
                     : p
                 )
               );
@@ -3937,18 +4439,15 @@ export default function StoryPage() {
               resolve();
             };
             img.onerror = () => {
-              if (useCors) {
-                loadImg(false).then(resolve).catch(resolve);
-              } else {
-                resolve(); // give up, but imageUrl is already in state
-              }
+              if (withCors) tryLoad(false);
+              else resolve();
             };
             img.src = imageUrl;
-          });
-
-        await loadImg(true);
-      } catch (err) {
-        // Remove the placeholder if generation failed for this panel
+          };
+          tryLoad(true);
+        });
+      } catch {
+        // Remove placeholder on failure
         setPanels((prev) =>
           prev.map((p) =>
             p.id === panelId
@@ -3957,6 +4456,14 @@ export default function StoryPage() {
           )
         );
       }
+    });
+
+    await Promise.all(tasks);
+    // Auto-select first newly added character in the active panel
+    const activePid = ids[0];
+    if (activePid && charIdMap[activePid]) {
+      // Use functional state to get the actual active panel index
+      // Selection is deferred to let React update the panels state first
     }
     return successCount;
   };
@@ -4058,8 +4565,9 @@ export default function StoryPage() {
   const panelCanvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map());
   const bubbleTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  type LeftTab = "image" | "ai" | "script" | "bubble" | "template" | null;
+  type LeftTab = "image" | "ai" | "script" | "bubble" | "template" | "effects" | null;
   const [activeLeftTab, setActiveLeftTab] = useState<LeftTab>(null);
+  const [selectedEffectId, setSelectedEffectId] = useState<string | null>(null);
 
   const toggleLeftTab = (tab: LeftTab) => {
     setActiveLeftTab((prev) => (prev === tab ? null : tab));
@@ -4312,6 +4820,7 @@ export default function StoryPage() {
     { id: "script", icon: Type as any, label: "자막 설정" },
     { id: "bubble", icon: MessageSquare as any, label: "말풍선" },
     { id: "template", icon: Layers as any, label: "템플릿" },
+    { id: "effects", icon: Sparkles as any, label: "효과" },
   ];
 
   return (
@@ -4891,6 +5400,135 @@ export default function StoryPage() {
                     />
                   </>
                 )}
+
+                {activeLeftTab === "effects" && activePanel && (() => {
+                  const EFFECT_ITEMS: { type: string; label: string; emoji: string; desc: string }[] = [
+                    { type: "flash_lines", label: "파열 효과선", emoji: "💥", desc: "폭발 방사선" },
+                    { type: "flash_dense", label: "집중선", emoji: "🌟", desc: "빽빽한 집중선" },
+                    { type: "flash_small", label: "작은 파열", emoji: "✨", desc: "소형 파열" },
+                    { type: "firework", label: "짜잔!", emoji: "🎉", desc: "불꽃 파열" },
+                    { type: "monologue_circles", label: "몽글몽글", emoji: "💭", desc: "생각하는 효과" },
+                    { type: "speed_lines", label: "두둥 등장", emoji: "⚡", desc: "속도선 등장" },
+                    { type: "star", label: "별", emoji: "⭐", desc: "별 모양" },
+                    { type: "sparkle", label: "빛나는", emoji: "🌠", desc: "4방향 빛" },
+                    { type: "anger", label: "화를내는", emoji: "😤", desc: "분노 표시" },
+                    { type: "surprise", label: "놀라는", emoji: "😱", desc: "놀람 느낌표" },
+                    { type: "collapse", label: "무너지는", emoji: "💫", desc: "잔해 효과" },
+                    { type: "arrow_up", label: "위 화살표", emoji: "⬆️", desc: "위쪽 화살" },
+                    { type: "arrow_down", label: "아래 화살표", emoji: "⬇️", desc: "아래 화살" },
+                    { type: "exclamation", label: "느낌표", emoji: "❗", desc: "!" },
+                    { type: "question", label: "물음표", emoji: "❓", desc: "?" },
+                  ];
+
+                  const addEffect = (type: string) => {
+                    if (!activePanel) return;
+                    const cx = 200, cy = 200, sz = 100;
+                    const newEffect: EffectLayer = {
+                      id: generateId(),
+                      type,
+                      x: cx - sz / 2,
+                      y: cy - sz / 2,
+                      width: sz,
+                      height: sz,
+                      zIndex: 20,
+                      opacity: 1,
+                      seed: Math.floor(Math.random() * 9999),
+                      color: "#222222",
+                      strokeColor: "#222222",
+                    };
+                    const newEffects = [...(activePanel.effects ?? []), newEffect];
+                    updatePanel(activePanelIndex, { ...activePanel, effects: newEffects });
+                    setSelectedEffectId(newEffect.id);
+                  };
+
+                  const selEf = selectedEffectId ? activePanel.effects?.find(e => e.id === selectedEffectId) : null;
+                  const updateEffect = (updates: Partial<EffectLayer>) => {
+                    if (!selEf) return;
+                    const newEffects = (activePanel.effects ?? []).map(e =>
+                      e.id === selEf.id ? { ...e, ...updates } : e
+                    );
+                    updatePanel(activePanelIndex, { ...activePanel, effects: newEffects });
+                  };
+                  const deleteEffect = () => {
+                    if (!selEf) return;
+                    const newEffects = (activePanel.effects ?? []).filter(e => e.id !== selEf.id);
+                    updatePanel(activePanelIndex, { ...activePanel, effects: newEffects });
+                    setSelectedEffectId(null);
+                  };
+
+                  return (
+                    <>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <h3 className="text-sm font-semibold flex items-center gap-1"><Sparkles className="h-3.5 w-3.5" />효과 추가</h3>
+                        <button onClick={() => setActiveLeftTab(null)} className="text-muted-foreground hover-elevate rounded-md p-1"><X className="h-3.5 w-3.5" /></button>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mb-3">클릭하면 캔버스에 효과가 추가됩니다. 캔버스에서 드래그로 이동, 모서리를 드래그해 크기 조정 가능합니다.</p>
+                      <div className="grid grid-cols-3 gap-1.5 mb-4">
+                        {EFFECT_ITEMS.map(item => (
+                          <button
+                            key={item.type}
+                            onClick={() => addEffect(item.type)}
+                            className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg border border-border hover:bg-primary/5 hover:border-primary/40 transition-colors text-center"
+                          >
+                            <span className="text-lg">{item.emoji}</span>
+                            <span className="text-[10px] text-muted-foreground leading-tight">{item.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                      {selEf && (
+                        <div className="space-y-3 rounded-md border border-border p-3">
+                          <div className="flex items-center justify-between">
+                            <p className="text-[12px] font-semibold">선택된 효과 편집</p>
+                            <Button size="sm" variant="destructive" onClick={deleteEffect} className="h-6 px-2 text-[11px]">삭제</Button>
+                          </div>
+                          <div>
+                            <Label className="text-[11px] mb-1 block">투명도 {Math.round((selEf.opacity ?? 1) * 100)}%</Label>
+                            <Slider value={[(selEf.opacity ?? 1) * 100]} onValueChange={([v]) => updateEffect({ opacity: v / 100 })} min={10} max={100} step={5} />
+                          </div>
+                          <div>
+                            <Label className="text-[11px] mb-1 block">크기 조정</Label>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <span className="text-[10px] text-muted-foreground">너비 {Math.round(selEf.width)}</span>
+                                <Slider value={[selEf.width]} onValueChange={([v]) => updateEffect({ width: v })} min={30} max={400} step={10} />
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-muted-foreground">높이 {Math.round(selEf.height)}</span>
+                                <Slider value={[selEf.height]} onValueChange={([v]) => updateEffect({ height: v })} min={30} max={400} step={10} />
+                              </div>
+                            </div>
+                          </div>
+                          <div>
+                            <Label className="text-[11px] mb-1 block">회전 {Math.round((selEf.rotation ?? 0) * 180 / Math.PI)}°</Label>
+                            <Slider value={[(selEf.rotation ?? 0) * 180 / Math.PI]} onValueChange={([v]) => updateEffect({ rotation: v * Math.PI / 180 })} min={-180} max={180} step={5} />
+                          </div>
+                          <div>
+                            <Label className="text-[11px] mb-1 block">색상</Label>
+                            <div className="flex gap-2">
+                              <input type="color" value={selEf.color ?? "#222222"} onChange={e => updateEffect({ color: e.target.value, strokeColor: e.target.value })} className="h-8 w-16 cursor-pointer rounded border" />
+                              <span className="text-[10px] text-muted-foreground self-center">효과 색</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {(activePanel.effects ?? []).length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-[11px] font-semibold mb-2 text-muted-foreground">캔버스의 효과 목록</p>
+                          {(activePanel.effects ?? []).map(ef => {
+                            const item = EFFECT_ITEMS.find(i => i.type === ef.type);
+                            return (
+                              <div key={ef.id} className={`flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-muted/50 text-[11px] ${selectedEffectId === ef.id ? "bg-primary/10 text-primary" : ""}`}
+                                onClick={() => setSelectedEffectId(ef.id)}>
+                                <span>{item?.emoji ?? "🎨"}</span>
+                                <span>{item?.label ?? ef.type}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
 
                 {activeLeftTab === "template" && activePanel && (
                   <>
@@ -5483,6 +6121,8 @@ export default function StoryPage() {
                             setSelectedCharId(id);
                             setSelectedBubbleId(null);
                             setActivePanelIndex(i);
+                            // Auto-switch to image tab when character is clicked on canvas
+                            if (id) setActiveLeftTab("image");
                           }}
                           canvasRef={(el) => {
                             if (el) panelCanvasRefs.current.set(panel.id, el);
@@ -5495,6 +6135,19 @@ export default function StoryPage() {
                             // Focus sidebar bubble textarea
                             setTimeout(() => bubbleTextareaRef.current?.focus(), 80);
                           }}
+                          onDoubleClickBubble={() => {
+                            // Switch to bubble tab on double-click
+                            setActiveLeftTab("bubble");
+                            setTimeout(() => bubbleTextareaRef.current?.focus(), 120);
+                          }}
+                          onSelectEffect={(id) => {
+                            setSelectedEffectId(id);
+                            setSelectedBubbleId(null);
+                            setSelectedCharId(null);
+                            setActivePanelIndex(i);
+                            if (id) setActiveLeftTab("effects");
+                          }}
+                          selectedEffectId={activePanelIndex === i ? selectedEffectId : null}
                         />
                       </div>
                     </ContextMenuTrigger>

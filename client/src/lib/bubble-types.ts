@@ -22,8 +22,7 @@ export type BubbleStyle =
     | "flash_eyelash"
     | "embarrassed"
     | "monologue"
-    | "tall_rough"
-    | "electric";
+    | "tall_rough";
 export type TailStyle = "none" | "long" | "short" | "dots_handwritten" | "dots_linedrawing";
 
 export type TailDrawMode = "bezier" | "straight" | "polyline" | "spline";
@@ -45,7 +44,7 @@ export interface SpeechBubble {
     tailLength?: number;
     tailCurve?: number;
     tailJitter?: number;
-    tailTipSpread?: number;  // bluntness at tail tip (0=sharp, >0=wide/blunt)
+    tailRoundness?: number;  // oval/ellipse at tail tip (0=sharp, >0=round oval)
     tailCtrl1X?: number;
     tailCtrl1Y?: number;
     tailCtrl2X?: number;
@@ -115,4 +114,37 @@ export interface PageData {
     canvasSize: { width: number; height: number };
     backgroundColor?: string;
     name?: string; // Page name?
+}
+
+export type EffectLayerType =
+    | "flash_lines"   // 파열 효과선
+    | "flash_dense"   // 집중선
+    | "flash_small"   // 작은 파열
+    | "firework"      // 불꽃놀이 / 짜잔!     // 몽글몽글 생각 효과
+    | "speed_lines"   // 두둥 등장선
+    | "anger"         // 화를 내는 효과
+    | "surprise"      // 놀라는 효과
+    | "collapse"      // 무너지는 효과
+    | "star"          // 별
+    | "sparkle"       // 빛나는 효과
+    | "arrow_up"      // 화살표 위
+    | "arrow_down"    // 화살표 아래
+    | "exclamation"   // 느낌표
+    | "question";     // 물음표
+
+export interface EffectLayer {
+    id: string;
+    type: EffectLayerType;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    rotation?: number;
+    opacity?: number;
+    zIndex?: number;
+    locked?: boolean;
+    // visual params
+    color?: string;
+    strokeColor?: string;
+    seed?: number;
 }
