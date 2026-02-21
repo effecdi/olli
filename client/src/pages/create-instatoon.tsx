@@ -793,7 +793,7 @@ export default function CreateInstatoonPage() {
           <Card className="flex-1 p-4 flex flex-col items-center justify-center min-h-[500px]">
             {generateMutation.isPending && !baseImageForCanvas ? (
               <div className="flex flex-col items-center gap-4 w-full">
-                <Skeleton className="w-full aspect-[3/4] rounded-md" />
+                <Skeleton className="w-full aspect-[4/3] rounded-md" />
                 <div className="flex flex-col items-center gap-2">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   <p className="text-sm text-muted-foreground">인스타툰 장면을 생성하는 중...</p>

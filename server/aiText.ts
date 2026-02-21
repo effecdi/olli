@@ -87,7 +87,9 @@ ${context ? `캐릭터 정보: ${context}\n` : ""}
     throw new Error("Failed to generate AI prompt");
   }
 
-  return textPart.text.trim().replace(/^["']|["']$/g, '');
+  const raw = textPart.text.trim().replace(/^["']|["']$/g, "");
+  const cleaned = raw.replace(/```json|```/g, "").trim();
+  return cleaned;
 }
 
 export async function analyzeAdMatch(data: {

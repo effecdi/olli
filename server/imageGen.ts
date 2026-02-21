@@ -181,6 +181,8 @@ ${noTextRule}
 
 Generate a new pose of the same character described below. Keep the character looking EXACTLY the same - same style, same features, same colors. Only change the pose and expression.
 
+IMPORTANT: Generate the image in 4:3 aspect ratio (width:height = 4:3). The image should be slightly wider than it is tall.
+
 Original character description: ${character.prompt}
 Style: ${config.keywords}
 New pose/expression: ${posePrompt}
@@ -203,6 +205,8 @@ Keep the SAME style. Single character. Do NOT write any text or words in the ima
 ${noTextRule}
 
 Look at this reference character image. Generate the EXACT SAME character in a different pose. Keep it in the same style - same line thickness, same level of detail, same colors.
+
+IMPORTANT: Generate the image in 4:3 aspect ratio (width:height = 4:3). The image should be slightly wider than it is tall.
 
 New pose/expression: ${posePrompt}
 Style: ${config.keywords}
@@ -268,6 +272,8 @@ IMPORTANT RULES:
 
 Background scene: ${backgroundPrompt}
 ${itemsInstruction}
+
+IMPORTANT: Generate the image in 4:3 aspect ratio (width:height = 4:3). The scene should be slightly wider than it is tall.
 
 Make the background and items in the same simple, cute drawing style as the character. Keep thick outlines and flat colors. Do NOT write any text or words in the image.`
   });

@@ -112,6 +112,7 @@ type DragMode =
   | "tail-ctrl1"
   | "tail-ctrl2"
   | "move-effect"
+  | "rotate-effect"
   | "resize-effect-br"
   | "resize-effect-bl"
   | "resize-effect-tr"
@@ -254,7 +255,7 @@ interface ScriptData {
 // Effect layer for canvas-rendered effects (arrows, flash lines, sparkles, etc.)
 interface EffectLayer {
   id: string;
-  type: string;  // "flash_lines"|"speed_lines"|"firework"|"star"|"sparkle"|"monologue_circles"|"anger"|"surprise"|"collapse"|"arrow_up"|"arrow_down"|"exclamation"|"question"
+  type: string;  // "flash_lines"|"flash_dense"|"flash_small"|"firework"|"monologue_circles"|"speed_lines"|"star"|"sparkle"|"anger"|"surprise"|"collapse"|"arrow_up"|"arrow_down"|"exclamation"|"question"
   x: number;
   y: number;
   width: number;
@@ -1796,6 +1797,26 @@ function PanelCanvas({
           onUpdate({ ...p, effects: newEffects });
         }
         return;
+      } else if (mode === "rotate-effect") {
+        const eid = selectedEffectIdRef.current;
+        if (eid) {
+          const p = panelRef.current;
+          const ef = (p.effects ?? []).find((e) => e.id === eid);
+          if (ef) {
+            const cx = ef.x + ef.width / 2;
+            const cy = ef.y + ef.height / 2;
+            const currentAngle = Math.atan2(pos.y - cy, pos.x - cx);
+            const startAngle = (dragEffectStartRef.current as any).angleStart ?? 0;
+            const baseRotation =
+              (dragEffectStartRef.current as any).rotation ?? (ef.rotation || 0);
+            const nextRotation = baseRotation + (currentAngle - startAngle);
+            const newEffects = (p.effects ?? []).map((e) =>
+              e.id === eid ? { ...e, rotation: nextRotation } : e,
+            );
+            onUpdate({ ...p, effects: newEffects });
+          }
+        }
+        return;
       } else if (mode === "resize-effect-br") {
         const eid = selectedEffectIdRef.current;
         if (eid) {
@@ -1902,12 +1923,16 @@ function PanelCanvas({
 
   const hasZoom = zoom !== undefined;
   const zoomScale = (zoom ?? 100) / 100;
-  const hasSelection = !!selectedBubbleIdRef.current || !!selectedCharIdRef.current;
+  const hasSelection =
+    !!selectedBubbleIdRef.current ||
+    !!selectedCharIdRef.current ||
+    !!selectedEffectIdRef.current;
 
   const handleDeleteSelection = useCallback(() => {
     const p = panelRef.current;
     const sid = selectedBubbleIdRef.current;
     const cid = selectedCharIdRef.current;
+    const eid = selectedEffectIdRef.current;
     if (sid) {
       const newBubbles = p.bubbles.filter((b) => b.id !== sid);
       onUpdate({ ...p, bubbles: newBubbles });
@@ -1918,8 +1943,13 @@ function PanelCanvas({
       onUpdate({ ...p, characters: newChars });
       onSelectChar(null);
       selectedCharIdRef.current = null;
+    } else if (eid) {
+      const newEffects = (p.effects ?? []).filter((e) => e.id !== eid);
+      onUpdate({ ...p, effects: newEffects });
+      if (onSelectEffect) onSelectEffect(null);
+      selectedEffectIdRef.current = null;
     }
-  }, [onUpdate, onSelectBubble, onSelectChar]);
+  }, [onUpdate, onSelectBubble, onSelectChar, onSelectEffect]);
 
   const handleDuplicateSelection = useCallback(() => {
     const p = panelRef.current;
@@ -2146,7 +2176,7 @@ function PanelCanvas({
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
-      if (!selectedBubbleIdRef.current && !selectedCharIdRef.current) return;
+      if (!selectedBubbleIdRef.current && !selectedCharIdRef.current && !selectedEffectIdRef.current) return;
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
         handleDeleteSelection();
@@ -2295,6 +2325,8 @@ function PanelCanvas({
                   const ef = selEffect;
                   const x1 = toSvgX(ef.x - 4), y1 = toSvgY(ef.y - 4);
                   const x2 = toSvgX(ef.x + ef.width + 4), y2 = toSvgY(ef.y + ef.height + 4);
+                  const rcx = toSvgX(ef.x + ef.width / 2);
+                  const rcy = toSvgY(ef.y - 24);
                   return (
                     <>
                       <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="5,3" />
@@ -2316,6 +2348,34 @@ function PanelCanvas({
                           }}
                         />
                       ))}
+                      <circle
+                        cx={rcx}
+                        cy={rcy}
+                        r={7}
+                        fill="white"
+                        stroke="#f59e0b"
+                        strokeWidth="1.8"
+                        style={{ pointerEvents: "all", cursor: "grab" }}
+                        onPointerDown={(e) => {
+                          e.stopPropagation();
+                          const canvas = canvasRef.current;
+                          if (!canvas) return;
+                          canvas.setPointerCapture(e.pointerId);
+                          const pos = getCanvasPos(e.clientX, e.clientY);
+                          dragModeRef.current = "rotate-effect";
+                          dragStartRef.current = pos;
+                          const cx = ef.x + ef.width / 2;
+                          const cy = ef.y + ef.height / 2;
+                          dragEffectStartRef.current = {
+                            x: ef.x,
+                            y: ef.y,
+                            w: ef.width,
+                            h: ef.height,
+                            rotation: ef.rotation || 0,
+                            angleStart: Math.atan2(pos.y - cy, pos.x - cx),
+                          } as any;
+                        }}
+                      />
                     </>
                   );
                 })()}
@@ -2388,6 +2448,8 @@ function EditorPanel({
   setSelectedBubbleId,
   selectedCharId,
   setSelectedCharId,
+  selectedEffectId,
+  setSelectedEffectId,
   creatorTier,
   isPro,
   mode = "image",
@@ -2404,6 +2466,8 @@ function EditorPanel({
   setSelectedBubbleId: (id: string | null) => void;
   selectedCharId: string | null;
   setSelectedCharId: (id: string | null) => void;
+   selectedEffectId: string | null;
+   setSelectedEffectId: (id: string | null) => void;
   creatorTier: number;
   isPro: boolean;
   mode?: "image" | "bubble" | "template";
@@ -2423,6 +2487,51 @@ function EditorPanel({
     panel.bubbles.find((b) => b.id === selectedBubbleId) || null;
   const selectedChar =
     panel.characters.find((c) => c.id === selectedCharId) || null;
+
+  const deleteEffectLayer = (id: string) => {
+    onUpdate({
+      ...panel,
+      effects: (panel.effects ?? []).filter((e) => e.id !== id),
+    });
+    if (selectedEffectId === id) setSelectedEffectId(null);
+  };
+
+  const getEffectLabel = (ef: EffectLayer, index: number) => {
+    switch (ef.type) {
+      case "flash_lines":
+        return "파열 효과선";
+      case "flash_dense":
+        return "집중선";
+      case "flash_small":
+        return "작은 파열";
+      case "firework":
+        return "짜잔!";
+      case "monologue_circles":
+        return "몽글몽글";
+      case "speed_lines":
+        return "두둥 등장";
+      case "star":
+        return "별";
+      case "sparkle":
+        return "빛나는";
+      case "anger":
+        return "화를내는";
+      case "surprise":
+        return "놀라는";
+      case "collapse":
+        return "무너지는";
+      case "arrow_up":
+        return "위 화살표";
+      case "arrow_down":
+        return "아래 화살표";
+      case "exclamation":
+        return "느낌표";
+      case "question":
+        return "물음표";
+      default:
+        return `효과 ${index + 1}`;
+    }
+  };
 
   const getDailyKey = (feature: string) => {
     const d = new Date();
@@ -2573,6 +2682,7 @@ function EditorPanel({
     const items: Array<
       | { type: "char"; id: string; z: number; label: string; thumb?: string }
       | { type: "bubble"; id: string; z: number; label: string; thumb?: string }
+      | { type: "effect"; id: string; z: number; label: string; thumb?: string }
     > = [
         ...panel.characters.map((c) => ({
           type: "char" as const,
@@ -2588,9 +2698,16 @@ function EditorPanel({
           label: b.text || STYLE_LABELS[b.style] || `말풍선 ${i + 1}`,
           thumb: b.style === "image" && (b as any).templateSrc ? (b as any).templateSrc : undefined,
         })),
+        ...(panel.effects ?? []).map((ef, i) => ({
+          type: "effect" as const,
+          id: ef.id,
+          z: ef.zIndex ?? 20,
+          label: getEffectLabel(ef, i),
+          thumb: undefined,
+        })),
       ];
     return items.sort((a, b) => b.z - a.z);
-  }, [panel.characters, panel.bubbles]);
+  }, [panel.characters, panel.bubbles, panel.effects]);
 
   const [dragLayerIdx, setDragLayerIdx] = useState<number | null>(null);
 
@@ -2884,7 +3001,7 @@ function EditorPanel({
         </div>
       )}
 
-      {(panel.characters.length > 0 || panel.bubbles.length > 0) && (
+      {(panel.characters.length > 0 || panel.bubbles.length > 0 || (panel.effects?.length ?? 0) > 0) && (
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
             <Layers className="h-3.5 w-3.5 text-muted-foreground" />
@@ -2904,7 +3021,11 @@ function EditorPanel({
                   ? selectedCharId === item.id
                     ? "bg-primary/10"
                     : "hover-elevate"
-                  : selectedBubbleId === item.id
+                  : item.type === "bubble"
+                  ? selectedBubbleId === item.id
+                    ? "bg-primary/10"
+                    : "hover-elevate"
+                  : selectedEffectId === item.id
                   ? "bg-primary/10"
                   : "hover-elevate"
               }`}
@@ -2912,9 +3033,15 @@ function EditorPanel({
                 if (item.type === "char") {
                   setSelectedCharId(item.id);
                   setSelectedBubbleId(null);
-                } else {
+                  setSelectedEffectId(null);
+                } else if (item.type === "bubble") {
                   setSelectedBubbleId(item.id);
                   setSelectedCharId(null);
+                  setSelectedEffectId(null);
+                } else {
+                  setSelectedEffectId(item.id);
+                  setSelectedCharId(null);
+                  setSelectedBubbleId(null);
                 }
               }}
               draggable
@@ -2945,7 +3072,7 @@ function EditorPanel({
                     <img src={item.thumb} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-[10px]">
-                      {item.type === "bubble" ? "B" : "C"}
+                      {item.type === "bubble" ? "B" : item.type === "char" ? "C" : "E"}
                     </div>
                   )}
                 </div>
@@ -2987,8 +3114,10 @@ function EditorPanel({
                     e.stopPropagation();
                     if (item.type === "char") {
                       removeCharacter(item.id);
-                    } else {
+                    } else if (item.type === "bubble") {
                       deleteBubble(item.id);
+                    } else {
+                      deleteEffectLayer(item.id);
                     }
                   }}
                   data-testid={`button-delete-layer-${i}`}
@@ -4827,7 +4956,7 @@ export default function StoryPage() {
     <div className="editor-page h-[calc(100vh-3.5rem)] flex overflow-hidden bg-muted/30 dark:bg-background relative">
       <EditorOnboarding editor="story" />
       <div
-        className="flex flex-col items-center py-3 px-1.5 gap-5 w-[100px] shrink-0 bg-card dark:bg-card border-r"
+        className="flex flex-col items-center py-3 px-1.5 gap-1 w-[100px] shrink-0 bg-card dark:bg-card border-r"
         data-testid="left-icon-sidebar"
       >
         {LEFT_TABS.map((tab) => (
@@ -5363,6 +5492,8 @@ export default function StoryPage() {
                         setSelectedBubbleId={setSelectedBubbleId}
                         selectedCharId={selectedCharId}
                         setSelectedCharId={setSelectedCharId}
+                        selectedEffectId={selectedEffectId}
+                        setSelectedEffectId={setSelectedEffectId}
                         creatorTier={usageData?.creatorTier ?? 0}
                         isPro={isPro}
                         mode="image"
@@ -5393,6 +5524,8 @@ export default function StoryPage() {
                       setSelectedBubbleId={setSelectedBubbleId}
                       selectedCharId={selectedCharId}
                       setSelectedCharId={setSelectedCharId}
+                      selectedEffectId={selectedEffectId}
+                      setSelectedEffectId={setSelectedEffectId}
                       creatorTier={usageData?.creatorTier ?? 0}
                       isPro={isPro}
                       mode="bubble"
@@ -5553,6 +5686,8 @@ export default function StoryPage() {
                       setSelectedBubbleId={setSelectedBubbleId}
                       selectedCharId={selectedCharId}
                       setSelectedCharId={setSelectedCharId}
+                      selectedEffectId={selectedEffectId}
+                      setSelectedEffectId={setSelectedEffectId}
                       creatorTier={usageData?.creatorTier ?? 0}
                       isPro={isPro}
                       mode="template"

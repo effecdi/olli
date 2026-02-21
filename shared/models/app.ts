@@ -99,7 +99,17 @@ export const generateBackgroundSchema = z.object({
   sourceImageData: z.string().min(1, "Source image is required"),
   backgroundPrompt: z.string().min(3, "Background description must be at least 3 characters"),
   itemsPrompt: z.string().optional(),
-  characterId: z.number().optional(),
+  characterId: z.preprocess(
+    (val) => {
+      if (val === null || val === undefined || val === "") return undefined;
+      if (typeof val === "string") {
+        const n = Number(val);
+        if (!Number.isNaN(n)) return n;
+      }
+      return val;
+    },
+    z.number().optional(),
+  ),
 });
 
 export const removeBackgroundSchema = z.object({
