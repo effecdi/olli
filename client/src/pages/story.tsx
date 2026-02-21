@@ -4143,34 +4143,53 @@ export default function StoryPage() {
       // Generate one image per panel
       const results: { panelId: string; imageUrl: string }[] = [];
       for (let i = 0; i < currentPanels.length; i++) {
-        const parts: string[] = [];
+        // (Prompt building moved to bgOnlyParts/workingRefImage below)
+        // Build background prompt (exclude pose/expression - handled separately)
+        const bgOnlyParts: string[] = [];
         if (instatoonScenePrompt.trim()) {
-          parts.push(instatoonScenePrompt.trim());
-          if (i > 0) parts.push(`장면 ${i + 1}`);
+          bgOnlyParts.push(instatoonScenePrompt.trim());
+          if (i > 0) bgOnlyParts.push(`장면 ${i + 1}`);
         } else {
-          if (topic.trim()) parts.push(`주제: ${topic.trim()}, 장면 ${i + 1}`);
-
-          if (posePrompt.trim() || expressionPrompt.trim()) {
-            parts.push(
-              `포즈/표정: ${[posePrompt.trim(), expressionPrompt.trim()]
-                .filter(Boolean)
-                .join(" ")}`,
-            );
-          }
-          if (backgroundPrompt.trim()) {
-            parts.push(`배경: ${backgroundPrompt.trim()}`);
-          }
-          if (itemPrompt.trim()) {
-            parts.push(`아이템: ${itemPrompt.trim()}`);
-          }
+          if (topic.trim()) bgOnlyParts.push(`주제: ${topic.trim()}, 장면 ${i + 1}`);
+          if (backgroundPrompt.trim()) bgOnlyParts.push(backgroundPrompt.trim());
         }
-        const bgPrompt = parts.length > 0 ? parts.join(" / ") : topic.trim();
+        const finalBgPrompt = bgOnlyParts.join(" / ") || topic.trim() || undefined;
         const items = instatoonScenePrompt.trim()
           ? undefined
           : itemPrompt.trim() || undefined;
+
+        // ── Step 1: Pose/expression transformation (only when NOT using instatoonScenePrompt) ──
+        let workingRefImage = currentRefImage!;
+        if (!instatoonScenePrompt.trim() && (posePrompt.trim() || expressionPrompt.trim())) {
+          const poseStr = [posePrompt.trim(), expressionPrompt.trim()].filter(Boolean).join(" ");
+          try {
+            const poseRes = await apiRequest("POST", "/api/generate-pose", {
+              referenceImageData: currentRefImage!,
+              prompt: poseStr,
+            });
+            if (poseRes.ok) {
+              const poseData = await poseRes.json() as { imageUrl?: string };
+              if (poseData.imageUrl) workingRefImage = poseData.imageUrl;
+            }
+          } catch {
+            // Fall back to original image if pose fails
+          }
+        }
+
+        // ── Step 2: Background + items ──
+        // If pose API was unavailable, include pose hint in background prompt
+        let finalBgPromptWithPose = finalBgPrompt;
+        if (!instatoonScenePrompt.trim() && workingRefImage === currentRefImage) {
+          const poseHint = [posePrompt.trim(), expressionPrompt.trim()].filter(Boolean).join(" ");
+          if (poseHint && finalBgPrompt) {
+            finalBgPromptWithPose = `${poseHint}, ${finalBgPrompt}`;
+          } else if (poseHint) {
+            finalBgPromptWithPose = poseHint;
+          }
+        }
         const res = await apiRequest("POST", "/api/generate-background", {
-          sourceImageData: currentRefImage!,
-          backgroundPrompt: bgPrompt || undefined,
+          sourceImageData: workingRefImage,
+          backgroundPrompt: finalBgPromptWithPose || finalBgPrompt,
           itemsPrompt: items,
           characterId: null,
         });
@@ -4518,19 +4537,45 @@ export default function StoryPage() {
       const cid = charIdMap[panelId];
       if (!cid) return;
 
-      const parts: string[] = [];
-      if (promptParts.topic) parts.push(`주제: ${promptParts.topic}, 장면 ${i + 1}`);
-      if (promptParts.pose || promptParts.expression) {
-        const poseStr = [promptParts.pose, promptParts.expression].filter(Boolean).join(" ");
-        if (poseStr) parts.push(`포즈/표정: ${poseStr}`);
+      // ── Step 1: Pose/expression transformation ──────────────────────────
+      // If pose or expression is specified, first call /api/generate-pose
+      // to actually transform the character (generate-background does NOT change pose)
+      let workingImageUrl = sourceImageUrl;
+      const poseStr = [promptParts.pose, promptParts.expression].filter(Boolean).join(" ");
+      if (poseStr) {
+        try {
+          const poseRes = await apiRequest("POST", "/api/generate-pose", {
+            referenceImageData: sourceImageUrl,
+            prompt: poseStr,
+            // characterId omitted — using referenceImageData directly
+          });
+          if (poseRes.ok) {
+            const poseData = await poseRes.json() as { imageUrl?: string };
+            if (poseData.imageUrl) {
+              workingImageUrl = poseData.imageUrl;
+            }
+          }
+          // If API returns non-ok but no throw, just use original image
+        } catch {
+          // If pose API fails, we'll include pose in background prompt as hint
+          workingImageUrl = sourceImageUrl;
+        }
       }
-      if (promptParts.bg) parts.push(`배경: ${promptParts.bg}`);
-      if (promptParts.items) parts.push(`아이템: ${promptParts.items}`);
-      const bgPrompt = parts.join(" / ");
+
+      // ── Step 2: Background + items on top of (possibly transformed) character ──
+      const bgParts: string[] = [];
+      if (promptParts.topic) bgParts.push(`scene ${i + 1}: ${promptParts.topic}`);
+      // If pose API was unavailable (workingImageUrl == sourceImageUrl), 
+      // include pose hint in background prompt as a fallback attempt
+      if (workingImageUrl === sourceImageUrl && poseStr) {
+        bgParts.push(`character: ${poseStr}`);
+      }
+      if (promptParts.bg) bgParts.push(promptParts.bg);
+      const bgPrompt = bgParts.join(", ");
 
       try {
         const res = await apiRequest("POST", "/api/generate-background", {
-          sourceImageData: sourceImageUrl,
+          sourceImageData: workingImageUrl,
           backgroundPrompt: bgPrompt || undefined,
           itemsPrompt: promptParts.items || undefined,
           characterId: null,
@@ -5311,12 +5356,17 @@ export default function StoryPage() {
                               instatoonImageMutation.isPending
                             }
                           >
-                            {generateMutation.isPending ? (
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent mr-2" />
+                            {(generateMutation.isPending || instatoonImageMutation.isPending) ? (
+                              <>
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent mr-2" />
+                                {instatoonImageMutation.isPending ? "이미지 변환 중..." : "스크립트 생성 중..."}
+                              </>
                             ) : (
-                              <Wand2 className="h-4 w-4 mr-2" />
+                              <>
+                                <Wand2 className="h-4 w-4 mr-2" />
+                                인스타툰 자동 생성 실행
+                              </>
                             )}
-                            인스타툰 자동 생성 실행
                           </Button>
                         </div>
                       )}
