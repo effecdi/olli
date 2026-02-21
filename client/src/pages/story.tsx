@@ -1125,15 +1125,30 @@ function PanelCanvas({
     // Draw background image if present
     const bgImg = p.backgroundImageEl;
     if (bgImg) {
+      // Full-canvas fill with cover scaling
       const scale = Math.max(CANVAS_W / bgImg.naturalWidth, CANVAS_H / bgImg.naturalHeight);
       const sw = bgImg.naturalWidth * scale;
       const sh = bgImg.naturalHeight * scale;
       ctx.drawImage(bgImg, (CANVAS_W - sw) / 2, (CANVAS_H - sh) / 2, sw, sh);
+    } else if (p.backgroundImageUrl === "") {
+      // Empty string = loading state: show a spinner/placeholder on the whole canvas
+      ctx.fillStyle = "rgba(235,240,255,0.85)";
+      ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+      ctx.save();
+      ctx.font = "bold 18px sans-serif";
+      ctx.fillStyle = "hsl(220,60%,55%)";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("🎨 이미지 생성 중...", CANVAS_W / 2, CANVAS_H / 2 - 16);
+      ctx.font = "13px sans-serif";
+      ctx.fillStyle = "hsl(220,40%,60%)";
+      ctx.fillText("잠시만 기다려주세요", CANVAS_W / 2, CANVAS_H / 2 + 14);
+      ctx.restore();
     } else if (p.backgroundImageUrl) {
-      // Fallback: try to draw from URL (will not block)
+      // Fallback: try to draw from URL (will not block — imageEl loading in progress)
       const tmpImg = new Image();
       tmpImg.src = p.backgroundImageUrl;
-      if (tmpImg.complete) {
+      if (tmpImg.complete && tmpImg.naturalWidth > 0) {
         const scale = Math.max(CANVAS_W / tmpImg.naturalWidth, CANVAS_H / tmpImg.naturalHeight);
         const sw = tmpImg.naturalWidth * scale;
         const sh = tmpImg.naturalHeight * scale;
@@ -4134,123 +4149,76 @@ export default function StoryPage() {
 
   const instatoonImageMutation = useMutation({
     mutationFn: async () => {
-      // Snapshot values at call time to avoid stale closure issues
       const currentPanels = panels;
       const currentRefImage = autoRefImageUrl;
       if (!currentRefImage) {
         throw new Error("먼저 기준 캐릭터 이미지를 선택해주세요.");
       }
-      // Generate one image per panel
+
       const results: { panelId: string; imageUrl: string }[] = [];
       for (let i = 0; i < currentPanels.length; i++) {
-        // (Prompt building moved to bgOnlyParts/workingRefImage below)
-        // Build background prompt (exclude pose/expression - handled separately)
-        const bgOnlyParts: string[] = [];
+        // Build a single comprehensive prompt combining ALL user inputs:
+        // pose/expression + background + items — all sent to generate-background
+        // Note: all prompts sent to generate-background (pose/expression + bg + items in one call)
+        const promptParts: string[] = [];
+
         if (instatoonScenePrompt.trim()) {
-          bgOnlyParts.push(instatoonScenePrompt.trim());
-          if (i > 0) bgOnlyParts.push(`장면 ${i + 1}`);
+          // instatoonPrompt mode: use the scene prompt directly
+          promptParts.push(instatoonScenePrompt.trim());
+          if (i > 0) promptParts.push(`scene ${i + 1}`);
         } else {
-          if (topic.trim()) bgOnlyParts.push(`주제: ${topic.trim()}, 장면 ${i + 1}`);
-          if (backgroundPrompt.trim()) bgOnlyParts.push(backgroundPrompt.trim());
-        }
-        const finalBgPrompt = bgOnlyParts.join(" / ") || topic.trim() || undefined;
-        const items = instatoonScenePrompt.trim()
-          ? undefined
-          : itemPrompt.trim() || undefined;
-
-        // ── Step 1: Pose/expression transformation (only when NOT using instatoonScenePrompt) ──
-        let workingRefImage = currentRefImage!;
-        if (!instatoonScenePrompt.trim() && (posePrompt.trim() || expressionPrompt.trim())) {
-          const poseStr = [posePrompt.trim(), expressionPrompt.trim()].filter(Boolean).join(" ");
-          try {
-            const poseRes = await apiRequest("POST", "/api/generate-pose", {
-              referenceImageData: currentRefImage!,
-              prompt: poseStr,
-            });
-            if (poseRes.ok) {
-              const poseData = await poseRes.json() as { imageUrl?: string };
-              if (poseData.imageUrl) workingRefImage = poseData.imageUrl;
-            }
-          } catch {
-            // Fall back to original image if pose fails
-          }
+          // instatoonFull mode: combine topic + pose + expression + background + items
+          if (topic.trim()) promptParts.push(topic.trim());
+          const poseStr = [posePrompt.trim(), expressionPrompt.trim()].filter(Boolean).join(", ");
+          if (poseStr) promptParts.push(poseStr);
+          if (backgroundPrompt.trim()) promptParts.push(backgroundPrompt.trim());
         }
 
-        // ── Step 2: Background + items ──
-        // If pose API was unavailable, include pose hint in background prompt
-        let finalBgPromptWithPose = finalBgPrompt;
-        if (!instatoonScenePrompt.trim() && workingRefImage === currentRefImage) {
-          const poseHint = [posePrompt.trim(), expressionPrompt.trim()].filter(Boolean).join(" ");
-          if (poseHint && finalBgPrompt) {
-            finalBgPromptWithPose = `${poseHint}, ${finalBgPrompt}`;
-          } else if (poseHint) {
-            finalBgPromptWithPose = poseHint;
-          }
-        }
+        const finalPrompt = promptParts.join(", ");
+        const finalItems = instatoonScenePrompt.trim() ? undefined : itemPrompt.trim() || undefined;
+
         const res = await apiRequest("POST", "/api/generate-background", {
-          sourceImageData: workingRefImage,
-          backgroundPrompt: finalBgPromptWithPose || finalBgPrompt,
-          itemsPrompt: items,
+          sourceImageData: currentRefImage,
+          backgroundPrompt: finalPrompt || undefined,
+          itemsPrompt: finalItems,
           characterId: null,
         });
         const data = await res.json() as { imageUrl: string };
+        if (!data.imageUrl) throw new Error("이미지 생성 결과가 없습니다.");
         results.push({ panelId: currentPanels[i].id, imageUrl: data.imageUrl });
       }
       return results;
     },
     onSuccess: (results) => {
-      // Build charId map first (outside setPanels) so it's stable in closures
-      const charIds: Record<string, string> = {};
-      results.forEach(({ panelId }) => {
-        charIds[panelId] = generateId();
-      });
-
-      // Step 1: IMMEDIATELY add characters with placeholder imageEl=null
-      setPanels((prev) => {
-        return prev.map((p) => {
+      // Step 1: IMMEDIATELY set backgroundImageUrl per panel (shows loading state)
+      setPanels((prev) =>
+        prev.map((p) => {
           const result = results.find((r) => r.panelId === p.id);
           if (!result) return p;
-          const cid = charIds[result.panelId];
-          const newChar: CharacterPlacement = {
-            id: cid,
-            imageUrl: result.imageUrl,
-            x: CANVAS_W / 2,
-            y: Math.round(CANVAS_H * 0.52),
-            scale: 0.6,
-            imageEl: null,
-            zIndex: 5,
+          return {
+            ...p,
+            backgroundImageUrl: result.imageUrl,
+            backgroundImageEl: null,
           };
-          return { ...p, characters: [...p.characters, newChar] };
-        });
-      });
+        })
+      );
 
-      // Step 2: Load images asynchronously, update imageEl when ready
+      // Step 2: Load image elements asynchronously for full-canvas rendering
       results.forEach(({ panelId, imageUrl }) => {
-        const cid = charIds[panelId];
         const tryLoad = (withCors: boolean) => {
           const img = new Image();
           if (withCors) img.crossOrigin = "anonymous";
           img.onload = () => {
-            const maxH = CANVAS_H * 0.7;
-            const maxW = CANVAS_W * 0.75;
-            const scale = Math.min(maxH / img.naturalHeight, maxW / img.naturalWidth, 1);
-            // Use no-history update for imageEl (just a visual load)
             setPanelsNoHistory((prev) =>
               prev.map((p) =>
                 p.id === panelId
-                  ? {
-                      ...p,
-                      characters: p.characters.map((c) =>
-                        c.id === cid ? { ...c, scale, imageEl: img } : c,
-                      ),
-                    }
+                  ? { ...p, backgroundImageEl: img }
                   : p,
               ),
             );
           };
           img.onerror = () => {
             if (withCors) tryLoad(false);
-            // If both fail, the character stays with imageUrl set (placeholder shows)
           };
           img.src = imageUrl;
         };
@@ -4259,14 +4227,8 @@ export default function StoryPage() {
 
       toast({
         title: "인스타툰 이미지 생성 완료",
-        description: `${results.length}개 패널에 캐릭터가 추가됐습니다. 캔버스에서 위치·크기를 조정해주세요.`,
+        description: `${results.length}개 패널에 캔버스 전체 이미지가 생성됐습니다.`,
       });
-      // Auto-select the first newly added character so user can edit immediately
-      const firstResult = results[0];
-      if (firstResult && charIds[firstResult.panelId]) {
-        setSelectedCharId(charIds[firstResult.panelId]);
-        setSelectedBubbleId(null);
-      }
     },
     onError: (error: any) => {
       if (isUnauthorizedError(error)) {
@@ -4277,6 +4239,15 @@ export default function StoryPage() {
             variant: o.variant as any,
           }),
         );
+        return;
+      }
+      if (/^403/.test(error.message)) {
+        setAiLimitOpen(true);
+        toast({
+          title: "크레딧 부족",
+          description: "크레딧을 전부 사용했어요. 충전해주세요.",
+          variant: "destructive",
+        });
         return;
       }
       toast({
@@ -4416,6 +4387,11 @@ export default function StoryPage() {
         );
         return;
       }
+      if (/^403/.test(error.message)) {
+        setAiLimitOpen(true);
+        toast({ title: "크레딧 부족", description: "크레딧을 전부 사용했어요. 충전해주세요.", variant: "destructive" });
+        return;
+      }
       toast({
         title: "생성 실패",
         description: error.message || "프롬프트 생성에 실패했습니다",
@@ -4494,6 +4470,11 @@ export default function StoryPage() {
         );
         return;
       }
+      if (/^403/.test(error.message)) {
+        setAiLimitOpen(true);
+        toast({ title: "크레딧 부족", description: "크레딧을 전부 사용했어요. 충전해주세요.", variant: "destructive" });
+        return;
+      }
       toast({
         title: "생성 실패",
         description: error.message || "프롬프트 생성에 실패했습니다",
@@ -4510,72 +4491,30 @@ export default function StoryPage() {
   ) => {
     const ids = panelIds ?? panels.map(p => p.id);
 
-    // Step 1: Pre-create ALL placeholder characters with stable IDs BEFORE any async ops
-    const charIdMap: Record<string, string> = {};
-    ids.forEach(pid => { charIdMap[pid] = generateId(); });
-
+    // Show loading indicator on all target panels immediately
     setPanels((prev) =>
       prev.map((p) => {
         if (!ids.includes(p.id)) return p;
-        const cid = charIdMap[p.id];
-        const placeholder: CharacterPlacement = {
-          id: cid,
-          imageUrl: "",
-          x: CANVAS_W / 2,
-          y: Math.round(CANVAS_H * 0.52),
-          scale: 0.6,
-          imageEl: null,
-          zIndex: 5,
-        };
-        return { ...p, characters: [...p.characters, placeholder] };
+        return { ...p, backgroundImageUrl: "", backgroundImageEl: null };
       })
     );
 
-    // Step 2: Generate images in parallel for all panels
+    // Generate images in parallel for all panels
     let successCount = 0;
     const tasks = ids.map(async (panelId, i) => {
-      const cid = charIdMap[panelId];
-      if (!cid) return;
 
-      // ── Step 1: Pose/expression transformation ──────────────────────────
-      // If pose or expression is specified, first call /api/generate-pose
-      // to actually transform the character (generate-background does NOT change pose)
-      let workingImageUrl = sourceImageUrl;
-      const poseStr = [promptParts.pose, promptParts.expression].filter(Boolean).join(" ");
-      if (poseStr) {
-        try {
-          const poseRes = await apiRequest("POST", "/api/generate-pose", {
-            referenceImageData: sourceImageUrl,
-            prompt: poseStr,
-            // characterId omitted — using referenceImageData directly
-          });
-          if (poseRes.ok) {
-            const poseData = await poseRes.json() as { imageUrl?: string };
-            if (poseData.imageUrl) {
-              workingImageUrl = poseData.imageUrl;
-            }
-          }
-          // If API returns non-ok but no throw, just use original image
-        } catch {
-          // If pose API fails, we'll include pose in background prompt as hint
-          workingImageUrl = sourceImageUrl;
-        }
-      }
-
-      // ── Step 2: Background + items on top of (possibly transformed) character ──
-      const bgParts: string[] = [];
-      if (promptParts.topic) bgParts.push(`scene ${i + 1}: ${promptParts.topic}`);
-      // If pose API was unavailable (workingImageUrl == sourceImageUrl), 
-      // include pose hint in background prompt as a fallback attempt
-      if (workingImageUrl === sourceImageUrl && poseStr) {
-        bgParts.push(`character: ${poseStr}`);
-      }
-      if (promptParts.bg) bgParts.push(promptParts.bg);
-      const bgPrompt = bgParts.join(", ");
+      // Build a single comprehensive prompt: pose + expression + background + topic
+      // All prompts (pose/expression + background + items) sent together to generate-background
+      const allParts: string[] = [];
+      if (promptParts.topic) allParts.push(promptParts.topic);
+      const poseStr = [promptParts.pose, promptParts.expression].filter(Boolean).join(", ");
+      if (poseStr) allParts.push(poseStr);
+      if (promptParts.bg) allParts.push(promptParts.bg);
+      const bgPrompt = allParts.join(", ");
 
       try {
         const res = await apiRequest("POST", "/api/generate-background", {
-          sourceImageData: workingImageUrl,
+          sourceImageData: sourceImageUrl,
           backgroundPrompt: bgPrompt || undefined,
           itemsPrompt: promptParts.items || undefined,
           characterId: null,
@@ -4584,28 +4523,29 @@ export default function StoryPage() {
         const imageUrl = data.imageUrl;
         if (!imageUrl) return;
 
-        // Update imageUrl immediately so placeholder shows loading state (saved to history)
+        // Set backgroundImageUrl immediately (saved to history)
         setPanels((prev) =>
           prev.map((p) =>
             p.id === panelId
-              ? { ...p, characters: p.characters.map((c) => c.id === cid ? { ...c, imageUrl } : c) }
+              ? {
+                  ...p,
+                  backgroundImageUrl: imageUrl,
+                  backgroundImageEl: null,
+                }
               : p
           )
         );
 
-        // Load image element (no history - just a visual update)
+        // Load image element for full-canvas rendering (no history)
         await new Promise<void>((resolve) => {
           const tryLoad = (withCors: boolean) => {
             const img = new Image();
             if (withCors) img.crossOrigin = "anonymous";
             img.onload = () => {
-              const maxH = CANVAS_H * 0.72;
-              const maxW = CANVAS_W * 0.78;
-              const scale = Math.min(maxH / img.naturalHeight, maxW / img.naturalWidth, 1);
               setPanelsNoHistory((prev) =>
                 prev.map((p) =>
                   p.id === panelId
-                    ? { ...p, characters: p.characters.map((c) => c.id === cid ? { ...c, scale, imageEl: img } : c) }
+                    ? { ...p, backgroundImageEl: img }
                     : p
                 )
               );
@@ -4620,12 +4560,21 @@ export default function StoryPage() {
           };
           tryLoad(true);
         });
-      } catch {
-        // Remove placeholder on failure
+      } catch (err: any) {
+        // Handle 403 credit errors
+        if (/^403/.test(err?.message || '')) {
+          setAiLimitOpen(true);
+          toast({
+            title: "크레딧 부족",
+            description: "크레딧을 전부 사용했어요. 충전해주세요.",
+            variant: "destructive",
+          });
+        }
+        // Remove loading indicator on failure
         setPanels((prev) =>
           prev.map((p) =>
             p.id === panelId
-              ? { ...p, characters: p.characters.filter((c) => c.id !== cid) }
+              ? { ...p, backgroundImageUrl: undefined }
               : p
           )
         );
@@ -4633,12 +4582,6 @@ export default function StoryPage() {
     });
 
     await Promise.all(tasks);
-    // Auto-select first newly added character in the active panel
-    const activePid = ids[0];
-    if (activePid && charIdMap[activePid]) {
-      // Use functional state to get the actual active panel index
-      // Selection is deferred to let React update the panels state first
-    }
     return successCount;
   };
 
