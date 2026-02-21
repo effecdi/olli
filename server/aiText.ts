@@ -194,40 +194,13 @@ export async function enhanceBio(data: {
 export async function generateStoryScripts(data: {
   topic: string;
   panelCount: number;
-  posePrompt?: string;
-  expressionPrompt?: string;
-  itemPrompt?: string;
-  backgroundPrompt?: string;
 }): Promise<{
   panels: Array<{ top: string; bottom: string; bubbles: Array<{ text: string; style?: string }> }>;
 }> {
-  const details: string[] = [];
-  if (data.posePrompt || data.expressionPrompt) {
-    details.push(
-      `- 포즈/표정: ${data.posePrompt || ""}${data.expressionPrompt ? `, ${data.expressionPrompt}` : ""}`,
-    );
-  }
-  if (data.backgroundPrompt) {
-    details.push(`- 배경: ${data.backgroundPrompt}`);
-  }
-  if (data.itemPrompt) {
-    details.push(`- 아이템/소품: ${data.itemPrompt}`);
-  }
-
-  const extraGuide =
-    details.length > 0
-      ? `
-추가 연출 가이드:
-${details.join("\n")}
-위 내용을 최대한 반영해서 각 패널의 상황과 대사를 만들어주세요.`
-      : "";
-
   const prompt = `당신은 인스타툰(인스타그램 웹툰) 스크립트 작가입니다. 주어진 주제로 ${data.panelCount}개 패널(컷)에 들어갈 스크립트와 말풍선 대사를 작성해주세요.
 
 주제: "${data.topic}"
 패널 수: ${data.panelCount}
-
-${extraGuide}
 
 각 패널에는 다음 텍스트가 들어갑니다:
 - top: 상단 스크립트 (나레이션이나 상황 설명, 짧게 1문장)

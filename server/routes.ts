@@ -2,9 +2,9 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { isAuthenticated, type AuthRequest } from "./authMiddleware";
-import { generateCharacterImage, generatePoseImage, generateWithBackground, removeBackground } from "./imageGen";
+import { generateCharacterImage, generatePoseImage, generateWithBackground } from "./imageGen";
 import { generateAIPrompt, analyzeAdMatch, enhanceBio, generateStoryScripts, suggestStoryTopics } from "./aiText";
-import { generateCharacterSchema, generatePoseSchema, generateBackgroundSchema, removeBackgroundSchema, adMatchSchema, creatorProfileSchema, storyScriptSchema, topicSuggestSchema, updateBubbleProjectSchema } from "@shared/schema";
+import { generateCharacterSchema, generatePoseSchema, generateBackgroundSchema, adMatchSchema, creatorProfileSchema, storyScriptSchema, topicSuggestSchema, updateBubbleProjectSchema } from "@shared/schema";
 import axios from "axios";
 import { config } from "./config";
 
@@ -183,28 +183,6 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/remove-background", isAuthenticated, async (req: AuthRequest, res) => {
-    try {
-      const userId = req.userId!;
-      const parsed = removeBackgroundSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ message: parsed.error.errors[0]?.message || "Invalid input" });
-      }
-
-      const credits = await storage.getUserCredits(userId);
-      if (credits.tier !== "pro") {
-        return res.status(403).json({ message: "배경제거는 Pro 멤버십 전용 기능입니다." });
-      }
-
-      const imageDataUrl = await removeBackground(parsed.data.sourceImageData);
-
-      res.json({ imageUrl: imageDataUrl });
-    } catch (error: any) {
-      console.error("Remove background error:", error);
-      res.status(500).json({ message: error.message || "Failed to remove background" });
-    }
-  });
-
   app.post("/api/ad-match", isAuthenticated, async (req: AuthRequest, res) => {
     try {
       const userId = req.userId!;
@@ -286,36 +264,8 @@ export async function registerRoutes(
   app.get("/api/gallery", isAuthenticated, async (req: AuthRequest, res) => {
     try {
       const userId = req.userId!;
-      const [gens, chars] = await Promise.all([
-        storage.getGenerationsByUser(userId),
-        storage.getCharactersByUser(userId),
-      ]);
-
-      const existingCharIds = new Set(
-        gens
-          .filter((g) => g.type === "character" && g.characterId != null)
-          .map((g) => g.characterId as number),
-      );
-
-      const charAsGenerations = chars
-        .filter((c) => !existingCharIds.has(c.id))
-        .map((c) => ({
-          id: c.id,
-          userId: c.userId,
-          characterId: c.id,
-          type: "character" as const,
-          prompt: c.prompt,
-          referenceImageUrl: null,
-          resultImageUrl: c.imageUrl,
-          creditsUsed: 0,
-          createdAt: c.createdAt,
-        }));
-
-      const merged = [...gens, ...charAsGenerations].sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
-
-      res.json(merged);
+      const gens = await storage.getGenerationsByUser(userId);
+      res.json(gens);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch gallery" });
     }
@@ -486,19 +436,9 @@ export async function registerRoutes(
         return res.status(400).json({ message: parsed.error.errors[0]?.message || "Invalid input" });
       }
 
-      const credits = await storage.getUserCredits(userId);
-      if (credits.tier !== "pro") {
-        if (credits.storyUsesToday < 3) {
-          const ok = await storage.deductStoryUse(userId);
-          if (!ok) {
-            return res.status(403).json({ message: "크레딧을 전부 사용했어요. 충전해주세요." });
-          }
-        } else {
-          const ok = await storage.deductCredit(userId);
-          if (!ok) {
-            return res.status(403).json({ message: "크레딧을 전부 사용했어요. 충전해주세요." });
-          }
-        }
+      const canUseStory = await storage.deductStoryUse(userId);
+      if (!canUseStory) {
+        return res.status(403).json({ message: "이번 달의 스토리 에디터 무료 사용 횟수(3회)를 모두 사용했습니다." });
       }
 
       const result = await generateStoryScripts(parsed.data);

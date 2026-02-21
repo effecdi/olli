@@ -179,8 +179,6 @@ export async function generatePoseImage(
 
 ${noTextRule}
 
-IMPORTANT: Generate the image in 3:4 portrait aspect ratio (width:height = 3:4). The image must be taller than it is wide.
-
 Generate a new pose of the same character described below. Keep the character looking EXACTLY the same - same style, same features, same colors. Only change the pose and expression.
 
 Original character description: ${character.prompt}
@@ -203,8 +201,6 @@ Keep the SAME style. Single character. Do NOT write any text or words in the ima
         text: `${config.instruction}
 
 ${noTextRule}
-
-IMPORTANT: Generate the image in 3:4 portrait aspect ratio (width:height = 3:4). The image must be taller than it is wide.
 
 Look at this reference character image. Generate the EXACT SAME character in a different pose. Keep it in the same style - same line thickness, same level of detail, same colors.
 
@@ -270,8 +266,6 @@ IMPORTANT RULES:
 - The background should complement the character, not overwhelm it
 - Keep the overall style simple and cute, matching Korean Instagram webtoon (instatoon) aesthetics
 
-IMPORTANT: Generate the image in 3:4 portrait aspect ratio (width:height = 3:4). The image must be taller than it is wide.
-
 Background scene: ${backgroundPrompt}
 ${itemsInstruction}
 
@@ -307,53 +301,4 @@ Make the background and items in the same simple, cute drawing style as the char
 
   const bgMimeType = bgImagePart.inlineData.mimeType || "image/png";
   return `data:${bgMimeType};base64,${bgImagePart.inlineData.data}`;
-}
-
-export async function removeBackground(
-  sourceImageData: string
-): Promise<string> {
-  const parts: any[] = [];
-
-  parts.push({
-    text: `Remove the background from this image so that only the main character or foreground object remains on a fully transparent background.
-
-IMPORTANT RULES:
-- Keep the character or main object looking exactly the same (same style, colors, proportions)
-- Do not change the pose or expression
-- Remove all background elements, patterns, shadows, ground, and decorations
-- Output a PNG image with a fully transparent background
-- The result should be suitable for use as a sticker on other backgrounds
-
-Return only the processed image.`,
-  });
-
-  const match = sourceImageData.match(/^data:([^;]+);base64,(.+)$/);
-  if (match) {
-    parts.push({
-      inlineData: {
-        mimeType: match[1],
-        data: match[2],
-      },
-    });
-  }
-
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash-image",
-    contents: [{ role: "user", parts }],
-    config: {
-      responseModalities: [Modality.TEXT, Modality.IMAGE],
-    },
-  });
-
-  const candidate = response.candidates?.[0];
-  const imagePart = candidate?.content?.parts?.find(
-    (part: any) => part.inlineData
-  );
-
-  if (!imagePart?.inlineData?.data) {
-    throw new Error("Failed to remove background - no image data in response");
-  }
-
-  const mimeType = imagePart.inlineData.mimeType || "image/png";
-  return `data:${mimeType};base64,${imagePart.inlineData.data}`;
 }
