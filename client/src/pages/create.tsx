@@ -36,9 +36,11 @@ export default function CreatePage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { data: usage } = useQuery<{ tier: string; credits: number }>({ queryKey: ["/api/usage"] });
+  const { data: usage, isLoading: usageLoading } = useQuery<{ tier: string; credits: number }>({ queryKey: ["/api/usage"] });
   const isPro = usage?.tier === "pro";
-  const isOutOfCredits = !isPro && (usage?.credits ?? 0) <= 0;
+  // BUG FIX 2: If usage is still loading, credits are UNKNOWN — do NOT show "완료" yet.
+  // Previously: (undefined ?? 0) = 0 → button disabled + "오늘 무료 생성 완료" flash on every load.
+  const isOutOfCredits = !usageLoading && !isPro && typeof usage?.credits === "number" && usage.credits <= 0;
   const [showStyleDialog, setShowStyleDialog] = useState(false);
 
   useEffect(() => {
@@ -58,7 +60,12 @@ export default function CreatePage() {
       setPrompt(data.prompt);
     },
     onError: (error: Error) => {
-      toast({ title: "AI 프롬프트 생성 실패", description: error.message, variant: "destructive" });
+      if (isUnauthorizedError(error)) {
+        toast({ title: "로그인이 필요합니다", description: "로그인 후 다시 시도해주세요.", variant: "destructive" });
+        setTimeout(() => navigate("/login"), 300);
+        return;
+      }
+      toast({ title: "AI 프롬프트 생성 실패", description: error.message || "잠시 후 다시 시도해주세요.", variant: "destructive" });
     },
   });
 
@@ -75,11 +82,17 @@ export default function CreatePage() {
     },
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
-        toast({ title: "인증 오류", description: "다시 로그인합니다...", variant: "destructive" });
-        setTimeout(() => { window.location.href = "/login"; }, 500);
+        // BUG FIX 3: window.location.href during React render cycle causes black screen.
+        // Use wouter navigate() instead — it updates the React router without hard reload.
+        toast({ title: "로그인이 필요합니다", description: "로그인 후 다시 시도해주세요.", variant: "destructive" });
+        setTimeout(() => navigate("/login"), 300);
         return;
       }
-      toast({ title: "생성 실패", description: error.message, variant: "destructive" });
+      if (/^403/.test(error.message)) {
+        toast({ title: "크레딧 부족", description: "오늘의 무료 생성을 모두 사용했습니다.", variant: "destructive" });
+        return;
+      }
+      toast({ title: "생성 실패", description: error.message || "잠시 후 다시 시도해주세요.", variant: "destructive" });
     },
   });
 
@@ -193,7 +206,7 @@ export default function CreatePage() {
             size="lg"
             className="w-full gap-2"
             onClick={() => generateMutation.mutate()}
-            disabled={!prompt.trim() || generateMutation.isPending || isOutOfCredits}
+            disabled={!prompt.trim() || generateMutation.isPending || isOutOfCredits || usageLoading}
             data-testid="button-generate"
           >
             {generateMutation.isPending ? (
