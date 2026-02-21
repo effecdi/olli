@@ -327,8 +327,13 @@ export async function registerRoutes(
     try {
       const data = await storage.getAllTrending();
       res.json(data);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch trending data" });
+    } catch (error: any) {
+      console.error("Trending fetch error:", error);
+      res.json({
+        latest: [],
+        mostViewed: [],
+        realtime: [],
+      });
     }
   });
 

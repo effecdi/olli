@@ -41,6 +41,7 @@ export default function CreateInstatoonPage() {
   const [selectedGenerationId, setSelectedGenerationId] = useState<number | null>(null);
   const [instatoonImage, setInstatoonImage] = useState<string | null>(null);
   const [scenePrompt, setScenePrompt] = useState("");
+  const [itemsPrompt, setItemsPrompt] = useState("");
   const [topCaptions, setTopCaptions] = useState<string[]>([""]);
   const [bottomCaptions, setBottomCaptions] = useState<string[]>([""]);
   const [bubblePage, setBubblePage] = useState<PageData>({
@@ -119,14 +120,18 @@ export default function CreateInstatoonPage() {
       try {
         const parsed = JSON.parse(data.prompt);
         if (parsed.background && parsed.items) {
-          setScenePrompt(`${parsed.background} / ${parsed.items}`);
+          setScenePrompt(parsed.background);
+          setItemsPrompt(parsed.items);
         } else if (parsed.background) {
           setScenePrompt(parsed.background);
+          setItemsPrompt("");
         } else {
           setScenePrompt(data.prompt);
+          setItemsPrompt("");
         }
       } catch {
         setScenePrompt(data.prompt);
+        setItemsPrompt("");
       }
     },
     onError: (error: Error) => {
@@ -145,7 +150,7 @@ export default function CreateInstatoonPage() {
       const res = await apiRequest("POST", "/api/generate-background", {
         sourceImageData: sourceImage,
         backgroundPrompt: scenePrompt.trim(),
-        itemsPrompt: undefined,
+        itemsPrompt: itemsPrompt.trim() || undefined,
         characterId: selectedGeneration?.characterId || undefined,
       });
       return res.json();
@@ -458,7 +463,10 @@ export default function CreateInstatoonPage() {
                 <Textarea
                   placeholder="예: 비 오는 날 카페 창가에서 멍하니 밖을 보는 장면, 따뜻한 조명과 노란 우산들..."
                   value={scenePrompt}
-                  onChange={(e) => setScenePrompt(e.target.value)}
+                  onChange={(e) => {
+                    setScenePrompt(e.target.value);
+                    setItemsPrompt("");
+                  }}
                   className="min-h-[120px] resize-none"
                   data-testid="input-instatoon-prompt"
                 />
