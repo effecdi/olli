@@ -31,14 +31,30 @@ export async function registerRoutes(
     try {
       const userId = req.userId!;
       const user = req.supabaseUser;
+      
+      const email = user.email || null;
+      const firstName = user.user_metadata?.full_name?.split(" ")[0] || user.user_metadata?.name || null;
+      const lastName = user.user_metadata?.full_name?.split(" ").slice(1).join(" ") || null;
+      const profileImageUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || null;
+
+      // 🔥 핵심 추가: 로그인 통과한 유저를 내 DB의 users 테이블에도 확실히 저장해줌!
+      await storage.ensureUser({
+        id: userId,
+        email,
+        firstName,
+        lastName,
+        profileImageUrl,
+      });
+
       res.json({
         id: userId,
-        email: user.email || null,
-        firstName: user.user_metadata?.full_name?.split(" ")[0] || user.user_metadata?.name || null,
-        lastName: user.user_metadata?.full_name?.split(" ").slice(1).join(" ") || null,
-        profileImageUrl: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+        email,
+        firstName,
+        lastName,
+        profileImageUrl,
       });
     } catch (error) {
+      console.error("User sync error:", error);
       res.status(500).json({ message: "Failed to fetch user" });
     }
   });
