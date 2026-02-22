@@ -6361,21 +6361,77 @@ export default function StoryPage() {
                           </div>
                         )}
 
-                        {/* Select-mode: click to select drawing layers + visual feedback + floating toolbar */}
-                        {selectedToolItem === "select" && activePanelIndex === i && (panel.drawingLayers || []).length > 0 && (
+                        {/* Select-mode: click to select drawing/text/line layers + visual feedback + floating toolbar */}
+                        {selectedToolItem === "select" && activePanelIndex === i && (
+                          (panel.drawingLayers || []).length > 0 ||
+                          (panel.textElements || []).length > 0 ||
+                          (panel.lineElements || []).length > 0
+                        ) && (
                           <div
                             style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", zIndex: 22, pointerEvents: "auto" }}
                             onClick={(e) => {
                               const rect = e.currentTarget.getBoundingClientRect();
                               const canvasX = ((e.clientX - rect.left) / rect.width) * 450;
                               const canvasY = ((e.clientY - rect.top) / rect.height) * 600;
+
+                              // Hit test text elements (topmost first by zIndex)
+                              const textEls = [...(panel.textElements || [])].sort((a, b) => (b.zIndex ?? 0) - (a.zIndex ?? 0));
+                              for (const te of textEls) {
+                                const tx = (te.x / 100) * 450;
+                                const ty = (te.y / 100) * 600;
+                                const tw = (te.width / 100) * 450;
+                                const th = (te.height / 100) * 600;
+                                if (canvasX >= tx && canvasX <= tx + tw && canvasY >= ty && canvasY <= ty + th) {
+                                  setSelectedTextId(te.id);
+                                  setSelectedLineId(null);
+                                  setSelectedDrawingLayerId(null);
+                                  setSelectedCharId(null);
+                                  setSelectedBubbleId(null);
+                                  return;
+                                }
+                              }
+
+                              // Hit test line elements (topmost first by zIndex)
+                              const lineEls = [...(panel.lineElements || [])].sort((a, b) => (b.zIndex ?? 0) - (a.zIndex ?? 0));
+                              for (const le of lineEls) {
+                                if (le.points.length < 2) continue;
+                                const HIT_DIST = 12; // px threshold
+                                let hitLine = false;
+                                for (let pi = 0; pi < le.points.length - 1; pi++) {
+                                  const ax = (le.points[pi].x / 100) * 450;
+                                  const ay = (le.points[pi].y / 100) * 600;
+                                  const bx = (le.points[pi + 1].x / 100) * 450;
+                                  const by = (le.points[pi + 1].y / 100) * 600;
+                                  // Point-to-segment distance
+                                  const dx = bx - ax, dy = by - ay;
+                                  const lenSq = dx * dx + dy * dy;
+                                  let t = lenSq === 0 ? 0 : Math.max(0, Math.min(1, ((canvasX - ax) * dx + (canvasY - ay) * dy) / lenSq));
+                                  const projX = ax + t * dx, projY = ay + t * dy;
+                                  const dist = Math.sqrt((canvasX - projX) ** 2 + (canvasY - projY) ** 2);
+                                  if (dist <= HIT_DIST) { hitLine = true; break; }
+                                }
+                                if (hitLine) {
+                                  setSelectedLineId(le.id);
+                                  setSelectedTextId(null);
+                                  setSelectedDrawingLayerId(null);
+                                  setSelectedCharId(null);
+                                  setSelectedBubbleId(null);
+                                  return;
+                                }
+                              }
+
+                              // Hit test drawing layers
                               const hit = hitTestDrawingLayers(panel.drawingLayers || [], canvasX, canvasY, 450, 600);
                               if (hit) {
                                 setSelectedDrawingLayerId(hit.id);
+                                setSelectedTextId(null);
+                                setSelectedLineId(null);
                                 setSelectedCharId(null);
                                 setSelectedBubbleId(null);
                               } else {
                                 setSelectedDrawingLayerId(null);
+                                setSelectedTextId(null);
+                                setSelectedLineId(null);
                               }
                             }}
                           />
