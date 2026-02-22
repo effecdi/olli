@@ -10,18 +10,28 @@ export type BrushType =
   | "marker"
   | "watercolor";
 
+export type DrawingLayerType = "drawing" | "straight" | "curve" | "polyline" | "text" | "eraser";
+
+export interface DrawingLayer {
+  id: string;
+  type: DrawingLayerType;
+  imageData: string;
+  imageEl?: HTMLImageElement | null;
+  visible: boolean;
+  zIndex: number;
+  label: string;
+}
+
 export interface DrawingToolState {
   tool: "brush" | "eraser" | "line" | "text";
   brushType: BrushType;
   color: string;
   size: number; // 1-100
   opacity: number; // 0-1
+  lineSubType?: "straight" | "curve" | "polyline";
 }
 
 export interface DrawingCanvasHandle {
-  clear: () => void;
-  undo: () => void;
-  redo: () => void;
   exportImage: (format?: "png" | "jpeg") => string | null;
   exportMask: () => string | null;
   getCanvas: () => HTMLCanvasElement | null;
@@ -34,7 +44,8 @@ interface DrawingCanvasProps {
   toolState: DrawingToolState;
   backgroundImage?: HTMLImageElement | null;
   className?: string;
-  onStrokeEnd?: () => void;
+  drawingLayers: DrawingLayer[];
+  onLayerCreated?: (layer: DrawingLayer) => void;
   onRequestTextInput?: (x: number, y: number) => void;
 }
 
@@ -56,9 +67,10 @@ function midPoint(a: Point, b: Point): Point {
   };
 }
 
-/**
- * Returns the effective line width for a given brush type, base size, and pressure.
- */
+function generateId() {
+  return Math.random().toString(36).slice(2, 10);
+}
+
 function getLineWidth(brush: BrushType, baseSize: number, pressure: number): number {
   switch (brush) {
     case "ballpoint":
@@ -78,9 +90,6 @@ function getLineWidth(brush: BrushType, baseSize: number, pressure: number): num
   }
 }
 
-/**
- * Returns the effective alpha for a given brush type and base opacity.
- */
 function getAlpha(brush: BrushType, baseOpacity: number, pressure: number): number {
   switch (brush) {
     case "highlighter":
@@ -94,9 +103,6 @@ function getAlpha(brush: BrushType, baseOpacity: number, pressure: number): numb
   }
 }
 
-/**
- * Configures the canvas context stroke style for a given brush.
- */
 function configureBrushCtx(
   ctx: CanvasRenderingContext2D,
   brush: BrushType,
@@ -117,15 +123,22 @@ function configureBrushCtx(
   }
 }
 
+const LAYER_LABELS: Record<string, string> = {
+  drawing: "드로잉",
+  straight: "직선",
+  curve: "곡선",
+  polyline: "꺾인선",
+  text: "텍스트",
+  eraser: "지우개",
+};
+
 // ─── Component ─────────────────────────────────────────────────────────────
 
 const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
-  ({ width, height, toolState, backgroundImage, className, onStrokeEnd, onRequestTextInput }, ref) => {
+  ({ width, height, toolState, backgroundImage, className, drawingLayers, onLayerCreated, onRequestTextInput }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const drawLayerRef = useRef<HTMLCanvasElement | null>(null);
-    const historyRef = useRef<ImageData[]>([]);
-    const futureRef = useRef<ImageData[]>([]);
-    const MAX_HISTORY = 30;
+    const activeStrokeRef = useRef<HTMLCanvasElement | null>(null);
+    const drawingCompositeRef = useRef<HTMLCanvasElement | null>(null);
 
     const isDrawingRef = useRef(false);
     const pointsRef = useRef<Point[]>([]);
@@ -133,57 +146,140 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
 
     // Line tool refs
     const lineStartRef = useRef<Point | null>(null);
-    const preStrokeImageRef = useRef<ImageData | null>(null);
 
-    // Touch optimization: track active touch id
+    // Curve tool state machine: idle → click1 → click2 → click3
+    const curveStateRef = useRef<{
+      phase: "idle" | "p1" | "p2";
+      p1: Point | null;
+      p2: Point | null;
+    }>({ phase: "idle", p1: null, p2: null });
+
+    // Polyline tool: collect points, dblclick to finish
+    const polylinePointsRef = useRef<Point[]>([]);
+    const polylineActiveRef = useRef(false);
+
+    // Touch optimization
     const activeTouchIdRef = useRef<number | null>(null);
 
-    // Initialize off-screen draw layer
+    // Store latest drawingLayers ref for composite callback
+    const drawingLayersRef = useRef(drawingLayers);
+    drawingLayersRef.current = drawingLayers;
+
+    // Store latest toolState ref
+    const toolStateRef = useRef(toolState);
+    toolStateRef.current = toolState;
+
+    // Store callbacks refs to avoid stale closures
+    const onLayerCreatedRef = useRef(onLayerCreated);
+    onLayerCreatedRef.current = onLayerCreated;
+
+    // Initialize off-screen canvases
     useEffect(() => {
-      const offscreen = document.createElement("canvas");
-      offscreen.width = width;
-      offscreen.height = height;
-      drawLayerRef.current = offscreen;
+      const activeStroke = document.createElement("canvas");
+      activeStroke.width = width;
+      activeStroke.height = height;
+      activeStrokeRef.current = activeStroke;
+
+      const compositeCanvas = document.createElement("canvas");
+      compositeCanvas.width = width;
+      compositeCanvas.height = height;
+      drawingCompositeRef.current = compositeCanvas;
     }, [width, height]);
 
-    // Composite final canvas = background + draw layer
+    // Composite final canvas = background + drawing layers composite + active stroke
     const composite = useCallback(() => {
       const canvas = canvasRef.current;
-      const drawLayer = drawLayerRef.current;
-      if (!canvas || !drawLayer) return;
+      const activeStroke = activeStrokeRef.current;
+      const compositeCanvas = drawingCompositeRef.current;
+      if (!canvas || !activeStroke || !compositeCanvas) return;
 
       const ctx = canvas.getContext("2d");
-      if (!ctx) return;
+      const compCtx = compositeCanvas.getContext("2d");
+      if (!ctx || !compCtx) return;
 
+      // 1. Clear main canvas
       ctx.clearRect(0, 0, width, height);
 
-      // Draw background image if provided
+      // 2. Draw background
       if (backgroundImage) {
         ctx.drawImage(backgroundImage, 0, 0, width, height);
       }
 
-      // Draw the drawing layer on top
-      ctx.drawImage(drawLayer, 0, 0);
+      // 3. Clear composite canvas and render drawing layers
+      compCtx.clearRect(0, 0, width, height);
+      const layers = drawingLayersRef.current;
+      if (layers && layers.length > 0) {
+        const sorted = [...layers].sort((a, b) => a.zIndex - b.zIndex);
+        for (const layer of sorted) {
+          if (!layer.visible || !layer.imageEl) continue;
+          compCtx.save();
+          if (layer.type === "eraser") {
+            compCtx.globalCompositeOperation = "destination-out";
+          } else {
+            compCtx.globalCompositeOperation = "source-over";
+          }
+          compCtx.drawImage(layer.imageEl, 0, 0);
+          compCtx.restore();
+        }
+      }
+
+      // 4. Draw composite onto main canvas
+      ctx.drawImage(compositeCanvas, 0, 0);
+
+      // 5. Draw active stroke on top
+      ctx.drawImage(activeStroke, 0, 0);
     }, [width, height, backgroundImage]);
 
-    // Re-composite when background changes
+    // Re-composite when background or layers change
     useEffect(() => {
       composite();
-    }, [composite]);
+    }, [composite, drawingLayers]);
 
-    // Save current state to history
-    const saveToHistory = useCallback(() => {
-      const drawLayer = drawLayerRef.current;
-      if (!drawLayer) return;
-      const ctx = drawLayer.getContext("2d");
-      if (!ctx) return;
+    // ─── Layer creation helper ───
 
-      const imageData = ctx.getImageData(0, 0, width, height);
-      historyRef.current = [
-        ...historyRef.current.slice(-(MAX_HISTORY - 1)),
-        imageData,
-      ];
-      futureRef.current = [];
+    const createLayerFromActiveStroke = useCallback((layerType: DrawingLayerType) => {
+      const activeStroke = activeStrokeRef.current;
+      if (!activeStroke) return;
+
+      const exportCanvas = document.createElement("canvas");
+      exportCanvas.width = width;
+      exportCanvas.height = height;
+      const exportCtx = exportCanvas.getContext("2d");
+      if (!exportCtx) return;
+      exportCtx.drawImage(activeStroke, 0, 0);
+
+      // Check if anything was drawn
+      const imgData = exportCtx.getImageData(0, 0, width, height);
+      let hasContent = false;
+      for (let i = 3; i < imgData.data.length; i += 4) {
+        if (imgData.data[i] > 0) { hasContent = true; break; }
+      }
+      if (!hasContent) return;
+
+      const base64 = exportCanvas.toDataURL("image/png");
+      const maxZ = drawingLayersRef.current.reduce((max, l) => Math.max(max, l.zIndex), 0);
+
+      const newLayer: DrawingLayer = {
+        id: generateId(),
+        type: layerType,
+        imageData: base64,
+        imageEl: null,
+        visible: true,
+        zIndex: maxZ + 1,
+        label: LAYER_LABELS[layerType] || layerType,
+      };
+
+      // Load imageEl
+      const img = new Image();
+      img.onload = () => {
+        newLayer.imageEl = img;
+        onLayerCreatedRef.current?.(newLayer);
+      };
+      img.src = base64;
+
+      // Clear active stroke
+      const asCtx = activeStroke.getContext("2d");
+      if (asCtx) asCtx.clearRect(0, 0, width, height);
     }, [width, height]);
 
     // ─── Drawing logic ───
@@ -207,77 +303,257 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
 
     const startStroke = useCallback(
       (point: Point) => {
-        // Text tool: delegate to external text input handler
-        if (toolState.tool === "text") {
+        const ts = toolStateRef.current;
+
+        // Text tool
+        if (ts.tool === "text") {
           onRequestTextInput?.(point.x, point.y);
           return;
         }
 
+        // Curve tool (3-click bezier)
+        if (ts.tool === "line" && ts.lineSubType === "curve") {
+          const state = curveStateRef.current;
+          if (state.phase === "idle") {
+            curveStateRef.current = { phase: "p1", p1: point, p2: null };
+            // Draw start dot on active stroke
+            const as = activeStrokeRef.current;
+            if (as) {
+              const ctx = as.getContext("2d");
+              if (ctx) {
+                ctx.clearRect(0, 0, width, height);
+                ctx.fillStyle = ts.color;
+                ctx.globalAlpha = ts.opacity;
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, Math.max(ts.size / 2, 3), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+              }
+            }
+            composite();
+            return;
+          }
+          if (state.phase === "p1") {
+            curveStateRef.current = { ...state, phase: "p2", p2: point };
+            // Draw line from p1 to p2
+            const as = activeStrokeRef.current;
+            if (as && state.p1) {
+              const ctx = as.getContext("2d");
+              if (ctx) {
+                ctx.clearRect(0, 0, width, height);
+                ctx.strokeStyle = ts.color;
+                ctx.lineWidth = ts.size;
+                ctx.lineCap = "round";
+                ctx.globalAlpha = ts.opacity;
+                ctx.beginPath();
+                ctx.moveTo(state.p1.x, state.p1.y);
+                ctx.lineTo(point.x, point.y);
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+              }
+            }
+            composite();
+            return;
+          }
+          if (state.phase === "p2" && state.p1 && state.p2) {
+            // Click 3: control point → final curve
+            const as = activeStrokeRef.current;
+            if (as) {
+              const ctx = as.getContext("2d");
+              if (ctx) {
+                ctx.clearRect(0, 0, width, height);
+                ctx.strokeStyle = ts.color;
+                ctx.lineWidth = ts.size;
+                ctx.lineCap = "round";
+                ctx.globalAlpha = ts.opacity;
+                ctx.globalCompositeOperation = "source-over";
+                ctx.beginPath();
+                ctx.moveTo(state.p1.x, state.p1.y);
+                ctx.quadraticCurveTo(point.x, point.y, state.p2.x, state.p2.y);
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+              }
+            }
+            composite();
+            createLayerFromActiveStroke("curve");
+            curveStateRef.current = { phase: "idle", p1: null, p2: null };
+            return;
+          }
+          return;
+        }
+
+        // Polyline tool (multi-click + dblclick)
+        if (ts.tool === "line" && ts.lineSubType === "polyline") {
+          if (!polylineActiveRef.current) {
+            polylineActiveRef.current = true;
+            polylinePointsRef.current = [point];
+            // Draw start dot
+            const as = activeStrokeRef.current;
+            if (as) {
+              const ctx = as.getContext("2d");
+              if (ctx) {
+                ctx.clearRect(0, 0, width, height);
+                ctx.fillStyle = ts.color;
+                ctx.globalAlpha = ts.opacity;
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, Math.max(ts.size / 2, 3), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+              }
+            }
+            composite();
+          } else {
+            // Add point and draw accumulated segments
+            polylinePointsRef.current.push(point);
+            const as = activeStrokeRef.current;
+            if (as) {
+              const ctx = as.getContext("2d");
+              if (ctx) {
+                ctx.clearRect(0, 0, width, height);
+                ctx.strokeStyle = ts.color;
+                ctx.lineWidth = ts.size;
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+                ctx.globalAlpha = ts.opacity;
+                ctx.globalCompositeOperation = "source-over";
+                const pts = polylinePointsRef.current;
+                ctx.beginPath();
+                ctx.moveTo(pts[0].x, pts[0].y);
+                for (let k = 1; k < pts.length; k++) {
+                  ctx.lineTo(pts[k].x, pts[k].y);
+                }
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+              }
+            }
+            composite();
+          }
+          return;
+        }
+
+        // Normal stroke start (brush, eraser, straight line)
         isDrawingRef.current = true;
         pointsRef.current = [point];
         lastPointRef.current = point;
 
-        // Save state before stroke
-        saveToHistory();
-
-        const drawLayer = drawLayerRef.current;
-        if (!drawLayer) return;
-        const ctx = drawLayer.getContext("2d");
+        const activeStroke = activeStrokeRef.current;
+        if (!activeStroke) return;
+        const ctx = activeStroke.getContext("2d");
         if (!ctx) return;
 
-        // Line tool: save start point and snapshot for preview
-        if (toolState.tool === "line") {
+        // Clear active stroke canvas for new stroke
+        ctx.clearRect(0, 0, width, height);
+
+        // Straight line tool: save start point
+        if (ts.tool === "line") {
           lineStartRef.current = point;
-          preStrokeImageRef.current = ctx.getImageData(0, 0, width, height);
           composite();
           return;
         }
 
-        if (toolState.tool === "eraser") {
+        if (ts.tool === "eraser") {
           ctx.globalCompositeOperation = "destination-out";
           ctx.globalAlpha = 1;
           ctx.beginPath();
-          ctx.arc(point.x, point.y, toolState.size / 2, 0, Math.PI * 2);
+          ctx.arc(point.x, point.y, ts.size / 2, 0, Math.PI * 2);
           ctx.fill();
         } else {
-          const lw = getLineWidth(toolState.brushType, toolState.size, point.pressure);
-          const alpha = getAlpha(toolState.brushType, toolState.opacity, point.pressure);
-          configureBrushCtx(ctx, toolState.brushType, toolState.color, alpha, lw);
+          const lw = getLineWidth(ts.brushType, ts.size, point.pressure);
+          const alpha = getAlpha(ts.brushType, ts.opacity, point.pressure);
+          configureBrushCtx(ctx, ts.brushType, ts.color, alpha, lw);
 
-          // Draw a dot for single click
           ctx.beginPath();
           ctx.arc(point.x, point.y, lw / 2, 0, Math.PI * 2);
-          ctx.fillStyle = toolState.color;
+          ctx.fillStyle = ts.color;
           ctx.globalAlpha = alpha;
           ctx.fill();
         }
 
         composite();
       },
-      [toolState, saveToHistory, composite, width, height, onRequestTextInput],
+      [width, height, composite, onRequestTextInput, createLayerFromActiveStroke],
     );
 
     const continueStroke = useCallback(
       (point: Point) => {
+        const ts = toolStateRef.current;
+
+        // Curve tool: mousemove preview
+        if (ts.tool === "line" && ts.lineSubType === "curve") {
+          const state = curveStateRef.current;
+          if (state.phase === "p2" && state.p1 && state.p2) {
+            const as = activeStrokeRef.current;
+            if (as) {
+              const ctx = as.getContext("2d");
+              if (ctx) {
+                ctx.clearRect(0, 0, width, height);
+                ctx.strokeStyle = ts.color;
+                ctx.lineWidth = ts.size;
+                ctx.lineCap = "round";
+                ctx.globalAlpha = ts.opacity;
+                ctx.globalCompositeOperation = "source-over";
+                ctx.beginPath();
+                ctx.moveTo(state.p1.x, state.p1.y);
+                ctx.quadraticCurveTo(point.x, point.y, state.p2.x, state.p2.y);
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+              }
+            }
+            composite();
+          }
+          return;
+        }
+
+        // Polyline tool: guideline from last point to cursor
+        if (ts.tool === "line" && ts.lineSubType === "polyline" && polylineActiveRef.current) {
+          const pts = polylinePointsRef.current;
+          if (pts.length > 0) {
+            const as = activeStrokeRef.current;
+            if (as) {
+              const ctx = as.getContext("2d");
+              if (ctx) {
+                ctx.clearRect(0, 0, width, height);
+                ctx.strokeStyle = ts.color;
+                ctx.lineWidth = ts.size;
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+                ctx.globalAlpha = ts.opacity;
+                ctx.globalCompositeOperation = "source-over";
+                // Draw accumulated segments
+                ctx.beginPath();
+                ctx.moveTo(pts[0].x, pts[0].y);
+                for (let k = 1; k < pts.length; k++) {
+                  ctx.lineTo(pts[k].x, pts[k].y);
+                }
+                // Guide line to cursor
+                ctx.lineTo(point.x, point.y);
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+              }
+            }
+            composite();
+          }
+          return;
+        }
+
         if (!isDrawingRef.current) return;
 
-        const drawLayer = drawLayerRef.current;
-        if (!drawLayer) return;
-        const ctx = drawLayer.getContext("2d");
+        const activeStroke = activeStrokeRef.current;
+        if (!activeStroke) return;
+        const ctx = activeStroke.getContext("2d");
         if (!ctx) return;
 
-        // Line tool: restore snapshot then draw preview line
-        if (toolState.tool === "line") {
+        // Straight line tool: redraw preview from start to current
+        if (ts.tool === "line") {
           const start = lineStartRef.current;
-          const snapshot = preStrokeImageRef.current;
-          if (!start || !snapshot) return;
+          if (!start) return;
 
-          ctx.putImageData(snapshot, 0, 0);
+          ctx.clearRect(0, 0, width, height);
           ctx.save();
-          ctx.strokeStyle = toolState.color;
-          ctx.lineWidth = toolState.size;
+          ctx.strokeStyle = ts.color;
+          ctx.lineWidth = ts.size;
           ctx.lineCap = "round";
-          ctx.globalAlpha = toolState.opacity;
+          ctx.globalAlpha = ts.opacity;
           ctx.globalCompositeOperation = "source-over";
           ctx.beginPath();
           ctx.moveTo(start.x, start.y);
@@ -291,10 +567,10 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
         pointsRef.current.push(point);
         const pts = pointsRef.current;
 
-        if (toolState.tool === "eraser") {
+        if (ts.tool === "eraser") {
           ctx.globalCompositeOperation = "destination-out";
           ctx.globalAlpha = 1;
-          ctx.lineWidth = toolState.size;
+          ctx.lineWidth = ts.size;
           ctx.lineCap = "round";
           ctx.lineJoin = "round";
 
@@ -306,17 +582,15 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
             ctx.stroke();
           }
         } else {
-          const lw = getLineWidth(toolState.brushType, toolState.size, point.pressure);
-          const alpha = getAlpha(toolState.brushType, toolState.opacity, point.pressure);
-          configureBrushCtx(ctx, toolState.brushType, toolState.color, alpha, lw);
+          const lw = getLineWidth(ts.brushType, ts.size, point.pressure);
+          const alpha = getAlpha(ts.brushType, ts.opacity, point.pressure);
+          configureBrushCtx(ctx, ts.brushType, ts.color, alpha, lw);
 
-          // Smooth curve drawing with quadratic bezier
           if (pts.length >= 3) {
             const prev = pts[pts.length - 3];
             const cp = pts[pts.length - 2];
-            const cur = point;
             const mid1 = midPoint(prev, cp);
-            const mid2 = midPoint(cp, cur);
+            const mid2 = midPoint(cp, point);
 
             ctx.beginPath();
             ctx.moveTo(mid1.x, mid1.y);
@@ -334,35 +608,95 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
         lastPointRef.current = point;
         composite();
       },
-      [toolState, composite],
+      [width, height, composite],
     );
 
     const endStroke = useCallback(() => {
+      const ts = toolStateRef.current;
+
+      // Curve and polyline tools don't use normal endStroke
+      if (ts.tool === "line" && (ts.lineSubType === "curve" || ts.lineSubType === "polyline")) {
+        return;
+      }
+
       if (!isDrawingRef.current) return;
       isDrawingRef.current = false;
 
-      // Line tool: the final line is already drawn in continueStroke, just clean up refs
-      if (toolState.tool === "line") {
-        lineStartRef.current = null;
-        preStrokeImageRef.current = null;
+      // Determine layer type
+      let layerType: DrawingLayerType = "drawing";
+      if (ts.tool === "line") {
+        layerType = "straight";
+      } else if (ts.tool === "eraser") {
+        layerType = "eraser";
       }
 
+      // Reset refs
+      lineStartRef.current = null;
       pointsRef.current = [];
       lastPointRef.current = null;
 
-      // Reset composite operation
-      const drawLayer = drawLayerRef.current;
-      if (drawLayer) {
-        const ctx = drawLayer.getContext("2d");
+      // Reset active stroke context
+      const activeStroke = activeStrokeRef.current;
+      if (activeStroke) {
+        const ctx = activeStroke.getContext("2d");
         if (ctx) {
           ctx.globalCompositeOperation = "source-over";
           ctx.globalAlpha = 1;
         }
       }
 
+      // Create layer from active stroke
+      createLayerFromActiveStroke(layerType);
       composite();
-      onStrokeEnd?.();
-    }, [composite, onStrokeEnd, toolState.tool]);
+    }, [composite, createLayerFromActiveStroke]);
+
+    // ─── Double-click handler for polyline completion ───
+    const handleDoubleClick = useCallback(
+      (e: React.MouseEvent<HTMLCanvasElement>) => {
+        const ts = toolStateRef.current;
+        if (ts.tool === "line" && ts.lineSubType === "polyline" && polylineActiveRef.current) {
+          e.preventDefault();
+          e.stopPropagation();
+          // Finalize polyline
+          const pts = polylinePointsRef.current;
+          if (pts.length >= 2) {
+            const as = activeStrokeRef.current;
+            if (as) {
+              const ctx = as.getContext("2d");
+              if (ctx) {
+                ctx.clearRect(0, 0, width, height);
+                ctx.strokeStyle = ts.color;
+                ctx.lineWidth = ts.size;
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+                ctx.globalAlpha = ts.opacity;
+                ctx.globalCompositeOperation = "source-over";
+                ctx.beginPath();
+                ctx.moveTo(pts[0].x, pts[0].y);
+                for (let k = 1; k < pts.length; k++) {
+                  ctx.lineTo(pts[k].x, pts[k].y);
+                }
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+              }
+            }
+            composite();
+            createLayerFromActiveStroke("polyline");
+          } else {
+            // Clear if only one point
+            const as = activeStrokeRef.current;
+            if (as) {
+              const ctx = as.getContext("2d");
+              if (ctx) ctx.clearRect(0, 0, width, height);
+            }
+            composite();
+          }
+          polylinePointsRef.current = [];
+          polylineActiveRef.current = false;
+        }
+      },
+      [width, height, composite, createLayerFromActiveStroke],
+    );
 
     // ─── Mouse event handlers ───
 
@@ -377,6 +711,13 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
 
     const handleMouseMove = useCallback(
       (e: React.MouseEvent<HTMLCanvasElement>) => {
+        const ts = toolStateRef.current;
+        // For curve/polyline, always process mousemove for previews
+        if (ts.tool === "line" && (ts.lineSubType === "curve" || ts.lineSubType === "polyline")) {
+          const pt = getCanvasPoint(e.clientX, e.clientY);
+          continueStroke(pt);
+          return;
+        }
         if (!isDrawingRef.current) return;
         const pt = getCanvasPoint(e.clientX, e.clientY);
         continueStroke(pt);
@@ -388,12 +729,12 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
       endStroke();
     }, [endStroke]);
 
-    // ─── Touch event handlers (optimized) ───
+    // ─── Touch event handlers ───
 
     const handleTouchStart = useCallback(
       (e: React.TouchEvent<HTMLCanvasElement>) => {
-        e.preventDefault(); // Prevent scroll & zoom
-        if (activeTouchIdRef.current !== null) return; // Only track one finger
+        e.preventDefault();
+        if (activeTouchIdRef.current !== null) return;
 
         const touch = e.changedTouches[0];
         activeTouchIdRef.current = touch.identifier;
@@ -410,7 +751,6 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
         e.preventDefault();
         if (activeTouchIdRef.current === null) return;
 
-        // Find the active touch
         let touch: React.Touch | null = null;
         for (let i = 0; i < e.changedTouches.length; i++) {
           if (e.changedTouches[i].identifier === activeTouchIdRef.current) {
@@ -423,13 +763,12 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
         const pt = getCanvasPoint(touch.clientX, touch.clientY);
         pt.pressure = (touch as any).force > 0 ? (touch as any).force : 0.5;
 
-        // Throttle touch moves for performance (skip if too fast)
         const last = pointsRef.current[pointsRef.current.length - 1];
         if (last) {
           const dx = pt.x - last.x;
           const dy = pt.y - last.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 1.5) return; // Skip very small movements
+          if (dist < 1.5) return;
         }
 
         continueStroke(pt);
@@ -440,7 +779,6 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
     const handleTouchEnd = useCallback(
       (e: React.TouchEvent<HTMLCanvasElement>) => {
         e.preventDefault();
-        // Check if our tracked touch ended
         for (let i = 0; i < e.changedTouches.length; i++) {
           if (e.changedTouches[i].identifier === activeTouchIdRef.current) {
             activeTouchIdRef.current = null;
@@ -457,54 +795,15 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
     useImperativeHandle(
       ref,
       () => ({
-        clear: () => {
-          const drawLayer = drawLayerRef.current;
-          if (!drawLayer) return;
-          const ctx = drawLayer.getContext("2d");
-          if (!ctx) return;
-          saveToHistory();
-          ctx.clearRect(0, 0, width, height);
-          composite();
-        },
-        undo: () => {
-          const hist = historyRef.current;
-          if (hist.length === 0) return;
-          const drawLayer = drawLayerRef.current;
-          if (!drawLayer) return;
-          const ctx = drawLayer.getContext("2d");
-          if (!ctx) return;
-
-          // Save current to future
-          futureRef.current.push(ctx.getImageData(0, 0, width, height));
-          // Restore last
-          const prev = hist.pop()!;
-          ctx.putImageData(prev, 0, 0);
-          composite();
-        },
-        redo: () => {
-          const fut = futureRef.current;
-          if (fut.length === 0) return;
-          const drawLayer = drawLayerRef.current;
-          if (!drawLayer) return;
-          const ctx = drawLayer.getContext("2d");
-          if (!ctx) return;
-
-          // Save current to history
-          historyRef.current.push(ctx.getImageData(0, 0, width, height));
-          // Restore future
-          const next = fut.pop()!;
-          ctx.putImageData(next, 0, 0);
-          composite();
-        },
         exportImage: (format = "png") => {
           const canvas = canvasRef.current;
           if (!canvas) return null;
           return canvas.toDataURL(`image/${format}`);
         },
         exportMask: () => {
-          // Export the drawing layer only (for AI inpainting mask)
-          const drawLayer = drawLayerRef.current;
-          if (!drawLayer) return null;
+          // Export all drawing layers combined as mask
+          const compositeCanvas = drawingCompositeRef.current;
+          if (!compositeCanvas) return null;
 
           const maskCanvas = document.createElement("canvas");
           maskCanvas.width = width;
@@ -512,19 +811,17 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
           const ctx = maskCanvas.getContext("2d");
           if (!ctx) return null;
 
-          // Convert drawn areas to white on black background
           ctx.fillStyle = "#000000";
           ctx.fillRect(0, 0, width, height);
 
-          const drawCtx = drawLayer.getContext("2d");
-          if (!drawCtx) return null;
+          const compCtx = compositeCanvas.getContext("2d");
+          if (!compCtx) return null;
 
-          const imgData = drawCtx.getImageData(0, 0, width, height);
+          const imgData = compCtx.getImageData(0, 0, width, height);
           const maskData = ctx.getImageData(0, 0, width, height);
 
           for (let i = 0; i < imgData.data.length; i += 4) {
             if (imgData.data[i + 3] > 0) {
-              // Any drawn pixel becomes white in mask
               maskData.data[i] = 255;
               maskData.data[i + 1] = 255;
               maskData.data[i + 2] = 255;
@@ -537,13 +834,12 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
         },
         getCanvas: () => canvasRef.current,
         commitText: (x: number, y: number, text: string, fontSize: number, color: string) => {
-          const drawLayer = drawLayerRef.current;
-          if (!drawLayer) return;
-          const ctx = drawLayer.getContext("2d");
+          const activeStroke = activeStrokeRef.current;
+          if (!activeStroke) return;
+          const ctx = activeStroke.getContext("2d");
           if (!ctx) return;
 
-          saveToHistory();
-
+          ctx.clearRect(0, 0, width, height);
           ctx.save();
           ctx.font = `${fontSize}px sans-serif`;
           ctx.fillStyle = color;
@@ -551,7 +847,6 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
           ctx.globalCompositeOperation = "source-over";
           ctx.textBaseline = "top";
 
-          // Support multi-line text
           const lines = text.split("\n");
           lines.forEach((line, i) => {
             ctx.fillText(line, x, y + i * (fontSize * 1.2));
@@ -559,9 +854,10 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
 
           ctx.restore();
           composite();
+          createLayerFromActiveStroke("text");
         },
       }),
-      [width, height, composite, saveToHistory],
+      [width, height, composite, createLayerFromActiveStroke],
     );
 
     // ─── Cursor style ───
@@ -584,6 +880,7 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onDoubleClick={handleDoubleClick}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
