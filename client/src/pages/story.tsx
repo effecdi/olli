@@ -4523,7 +4523,7 @@ export default function StoryPage() {
     });
   }, []);
   const LEFT_TABS: { id: LeftTab; icon: typeof Wand2; label: string }[] = [
-    { id: "image", icon: ImageIcon as any, label: "이미지 선택" },
+    { id: "image", icon: ImageIcon as any, label: "이미지선택/업로드" },
     { id: "ai", icon: Wand2, label: "AI 프롬프트" },
     { id: "tools", icon: Pen as any, label: "도구" },
     { id: "script", icon: Type as any, label: "자막 설정" },
@@ -5167,7 +5167,7 @@ export default function StoryPage() {
                   {activeLeftTab === "image" && activePanel && (
                     <>
                       <div className="flex items-center justify-between gap-2 mb-2">
-                        <h3 className="text-sm font-semibold">이미지 선택</h3>
+                        <h3 className="text-sm font-semibold">이미지선택/업로드</h3>
                         <button
                           onClick={() => setActiveLeftTab(null)}
                           className="text-muted-foreground hover-elevate rounded-md p-1"
