@@ -5213,7 +5213,6 @@ export default function StoryPage() {
                               setSelectedToolItem(item.id);
                               if (item.id === "drawing") {
                                 setDrawingToolState(s => ({ ...s, tool: "brush" }));
-<<<<<<< HEAD
                               } else if (item.id === "line") {
                                 setDrawingToolState(s => ({ ...s, tool: "line", lineSubType }));
                               } else if (item.id === "text") {
@@ -5223,10 +5222,6 @@ export default function StoryPage() {
                               }
                               setShowDrawingSettings(false);
                               setTextInputPos(null);
-=======
-                              }
-                              setShowDrawingSettings(false);
->>>>>>> claude/svg-story-effects-0ou2v
                             }}
                             className={`tools-compact-panel__tool-btn ${selectedToolItem === item.id ? "tools-compact-panel__tool-btn--active" : ""}`}
                             title={item.label}
