@@ -6749,7 +6749,7 @@ export default function StoryPage() {
             if (direction === "up" && index <= 0) return;
             if (direction === "down" && index >= rightLayerItems.length - 1) return;
             const swapIdx = direction === "up" ? index - 1 : index + 1;
-            const newOrder = rightLayerItems.map((li) => ({ type: li.type as "char" | "bubble" | "drawing", id: li.id }));
+            const newOrder = rightLayerItems.map((li) => ({ type: li.type as "char" | "bubble" | "drawing" | "text" | "line", id: li.id }));
             const tmp = newOrder[index];
             newOrder[index] = newOrder[swapIdx];
             newOrder[swapIdx] = tmp;
