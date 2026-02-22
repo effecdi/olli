@@ -4572,7 +4572,7 @@ export default function StoryPage() {
           <button
             key={tab.id}
             onClick={() => toggleLeftTab(tab.id)}
-            className={`flex flex-col items-center justify-center rounded-lg text-[10px] gap-0.5 transition-colors pt-[10px] pb-[10px] px-0 w-[60px] h-auto ${activeLeftTab === tab.id ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover-elevate"}`}
+            className={`flex flex-col items-center justify-center rounded-lg text-[10px] gap-0.5 transition-colors py-[18px] px-0 w-[90px] h-auto ${activeLeftTab === tab.id ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover-elevate"}`}
             data-testid={`button-left-tab-${tab.id}`}
           >
             <tab.icon className="h-[18px] w-[18px]" />
