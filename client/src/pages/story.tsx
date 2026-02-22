@@ -4910,6 +4910,12 @@ export default function StoryPage() {
           y: c.y,
           scale: c.scale,
         })),
+        effects: (p.effects ?? []).map(ef => ({
+          id: ef.id, type: ef.type,
+          x: ef.x, y: ef.y, width: ef.width, height: ef.height,
+          rotation: ef.rotation, opacity: ef.opacity,
+          zIndex: ef.zIndex, color: ef.color, strokeColor: ef.strokeColor, seed: ef.seed,
+        })),
       })),
       topic,
     });
