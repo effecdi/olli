@@ -166,6 +166,9 @@ export async function generateCharacterImage(prompt: string, style: string, sour
   const hasImage = sourceImageData && sourceImageData.startsWith("data:");
   const hasPrompt = prompt && prompt.trim().length > 0;
 
+  // 한국어 프롬프트를 영어로 번역하여 이미지에 한글이 포함되지 않도록 함
+  const translatedPrompt = hasPrompt ? await translateToEnglish(prompt, ai) : "";
+
   if (hasImage && hasPrompt) {
     // Image + prompt: analyze image and apply prompt modifications
     parts.push({
@@ -177,11 +180,11 @@ IMPORTANT: The character must be on a completely plain solid white background wi
 
 IMPORTANT: Generate the image in 3:4 portrait aspect ratio (width:height = 3:4). The image must be taller than it is wide.
 
-Look at this reference image carefully. Analyze the character, person, or subject in it. Now create a NEW character illustration based on this image, but with the following modifications: ${prompt}
+Look at this reference image carefully. Analyze the character, person, or subject in it. Now create a NEW character illustration based on this image, but with the following modifications: ${translatedPrompt}
 
 Keep the core appearance from the reference image (face features, body type, clothing style etc.) but apply the requested changes and draw it in this style: ${config.keywords}.
 
-Single character only, full body view, pure solid white background, no shadows on background. Do NOT write any text or words in the image.`
+Single character only, full body view, pure solid white background, no shadows on background. Do NOT write any text or words in the image. Do NOT render any Korean, Japanese, Chinese or other non-Latin characters.`
     });
     const match = sourceImageData.match(/^data:([^;]+);base64,(.+)$/);
     if (match) {
@@ -205,7 +208,7 @@ IMPORTANT: Generate the image in 3:4 portrait aspect ratio (width:height = 3:4).
 
 Look at this reference image carefully. Analyze the character, person, or subject in it - their appearance, clothing, pose, expression, and key features. Now recreate this as a character illustration in the following style: ${config.keywords}.
 
-Capture the essence and key visual features of the reference but draw it as a stylized character illustration. Single character only, full body view, pure solid white background, no shadows on background. Do NOT write any text or words in the image.`
+Capture the essence and key visual features of the reference but draw it as a stylized character illustration. Single character only, full body view, pure solid white background, no shadows on background. Do NOT write any text or words in the image. Do NOT render any Korean, Japanese, Chinese or other non-Latin characters.`
     });
     const match = sourceImageData.match(/^data:([^;]+);base64,(.+)$/);
     if (match) {
@@ -227,9 +230,9 @@ IMPORTANT: The character must be on a completely plain solid white background wi
 
 IMPORTANT: Generate the image in 3:4 portrait aspect ratio (width:height = 3:4). The image must be taller than it is wide.
 
-Create a character: ${prompt}.
+Create a character: ${translatedPrompt}.
 Style: ${config.keywords}.
-Single character only, full body view, pure solid white background, no shadows on background. Do NOT write any text or words in the image.`
+Single character only, full body view, pure solid white background, no shadows on background. Do NOT write any text or words in the image. Do NOT render any Korean, Japanese, Chinese or other non-Latin characters.`
     });
   }
 
