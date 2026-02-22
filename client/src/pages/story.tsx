@@ -4266,12 +4266,9 @@ export default function StoryPage() {
       backgroundImageEl: source.backgroundImageEl,
       bubbles: source.bubbles.map((b) => ({ ...b, id: generateId() })),
       characters: source.characters.map((c) => ({ ...c, id: generateId() })),
-<<<<<<< HEAD
       drawingLayers: (source.drawingLayers || []).map((dl) => ({ ...dl, id: generateId() })),
-=======
       textElements: (source.textElements || []).map((t) => ({ ...t, id: generateId() })),
       lineElements: (source.lineElements || []).map((l) => ({ ...l, id: generateId(), points: l.points.map(p => ({ ...p })) })),
->>>>>>> origin/claude/svg-story-effects-0ou2v
     };
     const newPanels = [...panels];
     newPanels.splice(idx + 1, 0, cloned);
