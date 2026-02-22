@@ -235,30 +235,6 @@ export default function DrawingToolsPanel({
         <div className="drawing-tools-panel__actions">
           <button
             className="drawing-tools-panel__action-btn"
-            onClick={() => canvasRef?.current?.undo()}
-            title="실행 취소 (Ctrl+Z)"
-          >
-            <Undo2 className="h-4 w-4" />
-            <span>실행취소</span>
-          </button>
-          <button
-            className="drawing-tools-panel__action-btn"
-            onClick={() => canvasRef?.current?.redo()}
-            title="다시 실행 (Ctrl+Y)"
-          >
-            <Redo2 className="h-4 w-4" />
-            <span>다시실행</span>
-          </button>
-          <button
-            className="drawing-tools-panel__action-btn drawing-tools-panel__action-btn--danger"
-            onClick={() => canvasRef?.current?.clear()}
-            title="모두 지우기"
-          >
-            <Trash2 className="h-4 w-4" />
-            <span>전체삭제</span>
-          </button>
-          <button
-            className="drawing-tools-panel__action-btn"
             onClick={() => {
               const dataUrl = canvasRef?.current?.exportImage("png");
               if (dataUrl) {
