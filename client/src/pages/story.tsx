@@ -5739,10 +5739,18 @@ export default function StoryPage() {
                     </div>
                   )}
 
-                {activeLeftTab === "bubble" && activePanel && (
+                {activeLeftTab === "element" && activeElementSubTab === "bubble" && activePanel && (
                   <>
                     <div className="flex items-center justify-between gap-2 mb-2">
-                      <h3 className="text-sm font-semibold">말풍선</h3>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => setActiveElementSubTab(null)}
+                          className="text-muted-foreground hover-elevate rounded-md p-1"
+                        >
+                          <ArrowLeft className="h-3.5 w-3.5" />
+                        </button>
+                        <h3 className="text-sm font-semibold">말풍선</h3>
+                      </div>
                       <button
                         onClick={() => setActiveLeftTab(null)}
                         className="text-muted-foreground hover-elevate rounded-md p-1"
