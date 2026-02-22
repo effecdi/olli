@@ -2466,6 +2466,7 @@ function PanelCanvas({
         <ContextMenuItem onSelect={handleBringToFront}>맨 앞으로 가져오기</ContextMenuItem>
         <ContextMenuItem onSelect={handleSendToBack}>맨 뒤로 보내기</ContextMenuItem>
         <ContextMenuItem onSelect={handleRotateSelection}>회전</ContextMenuItem>
+        <ContextMenuItem onSelect={handleFlipCharX} disabled={!selectedCharIdRef.current}>좌우 반전</ContextMenuItem>
         <ContextMenuItem onSelect={handleLock}>
           {selectedBubbleId && panel.bubbles.find(b => b.id === selectedBubbleId)?.locked ? "잠금 해제" :
             selectedCharId && panel.characters.find(c => c.id === selectedCharId)?.locked ? "잠금 해제" : "잠금"}
