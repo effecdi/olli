@@ -6588,11 +6588,19 @@ export default function StoryPage() {
                       }}
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-7 h-7 rounded overflow-hidden shrink-0 border border-border bg-muted">
+                        <div className={`w-7 h-7 rounded overflow-hidden shrink-0 border ${
+                          item.type === "effect" ? "border-violet-400/50 bg-violet-50 dark:bg-violet-950/30"
+                          : item.type === "bubble" ? "border-sky-400/50 bg-sky-50 dark:bg-sky-950/30"
+                          : "border-emerald-400/50 bg-emerald-50 dark:bg-emerald-950/30"
+                        }`}>
                           {item.thumb ? (
                             <img src={item.thumb} alt="" className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-[10px]">
+                            <div className={`w-full h-full flex items-center justify-center text-[10px] font-semibold ${
+                              item.type === "effect" ? "text-violet-500"
+                              : item.type === "bubble" ? "text-sky-500"
+                              : "text-emerald-500"
+                            }`}>
                               {item.type === "bubble" ? "B" : item.type === "char" ? "C" : "E"}
                             </div>
                           )}
