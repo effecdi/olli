@@ -4169,7 +4169,7 @@ export default function StoryPage() {
     opacity: 1,
   });
   const drawingCanvasRef = useRef<DrawingCanvasHandle | null>(null);
-  const isDrawingMode = activeLeftTab === "tools" && ["drawing", "line", "text", "eraser"].includes(selectedToolItem);
+  const isDrawingMode = activeLeftTab === "tools" && selectedToolItem === "drawing";
 
   // Clear drawing layer selection on panel switch
   useEffect(() => {
