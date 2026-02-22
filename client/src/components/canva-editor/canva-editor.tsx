@@ -226,6 +226,15 @@ const CanvaEditor = forwardRef<CanvaEditorHandle, CanvaEditorProps>(
       }
       lineStartRef.current = null;
 
+      // Clean up temp curve
+      if (tempCurveRef.current) {
+        fc.remove(tempCurveRef.current);
+        tempCurveRef.current = null;
+      }
+      curveStepRef.current = 0;
+      curveStartRef.current = null;
+      curveEndRef.current = null;
+
       // Restore all objects to selectable
       fc.forEachObject((o) => {
         o.selectable = true;
