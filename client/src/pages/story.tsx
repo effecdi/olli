@@ -4185,6 +4185,31 @@ export default function StoryPage() {
   const drawingCanvasRef = useRef<DrawingCanvasHandle | null>(null);
   const isDrawingMode = activeLeftTab === "tools" && ["drawing", "line", "text", "eraser"].includes(selectedToolItem);
 
+  // Drawing layer undo/redo
+  const drawingUndoStackRef = useRef<DrawingLayer[]>([]);
+
+  const handleDrawingUndo = useCallback(() => {
+    if (!activePanel || !activePanel.drawingLayers || activePanel.drawingLayers.length === 0) return;
+    const layers = [...activePanel.drawingLayers];
+    const removed = layers.pop()!;
+    drawingUndoStackRef.current = [...drawingUndoStackRef.current, removed];
+    updatePanel(activePanelIndex, { ...activePanel, drawingLayers: layers });
+  }, [activePanel, activePanelIndex]);
+
+  const handleDrawingRedo = useCallback(() => {
+    if (drawingUndoStackRef.current.length === 0 || !activePanel) return;
+    const stack = [...drawingUndoStackRef.current];
+    const restored = stack.pop()!;
+    drawingUndoStackRef.current = stack;
+    updatePanel(activePanelIndex, { ...activePanel, drawingLayers: [...(activePanel.drawingLayers || []), restored] });
+  }, [activePanel, activePanelIndex]);
+
+  const handleDrawingClear = useCallback(() => {
+    if (!activePanel) return;
+    drawingUndoStackRef.current = [];
+    updatePanel(activePanelIndex, { ...activePanel, drawingLayers: [] });
+  }, [activePanel, activePanelIndex]);
+
   // Text tool input state
   const [textInputPos, setTextInputPos] = useState<{ x: number; y: number } | null>(null);
   const [textInputValue, setTextInputValue] = useState("");
