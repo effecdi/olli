@@ -4156,7 +4156,11 @@ export default function StoryPage() {
     opacity: 1,
   });
   const drawingCanvasRef = useRef<DrawingCanvasHandle | null>(null);
-  const isDrawingMode = activeLeftTab === "tools" && selectedToolItem === "drawing";
+  const isDrawingMode = activeLeftTab === "tools" && ["drawing", "line", "text"].includes(selectedToolItem);
+
+  // Text tool input state
+  const [textInputPos, setTextInputPos] = useState<{ x: number; y: number } | null>(null);
+  const [textInputValue, setTextInputValue] = useState("");
 
   const toggleLeftTab = (tab: LeftTab) => {
     setActiveLeftTab((prev) => {
