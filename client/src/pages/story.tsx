@@ -2174,16 +2174,26 @@ function PanelCanvas({
     }
   }, [onUpdate, onSelectBubble, onSelectChar, toast]);
 
+  const onDeletePanelRef = useRef(onDeletePanel);
+  onDeletePanelRef.current = onDeletePanel;
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
-      if (!selectedBubbleIdRef.current && !selectedCharIdRef.current && !selectedEffectIdRef.current) return;
       if (e.key === "Delete" || e.key === "Backspace") {
-        e.preventDefault();
-        handleDeleteSelection();
-      } else if ((e.ctrlKey || e.metaKey) && (e.key === "]" || e.key === "[")) {
+        if (selectedBubbleIdRef.current || selectedCharIdRef.current || selectedEffectIdRef.current) {
+          e.preventDefault();
+          handleDeleteSelection();
+        } else if (onDeletePanelRef.current) {
+          e.preventDefault();
+          onDeletePanelRef.current();
+        }
+        return;
+      }
+      if (!selectedBubbleIdRef.current && !selectedCharIdRef.current && !selectedEffectIdRef.current) return;
+      if ((e.ctrlKey || e.metaKey) && (e.key === "]" || e.key === "[")) {
         e.preventDefault();
         if (e.key === "]") {
           handleBringForward();
