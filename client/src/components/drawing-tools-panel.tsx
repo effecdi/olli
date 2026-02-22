@@ -5,9 +5,6 @@ import {
   Highlighter,
   Pencil,
   Eraser,
-  Undo2,
-  Redo2,
-  Trash2,
   Download,
   X,
 } from "lucide-react";
