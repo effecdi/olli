@@ -27,7 +27,8 @@
       "Bash(npx tsc --noEmit --project client/tsconfig.json 2>&1 | head -30)",
       "Bash(npx tsc --noEmit 2>&1 | head -40)",
       "Bash(git fetch --all 2>&1 && git branch -a | grep -i drawing)",
-      "Bash(git merge origin/claude/add-drawing-tools-menu-nIpK4 --ff)"
+      "Bash(git merge origin/claude/add-drawing-tools-menu-nIpK4 --ff)",
+      "Bash(git fetch --all 2>&1 && git log --oneline main..origin/claude/add-drawing-tools-menu-nIpK4)"
     ]
   }
 }
