@@ -56,13 +56,22 @@ import {
   UploadCloud,
   ImagePlus,
   CheckCircle2,
-  Sparkles,
   Zap,
   Star,
   Pen,
+  MousePointer2,
+  Eraser,
+  StickyNote,
+  Highlighter,
+  Pencil,
+  PenLine,
+  Minus,
+  Menu,
+  Grid3X3,
+  Circle,
 } from "lucide-react";
 import DrawingCanvas, { type DrawingToolState, type DrawingCanvasHandle } from "@/components/drawing-canvas";
-import DrawingToolsPanel from "@/components/drawing-tools-panel";
+import "@/components/drawing-tools-panel.scss";
 import { FlowStepper } from "@/components/flow-stepper";
 import { EditorOnboarding } from "@/components/editor-onboarding";
 import { getFlowState, clearFlowState } from "@/lib/flow";
@@ -5143,9 +5152,12 @@ export default function StoryPage() {
   const panelCanvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map());
   const bubbleTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  type LeftTab = "image" | "ai" | "script" | "bubble" | "template" | "effects" | "drawing" | null;
+  type LeftTab = "image" | "ai" | "script" | "bubble" | "template" | "tools" | null;
   const [activeLeftTab, setActiveLeftTab] = useState<LeftTab>(null);
   const [selectedEffectId, setSelectedEffectId] = useState<string | null>(null);
+  const [selectedToolItem, setSelectedToolItem] = useState<string>("select");
+  const [showDrawingSettings, setShowDrawingSettings] = useState(false);
+  const colorInputRef = useRef<HTMLInputElement | null>(null);
 
   // ─── Drawing tool state ─────────────────────────────────────────────
   const [drawingToolState, setDrawingToolState] = useState<DrawingToolState>({
@@ -5156,7 +5168,7 @@ export default function StoryPage() {
     opacity: 1,
   });
   const drawingCanvasRef = useRef<DrawingCanvasHandle | null>(null);
-  const isDrawingMode = activeLeftTab === "drawing";
+  const isDrawingMode = activeLeftTab === "tools" && selectedToolItem === "drawing";
 
   const toggleLeftTab = (tab: LeftTab) => {
     setActiveLeftTab((prev) => (prev === tab ? null : tab));
@@ -5459,11 +5471,29 @@ export default function StoryPage() {
   const LEFT_TABS: { id: LeftTab; icon: typeof Wand2; label: string }[] = [
     { id: "image", icon: ImageIcon as any, label: "이미지 선택" },
     { id: "ai", icon: Wand2, label: "AI 프롬프트" },
-    { id: "drawing", icon: Pen as any, label: "드로잉" },
+    { id: "tools", icon: Pen as any, label: "도구" },
     { id: "script", icon: Type as any, label: "자막 설정" },
     { id: "bubble", icon: MessageSquare as any, label: "말풍선" },
     { id: "template", icon: Layers as any, label: "템플릿" },
-    { id: "effects", icon: Sparkles as any, label: "효과" },
+  ];
+
+  // ─── Tool items for compact tools panel ─────────────────────────────
+  const TOOL_ITEMS: { id: string; icon: typeof Pen; label: string; color?: string }[] = [
+    { id: "select", icon: MousePointer2, label: "선택" },
+    { id: "drawing", icon: Pen, label: "드로잉", color: "#ef4444" },
+    { id: "shape", icon: Circle, label: "도형", color: "#6b7280" },
+    { id: "line", icon: Minus, label: "선", color: "#3b82f6" },
+    { id: "sticky", icon: StickyNote, label: "메모", color: "#eab308" },
+    { id: "text", icon: Type, label: "텍스트", color: "#8b5cf6" },
+    { id: "grid", icon: Grid3X3, label: "그리드", color: "#3b82f6" },
+  ];
+
+  // ─── Drawing brush items for sub-panel ──────────────────────────────
+  const DRAWING_BRUSH_ITEMS: { id: string; icon: typeof Pen; label: string; color?: string }[] = [
+    { id: "ballpoint", icon: Pen, label: "볼펜", color: "#3b82f6" },
+    { id: "marker", icon: PenLine, label: "마커", color: "#ef4444" },
+    { id: "highlighter", icon: Highlighter, label: "형광펜", color: "#eab308" },
+    { id: "pencil", icon: Pencil, label: "연필", color: "#6b7280" },
   ];
 
   return (
@@ -5489,10 +5519,10 @@ export default function StoryPage() {
       <div className="flex flex-1 h-full">
         {activeLeftTab && (
           <div
-            className="h-full w-[320px] bg-card overflow-y-auto border-r"
+            className={`h-full bg-card overflow-y-auto border-r ${activeLeftTab === "tools" ? "w-auto" : "w-[320px]"}`}
             data-testid="left-panel-content"
           >
-            <div className="p-3 space-y-5">
+            <div className={activeLeftTab === "tools" ? "" : "p-3 space-y-5"}>
                   {activeLeftTab === "ai" && (
                     <>
                       <div className="flex items-center justify-between gap-2">
@@ -6106,13 +6136,143 @@ export default function StoryPage() {
                     </>
                   )}
 
-                  {activeLeftTab === "drawing" && (
-                    <DrawingToolsPanel
-                      toolState={drawingToolState}
-                      onToolStateChange={setDrawingToolState}
-                      canvasRef={drawingCanvasRef as RefObject<DrawingCanvasHandle | null>}
-                      onClose={() => setActiveLeftTab(null)}
-                    />
+                  {/* ─── Compact Tools Panel ─────────────────────────── */}
+                  {activeLeftTab === "tools" && (
+                    <div className="tools-compact-panel">
+                      {/* Main tool strip */}
+                      <div className="tools-compact-panel__strip">
+                        <button
+                          onClick={() => setActiveLeftTab(null)}
+                          className="tools-compact-panel__close-btn"
+                          title="닫기"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                        {TOOL_ITEMS.map((item) => (
+                          <button
+                            key={item.id}
+                            onClick={() => {
+                              setSelectedToolItem(item.id);
+                              if (item.id === "drawing") {
+                                setDrawingToolState(s => ({ ...s, tool: "brush" }));
+                              }
+                              setShowDrawingSettings(false);
+                            }}
+                            className={`tools-compact-panel__tool-btn ${selectedToolItem === item.id ? "tools-compact-panel__tool-btn--active" : ""}`}
+                            title={item.label}
+                          >
+                            <item.icon className="h-5 w-5" style={item.color && selectedToolItem !== item.id ? { color: item.color } : undefined} />
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Drawing sub-tools strip */}
+                      {selectedToolItem === "drawing" && (
+                        <div className="tools-compact-panel__strip tools-compact-panel__strip--sub">
+                          {DRAWING_BRUSH_ITEMS.map((brush) => (
+                            <button
+                              key={brush.id}
+                              onClick={() => setDrawingToolState(s => ({ ...s, tool: "brush", brushType: brush.id as any }))}
+                              className={`tools-compact-panel__tool-btn ${drawingToolState.tool === "brush" && drawingToolState.brushType === brush.id ? "tools-compact-panel__tool-btn--active" : ""}`}
+                              title={brush.label}
+                            >
+                              <brush.icon className="h-5 w-5" style={brush.color && !(drawingToolState.tool === "brush" && drawingToolState.brushType === brush.id) ? { color: brush.color } : undefined} />
+                            </button>
+                          ))}
+                          {/* Eraser */}
+                          <button
+                            onClick={() => setDrawingToolState(s => ({ ...s, tool: "eraser" }))}
+                            className={`tools-compact-panel__tool-btn ${drawingToolState.tool === "eraser" ? "tools-compact-panel__tool-btn--active" : ""}`}
+                            title="지우개"
+                          >
+                            <Eraser className="h-5 w-5" style={drawingToolState.tool !== "eraser" ? { color: "#f472b6" } : undefined} />
+                          </button>
+                          {/* Color picker */}
+                          <button
+                            onClick={() => colorInputRef.current?.click()}
+                            className="tools-compact-panel__tool-btn tools-compact-panel__color-btn"
+                            title="색상 선택"
+                          >
+                            <span
+                              className="tools-compact-panel__color-circle"
+                              style={{ backgroundColor: drawingToolState.color }}
+                            />
+                            <input
+                              ref={colorInputRef}
+                              type="color"
+                              value={drawingToolState.color}
+                              onChange={(e) => setDrawingToolState(s => ({ ...s, color: e.target.value, tool: "brush" }))}
+                              className="sr-only"
+                            />
+                          </button>
+                          {/* Settings menu */}
+                          <button
+                            onClick={() => setShowDrawingSettings(s => !s)}
+                            className={`tools-compact-panel__tool-btn ${showDrawingSettings ? "tools-compact-panel__tool-btn--active" : ""}`}
+                            title="설정"
+                          >
+                            <Menu className="h-5 w-5" />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Drawing settings popover */}
+                      {selectedToolItem === "drawing" && showDrawingSettings && (
+                        <div className="tools-compact-panel__settings">
+                          <div className="tools-compact-panel__settings-section">
+                            <div className="tools-compact-panel__settings-row">
+                              <span className="text-[11px] text-muted-foreground font-medium">굵기</span>
+                              <span className="text-[11px] text-primary font-medium tabular-nums">{drawingToolState.size}px</span>
+                            </div>
+                            <Slider
+                              min={1}
+                              max={100}
+                              step={1}
+                              value={[drawingToolState.size]}
+                              onValueChange={([v]) => setDrawingToolState(s => ({ ...s, size: v }))}
+                              className="w-full"
+                            />
+                          </div>
+                          <div className="tools-compact-panel__settings-section">
+                            <div className="tools-compact-panel__settings-row">
+                              <span className="text-[11px] text-muted-foreground font-medium">불투명도</span>
+                              <span className="text-[11px] text-primary font-medium tabular-nums">{Math.round(drawingToolState.opacity * 100)}%</span>
+                            </div>
+                            <Slider
+                              min={5}
+                              max={100}
+                              step={1}
+                              value={[Math.round(drawingToolState.opacity * 100)]}
+                              onValueChange={([v]) => setDrawingToolState(s => ({ ...s, opacity: v / 100 }))}
+                              className="w-full"
+                            />
+                          </div>
+                          <div className="tools-compact-panel__settings-actions">
+                            <button
+                              onClick={() => drawingCanvasRef.current?.undo()}
+                              className="tools-compact-panel__action-btn"
+                              title="실행 취소"
+                            >
+                              <Undo2 className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => drawingCanvasRef.current?.redo()}
+                              className="tools-compact-panel__action-btn"
+                              title="다시 실행"
+                            >
+                              <Redo2 className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => drawingCanvasRef.current?.clear()}
+                              className="tools-compact-panel__action-btn tools-compact-panel__action-btn--danger"
+                              title="전체 삭제"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )}
 
                 {activeLeftTab === "bubble" && activePanel && (
@@ -6147,95 +6307,6 @@ export default function StoryPage() {
                     />
                   </>
                 )}
-
-                {activeLeftTab === "effects" && activePanel && (() => {
-                  const EFFECT_ITEMS: { type: string; label: string; emoji: string; desc: string }[] = [
-                    { type: "flash_lines", label: "파열 효과선", emoji: "💥", desc: "폭발 방사선" },
-                    { type: "flash_dense", label: "집중선", emoji: "🌟", desc: "빽빽한 집중선" },
-                    { type: "flash_small", label: "작은 파열", emoji: "✨", desc: "소형 파열" },
-                    { type: "firework", label: "짜잔!", emoji: "🎉", desc: "불꽃 파열" },
-                    { type: "monologue_circles", label: "몽글몽글", emoji: "💭", desc: "생각하는 효과" },
-                    { type: "speed_lines", label: "두둥 등장", emoji: "⚡", desc: "속도선 등장" },
-                    { type: "star", label: "별", emoji: "⭐", desc: "별 모양" },
-                    { type: "sparkle", label: "빛나는", emoji: "🌠", desc: "4방향 빛" },
-                    { type: "anger", label: "화를내는", emoji: "😤", desc: "분노 표시" },
-                    { type: "surprise", label: "놀라는", emoji: "😱", desc: "놀람 느낌표" },
-                    { type: "collapse", label: "무너지는", emoji: "💫", desc: "잔해 효과" },
-                    { type: "arrow_up", label: "위 화살표", emoji: "⬆️", desc: "위쪽 화살" },
-                    { type: "arrow_down", label: "아래 화살표", emoji: "⬇️", desc: "아래 화살" },
-                    { type: "exclamation", label: "느낌표", emoji: "❗", desc: "!" },
-                    { type: "question", label: "물음표", emoji: "❓", desc: "?" },
-                    { type: "sunburst", label: "집중선(썬버스트)", emoji: "☀️", desc: "방사형 집중선" },
-                    { type: "scribble", label: "엉킨 실타래", emoji: "〰️", desc: "낙서 효과" },
-                    { type: "x_mark", label: "X 표시", emoji: "✖️", desc: "거친 X 마크" },
-                    { type: "speech_cloud", label: "말풍선", emoji: "☁️", desc: "구름형 말풍선" },
-                    { type: "focus_zoom", label: "집중선(놀람)", emoji: "🎯", desc: "줌 집중선" },
-                    { type: "surprise_sparkle", label: "깜짝/재잘재잘", emoji: "✴️", desc: "반짝임+X" },
-                    { type: "gloom_lines", label: "우울/침울", emoji: "🌧️", desc: "처지는 수직선" },
-                    { type: "tangled_ball", label: "복잡한 감정", emoji: "🧶", desc: "엉킨 실타래" },
-                    { type: "blush_lines", label: "뿌끄(부끄)", emoji: "😊", desc: "볼 사선 빗금" },
-                    { type: "sigh_breath", label: "한숨/입김", emoji: "😮‍💨", desc: "곡선 한숨" },
-                    { type: "bubble_circles", label: "몽글몽글", emoji: "🫧", desc: "비눗방울 원" },
-                  ];
-
-                  const addEffect = (type: string) => {
-                    if (!activePanel) return;
-                    const cx = 200, cy = 200, sz = 100;
-                    const newEffect: EffectLayer = {
-                      id: generateId(),
-                      type,
-                      x: cx - sz / 2,
-                      y: cy - sz / 2,
-                      width: sz,
-                      height: sz,
-                      zIndex: 20,
-                      opacity: 1,
-                      seed: Math.floor(Math.random() * 9999),
-                      color: "#222222",
-                      strokeColor: "#222222",
-                    };
-                    const newEffects = [...(activePanel.effects ?? []), newEffect];
-                    updatePanel(activePanelIndex, { ...activePanel, effects: newEffects });
-                    setSelectedEffectId(newEffect.id);
-                  };
-
-                  const selEf = selectedEffectId ? activePanel.effects?.find(e => e.id === selectedEffectId) : null;
-                  const updateEffect = (updates: Partial<EffectLayer>) => {
-                    if (!selEf) return;
-                    const newEffects = (activePanel.effects ?? []).map(e =>
-                      e.id === selEf.id ? { ...e, ...updates } : e
-                    );
-                    updatePanel(activePanelIndex, { ...activePanel, effects: newEffects });
-                  };
-                  const deleteEffect = () => {
-                    if (!selEf) return;
-                    const newEffects = (activePanel.effects ?? []).filter(e => e.id !== selEf.id);
-                    updatePanel(activePanelIndex, { ...activePanel, effects: newEffects });
-                    setSelectedEffectId(null);
-                  };
-
-                  return (
-                    <>
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <h3 className="text-sm font-semibold flex items-center gap-1"><Sparkles className="h-3.5 w-3.5" />효과 추가</h3>
-                        <button onClick={() => setActiveLeftTab(null)} className="text-muted-foreground hover-elevate rounded-md p-1"><X className="h-3.5 w-3.5" /></button>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground mb-3">클릭하면 캔버스에 효과가 추가됩니다. 캔버스에서 드래그로 이동, 모서리를 드래그해 크기 조정 가능합니다.</p>
-                      <div className="grid grid-cols-3 gap-1.5 mb-4">
-                        {EFFECT_ITEMS.map(item => (
-                          <button
-                            key={item.type}
-                            onClick={() => addEffect(item.type)}
-                            className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg border border-border hover:bg-primary/5 hover:border-primary/40 transition-colors text-center"
-                          >
-                            <span className="text-lg">{item.emoji}</span>
-                            <span className="text-[10px] text-muted-foreground leading-tight">{item.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  );
-                })()}
 
                 {activeLeftTab === "template" && activePanel && (
                   <>

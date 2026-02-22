@@ -361,3 +361,164 @@ $transition-normal: 200ms ease;
     50% { opacity: 0.3; }
   }
 }
+
+// ─── Compact Tools Panel ──────────────────────────────────────────────────
+// Two-strip layout: main tools | drawing sub-tools
+// Matches the compact icon palette design
+
+.tools-compact-panel {
+  display: flex;
+  height: 100%;
+  user-select: none;
+
+  // ─── Vertical icon strip ──────────────────────────────────────────────
+
+  &__strip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 6px;
+    border-right: 1px solid $border-color;
+
+    &:last-child {
+      border-right: none;
+    }
+
+    &--sub {
+      background: hsl(var(--muted) / 0.3);
+    }
+  }
+
+  // ─── Tool button ──────────────────────────────────────────────────────
+
+  &__tool-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: $radius-md;
+    border: 2px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    transition: all $transition-fast;
+    color: $muted-fg;
+    flex-shrink: 0;
+
+    &:hover {
+      background: $accent;
+      color: $accent-fg;
+    }
+
+    &--active {
+      background: hsl(var(--muted));
+      color: $primary;
+      border-color: $primary;
+    }
+  }
+
+  // ─── Close button ─────────────────────────────────────────────────────
+
+  &__close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: $radius-md;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: all $transition-fast;
+    color: $muted-fg;
+    flex-shrink: 0;
+    margin-bottom: 4px;
+
+    &:hover {
+      background: hsl(var(--destructive) / 0.1);
+      color: $destructive;
+    }
+  }
+
+  // ─── Color circle ─────────────────────────────────────────────────────
+
+  &__color-btn {
+    position: relative;
+  }
+
+  &__color-circle {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 0, 0, 0.15);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    transition: transform $transition-fast;
+  }
+
+  &__color-btn:hover &__color-circle {
+    transform: scale(1.1);
+  }
+
+  // ─── Settings panel ───────────────────────────────────────────────────
+
+  &__settings {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 10px;
+    border-right: 1px solid $border-color;
+    width: 160px;
+    background: hsl(var(--card));
+  }
+
+  &__settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  // ─── Action buttons in settings ───────────────────────────────────────
+
+  &__settings-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding-top: 4px;
+    border-top: 1px solid $border-color;
+  }
+
+  &__action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: $radius-sm;
+    border: 1px solid $border-color;
+    background: transparent;
+    cursor: pointer;
+    transition: all $transition-fast;
+    color: $muted-fg;
+
+    &:hover {
+      background: $accent;
+      color: $accent-fg;
+      border-color: transparent;
+    }
+
+    &--danger {
+      &:hover {
+        background: hsl(var(--destructive) / 0.1);
+        color: $destructive;
+        border-color: hsl(var(--destructive) / 0.3);
+      }
+    }
+  }
+}
