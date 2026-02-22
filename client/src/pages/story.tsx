@@ -6162,7 +6162,7 @@ export default function StoryPage() {
                 )}
 
                 {activeLeftTab === "effects" && activePanel && (() => {
-                  const EFFECT_ITEMS: { type: string; label: string; emoji: string; desc: string }[] = [
+                  const EFFECT_ITEMS: { type: EffectLayerType; label: string; emoji: string; desc: string }[] = [
                     { type: "flash_lines", label: "파열 효과선", emoji: "💥", desc: "폭발 방사선" },
                     { type: "flash_dense", label: "집중선", emoji: "🌟", desc: "빽빽한 집중선" },
                     { type: "flash_small", label: "작은 파열", emoji: "✨", desc: "소형 파열" },
