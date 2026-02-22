@@ -6339,7 +6339,7 @@ export default function StoryPage() {
                     const typeBg = item.type === "bubble"
                       ? isSelected ? "bg-sky-500/15 border border-sky-500/30" : "hover:bg-sky-500/5"
                       : item.type === "drawing"
-                      ? "hover:bg-amber-500/5"
+                      ? isSelected ? "bg-amber-500/15 border border-amber-500/30" : "hover:bg-amber-500/5"
                       : isSelected ? "bg-emerald-500/15 border border-emerald-500/30" : "hover:bg-muted/50";
                     const DrawingIcon = item.drawingType ? (DRAWING_TYPE_ICONS[item.drawingType] || Pen) : Pen;
                     return (
