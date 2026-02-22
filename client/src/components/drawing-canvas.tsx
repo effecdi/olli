@@ -569,7 +569,9 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
     const cursorStyle =
       toolState.tool === "eraser"
         ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${toolState.size}' height='${toolState.size}'%3E%3Ccircle cx='${toolState.size / 2}' cy='${toolState.size / 2}' r='${toolState.size / 2 - 1}' fill='none' stroke='%23666' stroke-width='1'/%3E%3C/svg%3E") ${toolState.size / 2} ${toolState.size / 2}, crosshair`
-        : "crosshair";
+        : toolState.tool === "text"
+          ? "text"
+          : "crosshair";
 
     return (
       <canvas
