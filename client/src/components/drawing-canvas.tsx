@@ -137,7 +137,7 @@ const LAYER_LABELS: Record<string, string> = {
 // ─── Component ─────────────────────────────────────────────────────────────
 
 const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
-  ({ width, height, toolState, backgroundImage, className, drawingLayers, onLayerCreated, onRequestTextInput }, ref) => {
+  ({ width, height, toolState, backgroundImage, className, drawingLayers, onLayerCreated, onRequestTextInput, onStrokeEnd }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const activeStrokeRef = useRef<HTMLCanvasElement | null>(null);
     const drawingCompositeRef = useRef<HTMLCanvasElement | null>(null);
