@@ -5146,11 +5146,7 @@ export default function StoryPage() {
   const panelCanvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map());
   const bubbleTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-<<<<<<< HEAD
-  type LeftTab = "image" | "ai" | "element" | "effects" | "drawing" | null;
-=======
   type LeftTab = "image" | "ai" | "script" | "bubble" | "template" | "tools" | null;
->>>>>>> 424aa13 (refactor: 도구 탭을 컴팩트 아이콘 패널로 변경, 효과 탭 삭제)
   const [activeLeftTab, setActiveLeftTab] = useState<LeftTab>(null);
   type ElementSubTab = "script" | "bubble" | "template" | null;
   const [activeElementSubTab, setActiveElementSubTab] = useState<ElementSubTab>(null);
