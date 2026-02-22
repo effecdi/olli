@@ -6037,8 +6037,15 @@ export default function StoryPage() {
                               height={600}
                               toolState={drawingToolState}
                               className="rounded-md"
+                              drawingLayers={panel.drawingLayers || []}
+                              onLayerCreated={(newLayer) => {
+                                drawingUndoStackRef.current = [];
+                                updatePanel(i, {
+                                  ...panel,
+                                  drawingLayers: [...(panel.drawingLayers || []), newLayer],
+                                });
+                              }}
                               onRequestTextInput={(x, y) => {
-                                // Convert canvas coords to percentage for overlay positioning
                                 setTextInputPos({ x: (x / 450) * 100, y: (y / 600) * 100 });
                                 setTextInputValue("");
                               }}
