@@ -330,8 +330,8 @@ export default function CanvaToolbar({
                 {lineConfig.subTool === "polyline"
                   ? "클릭으로 점을 찍고, 더블클릭으로 완성하세요."
                   : lineConfig.subTool === "curve"
-                  ? "시작점에서 끝점까지 드래그하세요."
-                  : "시작점에서 끝점까지 드래그하세요."}
+                    ? "자유롭게 드래그하여 부드러운 곡선을 그리세요."
+                    : "시작점에서 끝점까지 드래그하세요."}
               </p>
             </div>
           )}

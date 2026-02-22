@@ -16,52 +16,35 @@ import {
   FabricObject,
   Point,
 } from "fabric";
-import CanvaToolbar from "./canva-toolbar";
 import CanvaFloatingToolbar from "./canva-floating-toolbar";
 import type {
-  ToolMode,
-  DrawingConfig,
-  LineConfig,
-  TextConfig,
   FloatingToolbarPos,
   CanvaEditorHandle,
   CanvaEditorProps,
 } from "./types";
 import "./canva-editor.scss";
 
-// ─── Constants ──────────────────────────────────────────────────────────────
-
 const MAX_HISTORY = 40;
 
-// ─── Component ──────────────────────────────────────────────────────────────
-
 const CanvaEditor = forwardRef<CanvaEditorHandle, CanvaEditorProps>(
-  ({ width, height, className, backgroundImage, onObjectSelected }, ref) => {
+  (
+    {
+      width,
+      height,
+      className,
+      backgroundImage,
+      toolMode,
+      drawConfig,
+      lineConfig,
+      textConfig,
+      onToolModeChange,
+      onObjectSelected,
+    },
+    ref,
+  ) => {
     const canvasElRef = useRef<HTMLCanvasElement>(null);
     const fabricRef = useRef<Canvas | null>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
-
-    // Tool state
-    const [toolMode, setToolMode] = useState<ToolMode>("select");
-    const [drawConfig, setDrawConfig] = useState<DrawingConfig>({
-      subTool: "pencil",
-      color: "#000000",
-      size: 4,
-      opacity: 1,
-    });
-    const [lineConfig, setLineConfig] = useState<LineConfig>({
-      subTool: "straight",
-      color: "#000000",
-      size: 3,
-      opacity: 1,
-    });
-    const [textConfig, setTextConfig] = useState<TextConfig>({
-      fontFamily: "Pretendard, Apple SD Gothic Neo, sans-serif",
-      fontSize: 24,
-      color: "#000000",
-      bold: false,
-      italic: false,
-    });
 
     // Selection / floating toolbar
     const [selectedObj, setSelectedObj] = useState<FabricObject | null>(null);
@@ -81,6 +64,11 @@ const CanvaEditor = forwardRef<CanvaEditorHandle, CanvaEditorProps>(
     const tempLineRef = useRef<Line | null>(null);
     const polyPointsRef = useRef<Point[]>([]);
     const tempPolyRef = useRef<Polyline | null>(null);
+
+    // Track ALL event handlers registered by tool modes for reliable cleanup
+    const toolHandlersRef = useRef<
+      Array<{ event: string; handler: (...args: any[]) => void }>
+    >([]);
 
     // ─── Save to history ──────────────────────────────────────────────
 
@@ -112,10 +100,9 @@ const CanvaEditor = forwardRef<CanvaEditorHandle, CanvaEditorProps>(
       });
       fabricRef.current = fc;
 
-      // Save initial state
       historyRef.current = [JSON.stringify(fc.toJSON())];
 
-      // ── Selection events ──
+      // Selection events
       const updateFloating = () => {
         const active = fc.getActiveObject();
         if (active) {
@@ -130,7 +117,6 @@ const CanvaEditor = forwardRef<CanvaEditorHandle, CanvaEditorProps>(
             const scaleY = canvasRect.height / height;
             const offsetX = canvasRect.left - wrapRect.left;
             const offsetY = canvasRect.top - wrapRect.top;
-
             setFloatingPos({
               x: offsetX + (bound.left + bound.width / 2) * scaleX,
               y: offsetY + bound.top * scaleY - 52,
@@ -155,16 +141,12 @@ const CanvaEditor = forwardRef<CanvaEditorHandle, CanvaEditorProps>(
       fc.on("object:moving", updateFloating);
       fc.on("object:scaling", updateFloating);
       fc.on("object:rotating", updateFloating);
-
-      // Save history on object modification
       fc.on("object:modified", () => saveHistory());
       fc.on("path:created", () => saveHistory());
 
-      // Keyboard shortcuts
       const onKey = (e: KeyboardEvent) => {
         const tag = (e.target as HTMLElement)?.tagName;
         if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return;
-
         if (e.key === "Delete" || e.key === "Backspace") {
           const objs = fc.getActiveObjects();
           if (objs.length > 0) {
@@ -185,8 +167,6 @@ const CanvaEditor = forwardRef<CanvaEditorHandle, CanvaEditorProps>(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // ─── Resize canvas if dimensions change ───────────────────────────
-
     useEffect(() => {
       const fc = fabricRef.current;
       if (!fc) return;
@@ -194,549 +174,339 @@ const CanvaEditor = forwardRef<CanvaEditorHandle, CanvaEditorProps>(
       fc.requestRenderAll();
     }, [width, height]);
 
-    // ─── Background image ─────────────────────────────────────────────
-
     useEffect(() => {
       const fc = fabricRef.current;
-      if (!fc) return;
-
-      if (backgroundImage) {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.onload = () => {
-          fc.backgroundImage = undefined;
-          fc.requestRenderAll();
-        };
-        img.src = backgroundImage;
-      }
+      if (!fc || !backgroundImage) return;
+      const img = new window.Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        fc.backgroundImage = undefined;
+        fc.requestRenderAll();
+      };
+      img.src = backgroundImage;
     }, [backgroundImage]);
 
-    // ─── Tool mode switching ──────────────────────────────────────────
+    // ─── Tool mode switching (reacts to prop changes) ─────────────────
 
     useEffect(() => {
       const fc = fabricRef.current;
       if (!fc) return;
 
-      // Reset canvas mode
+      // ── 1. Complete cleanup of ALL previous tool handlers ──
+      for (const { event, handler } of toolHandlersRef.current) {
+        fc.off(event as any, handler as any);
+      }
+      toolHandlersRef.current = [];
+
+      // ── 2. Reset canvas state ──
       fc.isDrawingMode = false;
       fc.selection = true;
       fc.defaultCursor = "default";
       fc.hoverCursor = "move";
 
-      // Clean up temp objects
+      // Finalize any in-progress polyline before clearing
+      if (tempPolyRef.current && polyPointsRef.current.length >= 2) {
+        tempPolyRef.current.set({ selectable: true, evented: true });
+        fc.requestRenderAll();
+        saveHistory();
+      }
+      tempPolyRef.current = null;
+      polyPointsRef.current = [];
+
+      // Clean up temp straight line
       if (tempLineRef.current) {
         fc.remove(tempLineRef.current);
         tempLineRef.current = null;
       }
       lineStartRef.current = null;
 
-      if (tempPolyRef.current) {
-        fc.remove(tempPolyRef.current);
-        tempPolyRef.current = null;
-      }
-      polyPointsRef.current = [];
-
-      // Remove line/text mode event listeners
-      fc.off("mouse:down", handleLineMouseDown as any);
-      fc.off("mouse:move", handleLineMouseMove as any);
-      fc.off("mouse:up", handleLineMouseUp as any);
-      fc.off("mouse:down", handleTextMouseDown as any);
-
-      // Make all objects selectable
+      // Restore all objects to selectable
       fc.forEachObject((o) => {
         o.selectable = true;
         o.evented = true;
       });
 
+      // ── 3. Helper: register handler with tracking ──
+      const on = (event: string, handler: (...args: any[]) => void) => {
+        toolHandlersRef.current.push({ event, handler });
+        fc.on(event as any, handler as any);
+      };
+
+      // ── 4. Set up new tool mode ──
       switch (toolMode) {
-        case "select":
-          // Default selection mode - already set above
-          break;
+        case "draw": {
+          fc.isDrawingMode = true;
+          fc.selection = false;
+          const brush = new PencilBrush(fc);
+          brush.color = drawConfig.color;
+          brush.width =
+            drawConfig.subTool === "marker"
+              ? drawConfig.size * 2.5
+              : drawConfig.subTool === "highlighter"
+                ? drawConfig.size * 4
+                : drawConfig.size;
+          fc.freeDrawingBrush = brush;
 
-        case "draw":
-          setupDrawingMode(fc);
+          on("path:created", (e: any) => {
+            const path = e.path as Path;
+            if (!path) return;
+            let op = drawConfig.opacity;
+            if (drawConfig.subTool === "highlighter") op *= 0.4;
+            path.set({ opacity: op });
+            fc.requestRenderAll();
+          });
           break;
+        }
 
-        case "eraser":
-          setupEraserMode(fc);
+        case "eraser": {
+          fc.selection = false;
+          fc.defaultCursor = "crosshair";
+          fc.hoverCursor = "crosshair";
+          on("mouse:down", (opt: any) => {
+            if (opt.target) {
+              fc.remove(opt.target);
+              fc.requestRenderAll();
+              saveHistory();
+            }
+          });
           break;
+        }
 
-        case "line":
-          setupLineMode(fc);
-          break;
+        case "line": {
+          fc.selection = false;
+          fc.defaultCursor = "crosshair";
+          fc.hoverCursor = "crosshair";
+          fc.forEachObject((o) => {
+            o.selectable = false;
+            o.evented = false;
+          });
 
-        case "text":
-          setupTextMode(fc);
+          if (lineConfig.subTool === "curve") {
+            // ── Curve: PencilBrush with decimate for smooth curves ──
+            fc.isDrawingMode = true;
+            const brush = new PencilBrush(fc);
+            brush.color = lineConfig.color;
+            brush.width = lineConfig.size;
+            brush.decimate = 5;
+            fc.freeDrawingBrush = brush;
+
+            on("path:created", (e: any) => {
+              const path = e.path as Path;
+              if (!path) return;
+              path.set({
+                opacity: lineConfig.opacity,
+                selectable: true,
+                evented: true,
+              });
+              fc.requestRenderAll();
+            });
+          } else if (lineConfig.subTool === "polyline") {
+            // ── Polyline: click to add points, dblclick to finish ──
+            on("mouse:down", (opt: any) => {
+              const pointer = fc.getScenePoint(opt.e);
+              polyPointsRef.current.push(new Point(pointer.x, pointer.y));
+              if (tempPolyRef.current) fc.remove(tempPolyRef.current);
+              const pl = new Polyline(
+                polyPointsRef.current.map((p) => ({ x: p.x, y: p.y })),
+                {
+                  fill: "transparent",
+                  stroke: lineConfig.color,
+                  strokeWidth: lineConfig.size,
+                  opacity: lineConfig.opacity,
+                  selectable: false,
+                  evented: false,
+                  objectCaching: false,
+                },
+              );
+              tempPolyRef.current = pl;
+              fc.add(pl);
+              fc.requestRenderAll();
+            });
+
+            on("mouse:dblclick", () => {
+              if (
+                polyPointsRef.current.length >= 2 &&
+                tempPolyRef.current
+              ) {
+                tempPolyRef.current.set({
+                  selectable: true,
+                  evented: true,
+                });
+                fc.requestRenderAll();
+                saveHistory();
+              }
+              polyPointsRef.current = [];
+              tempPolyRef.current = null;
+            });
+          } else {
+            // ── Straight line: drag to draw ──
+            on("mouse:down", (opt: any) => {
+              const pointer = fc.getScenePoint(opt.e);
+              lineStartRef.current = new Point(pointer.x, pointer.y);
+              const l = new Line(
+                [pointer.x, pointer.y, pointer.x, pointer.y],
+                {
+                  stroke: lineConfig.color,
+                  strokeWidth: lineConfig.size,
+                  opacity: lineConfig.opacity,
+                  selectable: false,
+                  evented: false,
+                },
+              );
+              tempLineRef.current = l;
+              fc.add(l);
+            });
+
+            on("mouse:move", (opt: any) => {
+              if (!lineStartRef.current || !tempLineRef.current) return;
+              const pointer = fc.getScenePoint(opt.e);
+              tempLineRef.current.set({ x2: pointer.x, y2: pointer.y });
+              fc.requestRenderAll();
+            });
+
+            on("mouse:up", (opt: any) => {
+              if (!lineStartRef.current || !tempLineRef.current) return;
+              const pointer = fc.getScenePoint(opt.e);
+              fc.remove(tempLineRef.current);
+              const s = lineStartRef.current;
+              fc.add(
+                new Line([s.x, s.y, pointer.x, pointer.y], {
+                  stroke: lineConfig.color,
+                  strokeWidth: lineConfig.size,
+                  opacity: lineConfig.opacity,
+                  selectable: true,
+                  evented: true,
+                }),
+              );
+              lineStartRef.current = null;
+              tempLineRef.current = null;
+              fc.requestRenderAll();
+              saveHistory();
+            });
+          }
           break;
+        }
+
+        case "text": {
+          fc.selection = false;
+          fc.defaultCursor = "text";
+          fc.hoverCursor = "text";
+          fc.forEachObject((o) => {
+            o.selectable = false;
+            o.evented = false;
+          });
+
+          on("mouse:down", (opt: any) => {
+            if (opt.target) return;
+            const pointer = fc.getScenePoint(opt.e);
+            const t = new Textbox("텍스트 입력", {
+              left: pointer.x,
+              top: pointer.y,
+              width: 200,
+              fontSize: textConfig.fontSize,
+              fontFamily: textConfig.fontFamily,
+              fill: textConfig.color,
+              fontWeight: textConfig.bold ? "bold" : "normal",
+              fontStyle: textConfig.italic ? "italic" : "normal",
+              editable: true,
+              selectable: true,
+              evented: true,
+            });
+            fc.add(t);
+            fc.setActiveObject(t);
+            t.enterEditing();
+            t.selectAll();
+            fc.requestRenderAll();
+            saveHistory();
+            onToolModeChange?.("select");
+          });
+          break;
+        }
       }
 
       fc.requestRenderAll();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [toolMode, drawConfig, lineConfig, textConfig]);
 
-    // ─── Drawing mode setup ───────────────────────────────────────────
-
-    const setupDrawingMode = useCallback(
-      (fc: Canvas) => {
-        fc.isDrawingMode = true;
-        fc.selection = false;
-
-        const brush = new PencilBrush(fc);
-        brush.color = drawConfig.color;
-        brush.width = drawConfig.size;
-
-        // Brush characteristics per sub-tool
-        switch (drawConfig.subTool) {
-          case "pencil":
-            brush.width = drawConfig.size;
-            break;
-          case "marker":
-            brush.width = drawConfig.size * 2.5;
-            break;
-          case "highlighter":
-            brush.width = drawConfig.size * 4;
-            break;
-        }
-
-        fc.freeDrawingBrush = brush;
-        fc.freeDrawingBrush.color = drawConfig.color;
-        fc.freeDrawingBrush.width = brush.width;
-
-        // Handle opacity on path creation
-        const onPathCreated = (e: any) => {
-          const path = e.path as Path;
-          if (!path) return;
-
-          let effectiveOpacity = drawConfig.opacity;
-          if (drawConfig.subTool === "highlighter") {
-            effectiveOpacity = drawConfig.opacity * 0.4;
-          }
-          path.set({ opacity: effectiveOpacity });
-          fc.requestRenderAll();
-        };
-
-        fc.off("path:created", onPathCreated);
-        fc.on("path:created", onPathCreated);
-      },
-      [drawConfig],
-    );
-
-    // ─── Eraser mode ──────────────────────────────────────────────────
-
-    const setupEraserMode = useCallback((fc: Canvas) => {
-      fc.selection = false;
-      fc.defaultCursor = "crosshair";
-      fc.hoverCursor = "crosshair";
-
-      // In eraser mode, clicking an object removes it
-      fc.forEachObject((o) => {
-        o.selectable = true;
-        o.evented = true;
-      });
-
-      const onMouseDown = (opt: any) => {
-        const target = opt.target;
-        if (target) {
-          fc.remove(target);
-          fc.requestRenderAll();
-          saveHistory();
-        }
-      };
-      fc.on("mouse:down", onMouseDown);
-    }, [saveHistory]);
-
-    // ─── Line mode ───────────────────────────────────────────────────
-
-    const handleLineMouseDown = useCallback(
-      (opt: any) => {
-        const fc = fabricRef.current;
-        if (!fc) return;
-        const pointer = fc.getScenePoint(opt.e);
-
-        if (lineConfig.subTool === "polyline") {
-          polyPointsRef.current.push(new Point(pointer.x, pointer.y));
-
-          if (tempPolyRef.current) {
-            fc.remove(tempPolyRef.current);
-          }
-
-          if (polyPointsRef.current.length >= 2) {
-            const pts = polyPointsRef.current.map((p) => ({ x: p.x, y: p.y }));
-            const pl = new Polyline(pts, {
-              fill: "transparent",
-              stroke: lineConfig.color,
-              strokeWidth: lineConfig.size,
-              opacity: lineConfig.opacity,
-              selectable: false,
-              evented: false,
-              objectCaching: false,
-            });
-            tempPolyRef.current = pl;
-            fc.add(pl);
-            fc.requestRenderAll();
-          }
-          return;
-        }
-
-        // Straight or curve line
-        lineStartRef.current = new Point(pointer.x, pointer.y);
-
-        const line = new Line(
-          [pointer.x, pointer.y, pointer.x, pointer.y],
-          {
-            stroke: lineConfig.color,
-            strokeWidth: lineConfig.size,
-            opacity: lineConfig.opacity,
-            selectable: false,
-            evented: false,
-          },
-        );
-        tempLineRef.current = line;
-        fc.add(line);
-      },
-      [lineConfig],
-    );
-
-    const handleLineMouseMove = useCallback(
-      (opt: any) => {
-        const fc = fabricRef.current;
-        if (!fc || !lineStartRef.current || !tempLineRef.current) return;
-
-        const pointer = fc.getScenePoint(opt.e);
-
-        if (lineConfig.subTool === "curve") {
-          // For curve, update end point (simplified preview)
-          tempLineRef.current.set({ x2: pointer.x, y2: pointer.y });
-        } else {
-          tempLineRef.current.set({ x2: pointer.x, y2: pointer.y });
-        }
-        fc.requestRenderAll();
-      },
-      [lineConfig.subTool],
-    );
-
-    const handleLineMouseUp = useCallback(
-      (opt: any) => {
-        const fc = fabricRef.current;
-        if (!fc) return;
-
-        if (lineConfig.subTool === "polyline") return; // Polyline ends on dblclick
-
-        if (!lineStartRef.current || !tempLineRef.current) return;
-
-        const pointer = fc.getScenePoint(opt.e);
-
-        // Remove temp line
-        fc.remove(tempLineRef.current);
-
-        const start = lineStartRef.current;
-
-        if (lineConfig.subTool === "curve") {
-          // Create a quadratic bezier path
-          const midX = (start.x + pointer.x) / 2;
-          const midY = Math.min(start.y, pointer.y) - 50;
-          const pathStr = `M ${start.x} ${start.y} Q ${midX} ${midY} ${pointer.x} ${pointer.y}`;
-          const path = new Path(pathStr, {
-            fill: "transparent",
-            stroke: lineConfig.color,
-            strokeWidth: lineConfig.size,
-            opacity: lineConfig.opacity,
-            selectable: true,
-            evented: true,
-          });
-          fc.add(path);
-        } else {
-          // Straight line
-          const finalLine = new Line(
-            [start.x, start.y, pointer.x, pointer.y],
-            {
-              stroke: lineConfig.color,
-              strokeWidth: lineConfig.size,
-              opacity: lineConfig.opacity,
-              selectable: true,
-              evented: true,
-            },
-          );
-          fc.add(finalLine);
-        }
-
-        lineStartRef.current = null;
-        tempLineRef.current = null;
-        fc.requestRenderAll();
-        saveHistory();
-      },
-      [lineConfig, saveHistory],
-    );
-
-    const setupLineMode = useCallback(
-      (fc: Canvas) => {
-        fc.selection = false;
-        fc.defaultCursor = "crosshair";
-        fc.hoverCursor = "crosshair";
-
-        fc.forEachObject((o) => {
-          o.selectable = false;
-          o.evented = false;
-        });
-
-        fc.on("mouse:down", handleLineMouseDown as any);
-        fc.on("mouse:move", handleLineMouseMove as any);
-        fc.on("mouse:up", handleLineMouseUp as any);
-
-        // Double-click to finish polyline
-        fc.on("mouse:dblclick", () => {
-          if (lineConfig.subTool === "polyline" && polyPointsRef.current.length >= 2) {
-            if (tempPolyRef.current) {
-              tempPolyRef.current.set({ selectable: true, evented: true });
-              fc.requestRenderAll();
-              saveHistory();
-            }
-            polyPointsRef.current = [];
-            tempPolyRef.current = null;
-          }
-        });
-      },
-      [handleLineMouseDown, handleLineMouseMove, handleLineMouseUp, lineConfig.subTool, saveHistory],
-    );
-
-    // ─── Text mode ───────────────────────────────────────────────────
-
-    const handleTextMouseDown = useCallback(
-      (opt: any) => {
-        const fc = fabricRef.current;
-        if (!fc) return;
-
-        // Only create text on empty area
-        if (opt.target) return;
-
-        const pointer = fc.getScenePoint(opt.e);
-        const text = new Textbox("텍스트 입력", {
-          left: pointer.x,
-          top: pointer.y,
-          width: 200,
-          fontSize: textConfig.fontSize,
-          fontFamily: textConfig.fontFamily,
-          fill: textConfig.color,
-          fontWeight: textConfig.bold ? "bold" : "normal",
-          fontStyle: textConfig.italic ? "italic" : "normal",
-          editable: true,
-          selectable: true,
-          evented: true,
-        });
-
-        fc.add(text);
-        fc.setActiveObject(text);
-        text.enterEditing();
-        text.selectAll();
-        fc.requestRenderAll();
-        saveHistory();
-
-        // Switch back to select after placing text
-        setToolMode("select");
-      },
-      [textConfig, saveHistory],
-    );
-
-    const setupTextMode = useCallback(
-      (fc: Canvas) => {
-        fc.selection = false;
-        fc.defaultCursor = "text";
-        fc.hoverCursor = "text";
-
-        fc.forEachObject((o) => {
-          o.selectable = false;
-          o.evented = false;
-        });
-
-        fc.on("mouse:down", handleTextMouseDown as any);
-      },
-      [handleTextMouseDown],
-    );
-
     // ─── Floating toolbar actions ─────────────────────────────────────
 
     const handleColorChange = useCallback((color: string) => {
-      const fc = fabricRef.current;
-      if (!fc) return;
-      const obj = fc.getActiveObject();
-      if (!obj) return;
-
+      const fc = fabricRef.current; if (!fc) return;
+      const obj = fc.getActiveObject(); if (!obj) return;
       if (obj.type === "path" || obj.type === "line" || obj.type === "polyline") {
         obj.set({ stroke: color });
-      } else {
-        obj.set({ fill: color });
-      }
-      fc.requestRenderAll();
-      saveHistory();
+      } else { obj.set({ fill: color }); }
+      fc.requestRenderAll(); saveHistory();
     }, [saveHistory]);
 
     const handleDuplicate = useCallback(() => {
-      const fc = fabricRef.current;
-      if (!fc) return;
-      const obj = fc.getActiveObject();
-      if (!obj) return;
-
+      const fc = fabricRef.current; if (!fc) return;
+      const obj = fc.getActiveObject(); if (!obj) return;
       obj.clone().then((cloned: FabricObject) => {
-        cloned.set({
-          left: (cloned.left || 0) + 20,
-          top: (cloned.top || 0) + 20,
-        });
-        fc.add(cloned);
-        fc.setActiveObject(cloned);
-        fc.requestRenderAll();
-        saveHistory();
+        cloned.set({ left: (cloned.left || 0) + 20, top: (cloned.top || 0) + 20 });
+        fc.add(cloned); fc.setActiveObject(cloned); fc.requestRenderAll(); saveHistory();
       });
     }, [saveHistory]);
 
     const handleDelete = useCallback(() => {
-      const fc = fabricRef.current;
-      if (!fc) return;
-      const objs = fc.getActiveObjects();
-      objs.forEach((o) => fc.remove(o));
-      fc.discardActiveObject();
-      fc.requestRenderAll();
-      saveHistory();
+      const fc = fabricRef.current; if (!fc) return;
+      fc.getActiveObjects().forEach((o) => fc.remove(o));
+      fc.discardActiveObject(); fc.requestRenderAll(); saveHistory();
     }, [saveHistory]);
 
     const handleLock = useCallback(() => {
-      const fc = fabricRef.current;
-      if (!fc) return;
-      const obj = fc.getActiveObject();
-      if (!obj) return;
+      const fc = fabricRef.current; if (!fc) return;
+      const obj = fc.getActiveObject(); if (!obj) return;
       const locked = !obj.lockMovementX;
-      obj.set({
-        lockMovementX: locked,
-        lockMovementY: locked,
-        lockRotation: locked,
-        lockScalingX: locked,
-        lockScalingY: locked,
-        hasControls: !locked,
-      });
+      obj.set({ lockMovementX: locked, lockMovementY: locked, lockRotation: locked, lockScalingX: locked, lockScalingY: locked, hasControls: !locked });
       fc.requestRenderAll();
     }, []);
 
-    const handleBringForward = useCallback(() => {
-      const fc = fabricRef.current;
-      if (!fc) return;
-      const obj = fc.getActiveObject();
-      if (!obj) return;
-      fc.bringObjectForward(obj);
-      fc.requestRenderAll();
-      saveHistory();
-    }, [saveHistory]);
-
-    const handleSendBackward = useCallback(() => {
-      const fc = fabricRef.current;
-      if (!fc) return;
-      const obj = fc.getActiveObject();
-      if (!obj) return;
-      fc.sendObjectBackwards(obj);
-      fc.requestRenderAll();
-      saveHistory();
-    }, [saveHistory]);
-
-    const handleBringToFront = useCallback(() => {
-      const fc = fabricRef.current;
-      if (!fc) return;
-      const obj = fc.getActiveObject();
-      if (!obj) return;
-      fc.bringObjectToFront(obj);
-      fc.requestRenderAll();
-      saveHistory();
-    }, [saveHistory]);
-
-    const handleSendToBack = useCallback(() => {
-      const fc = fabricRef.current;
-      if (!fc) return;
-      const obj = fc.getActiveObject();
-      if (!obj) return;
-      fc.sendObjectToBack(obj);
-      fc.requestRenderAll();
-      saveHistory();
-    }, [saveHistory]);
+    const handleBringForward = useCallback(() => { const fc = fabricRef.current; if (!fc) return; const o = fc.getActiveObject(); if (o) { fc.bringObjectForward(o); fc.requestRenderAll(); saveHistory(); } }, [saveHistory]);
+    const handleSendBackward = useCallback(() => { const fc = fabricRef.current; if (!fc) return; const o = fc.getActiveObject(); if (o) { fc.sendObjectBackwards(o); fc.requestRenderAll(); saveHistory(); } }, [saveHistory]);
+    const handleBringToFront = useCallback(() => { const fc = fabricRef.current; if (!fc) return; const o = fc.getActiveObject(); if (o) { fc.bringObjectToFront(o); fc.requestRenderAll(); saveHistory(); } }, [saveHistory]);
+    const handleSendToBack = useCallback(() => { const fc = fabricRef.current; if (!fc) return; const o = fc.getActiveObject(); if (o) { fc.sendObjectToBack(o); fc.requestRenderAll(); saveHistory(); } }, [saveHistory]);
 
     // ─── Imperative handle ────────────────────────────────────────────
 
     useImperativeHandle(ref, () => ({
       getCanvas: () => fabricRef.current,
       exportImage: (format = "png") => {
-        const fc = fabricRef.current;
-        if (!fc) return null;
+        const fc = fabricRef.current; if (!fc) return null;
         return fc.toDataURL({ format: format as any, multiplier: 2 });
       },
-      toJSON: () => {
-        const fc = fabricRef.current;
-        if (!fc) return null;
-        return fc.toJSON();
-      },
+      toJSON: () => { const fc = fabricRef.current; return fc ? fc.toJSON() : null; },
       loadJSON: (json: any) => {
-        const fc = fabricRef.current;
-        if (!fc) return;
+        const fc = fabricRef.current; if (!fc) return;
         skipSaveRef.current = true;
-        fc.loadFromJSON(json).then(() => {
-          fc.requestRenderAll();
-          historyRef.current = [JSON.stringify(json)];
-          futureRef.current = [];
-        });
+        fc.loadFromJSON(json).then(() => { fc.requestRenderAll(); historyRef.current = [JSON.stringify(json)]; futureRef.current = []; });
       },
       clear: () => {
-        const fc = fabricRef.current;
-        if (!fc) return;
-        saveHistory();
-        fc.clear();
-        fc.backgroundColor = "#ffffff";
-        fc.requestRenderAll();
+        const fc = fabricRef.current; if (!fc) return;
+        saveHistory(); fc.clear(); fc.backgroundColor = "#ffffff"; fc.requestRenderAll();
       },
       undo: () => {
-        const fc = fabricRef.current;
-        if (!fc || historyRef.current.length <= 1) return;
-
-        const current = historyRef.current.pop()!;
-        futureRef.current.push(current);
-
-        const prev = historyRef.current[historyRef.current.length - 1];
+        const fc = fabricRef.current; if (!fc || historyRef.current.length <= 1) return;
+        futureRef.current.push(historyRef.current.pop()!);
         skipSaveRef.current = true;
-        fc.loadFromJSON(JSON.parse(prev)).then(() => {
-          fc.requestRenderAll();
-        });
+        fc.loadFromJSON(JSON.parse(historyRef.current[historyRef.current.length - 1])).then(() => fc.requestRenderAll());
       },
       redo: () => {
-        const fc = fabricRef.current;
-        if (!fc || futureRef.current.length === 0) return;
-
+        const fc = fabricRef.current; if (!fc || futureRef.current.length === 0) return;
         const next = futureRef.current.pop()!;
         historyRef.current.push(next);
         skipSaveRef.current = true;
-        fc.loadFromJSON(JSON.parse(next)).then(() => {
-          fc.requestRenderAll();
-        });
+        fc.loadFromJSON(JSON.parse(next)).then(() => fc.requestRenderAll());
       },
     }), [saveHistory]);
 
-    // ─── Render ───────────────────────────────────────────────────────
+    // ─── Render (canvas only, no internal toolbar) ────────────────────
 
     return (
-      <div
-        ref={wrapperRef}
-        className={`canva-editor ${className || ""}`}
-      >
-        {/* Left Toolbar */}
-        <CanvaToolbar
-          toolMode={toolMode}
-          onToolModeChange={setToolMode}
-          drawConfig={drawConfig}
-          onDrawConfigChange={setDrawConfig}
-          lineConfig={lineConfig}
-          onLineConfigChange={setLineConfig}
-          textConfig={textConfig}
-          onTextConfigChange={setTextConfig}
-        />
-
-        {/* Canvas Area */}
+      <div ref={wrapperRef} className={`canva-editor ${className || ""}`}>
         <div className="canva-editor__canvas-wrap">
           <canvas ref={canvasElRef} data-testid="canva-editor-canvas" />
 
-          {/* Floating Toolbar */}
           {floatingPos.visible && selectedObj && toolMode === "select" && (
             <CanvaFloatingToolbar
               x={floatingPos.x}

@@ -63,7 +63,15 @@ import {
   ArrowLeft,
   Boxes,
 } from "lucide-react";
-import { CanvaEditor, type CanvaEditorHandle } from "@/components/canva-editor";
+import {
+  CanvaEditor,
+  CanvaToolbar,
+  type CanvaEditorHandle,
+  type ToolMode,
+  type DrawingConfig,
+  type LineConfig,
+  type TextConfig,
+} from "@/components/canva-editor";
 import { FlowStepper } from "@/components/flow-stepper";
 import { EditorOnboarding } from "@/components/editor-onboarding";
 import { getFlowState, clearFlowState } from "@/lib/flow";
@@ -4753,6 +4761,17 @@ export default function StoryPage() {
   // ─── Canva drawing editor state ─────────────────────────────────────
   const canvaEditorRef = useRef<CanvaEditorHandle | null>(null);
   const isDrawingMode = activeLeftTab === "drawing";
+  const [canvaToolMode, setCanvaToolMode] = useState<ToolMode>("select");
+  const [canvaDrawConfig, setCanvaDrawConfig] = useState<DrawingConfig>({
+    subTool: "pencil", color: "#000000", size: 4, opacity: 1,
+  });
+  const [canvaLineConfig, setCanvaLineConfig] = useState<LineConfig>({
+    subTool: "straight", color: "#000000", size: 3, opacity: 1,
+  });
+  const [canvaTextConfig, setCanvaTextConfig] = useState<TextConfig>({
+    fontFamily: "Pretendard, Apple SD Gothic Neo, sans-serif",
+    fontSize: 24, color: "#000000", bold: false, italic: false,
+  });
 
   const toggleLeftTab = (tab: LeftTab) => {
     setActiveLeftTab((prev) => {
@@ -5059,7 +5078,7 @@ export default function StoryPage() {
   const LEFT_TABS: { id: LeftTab; icon: typeof Wand2; label: string }[] = [
     { id: "image", icon: ImageIcon as any, label: "이미지 선택" },
     { id: "ai", icon: Wand2, label: "AI 프롬프트" },
-    { id: "drawing", icon: Pen as any, label: "드로잉" },
+    { id: "drawing", icon: Pen as any, label: "도구" },
     { id: "element", icon: Boxes as any, label: "요소" },
     { id: "effects", icon: Sparkles as any, label: "효과" },
   ];
@@ -5085,7 +5104,21 @@ export default function StoryPage() {
       </div>
 
       <div className="flex flex-1 h-full">
-        {activeLeftTab && (
+        {/* Standalone CanvaToolbar strip — appears right next to icon sidebar when 도구 tab is active */}
+        {isDrawingMode && (
+          <CanvaToolbar
+            toolMode={canvaToolMode}
+            onToolModeChange={setCanvaToolMode}
+            drawConfig={canvaDrawConfig}
+            onDrawConfigChange={setCanvaDrawConfig}
+            lineConfig={canvaLineConfig}
+            onLineConfigChange={setCanvaLineConfig}
+            textConfig={canvaTextConfig}
+            onTextConfigChange={setCanvaTextConfig}
+          />
+        )}
+
+        {activeLeftTab && activeLeftTab !== "drawing" && (
           <div
             className="h-full w-[320px] bg-card overflow-y-auto border-r"
             data-testid="left-panel-content"
@@ -5702,41 +5735,6 @@ export default function StoryPage() {
                         mode="image"
                       />
                     </>
-                  )}
-
-                  {activeLeftTab === "drawing" && (
-                    <div>
-                      <div className="flex items-center justify-between gap-2 mb-3">
-                        <h3 className="text-sm font-semibold">Canva 드로잉 에디터</h3>
-                        <button
-                          onClick={() => setActiveLeftTab(null)}
-                          className="text-muted-foreground hover-elevate rounded-md p-1"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground leading-relaxed mb-3">
-                        좌측 툴바에서 도구를 선택하세요. 객체를 클릭하면 크기 조절, 회전, 이동이 가능합니다.
-                      </p>
-                      <div className="grid grid-cols-2 gap-2 text-[10px]">
-                        <div className="p-2 bg-muted/50 rounded-md">
-                          <span className="font-semibold block mb-0.5">선택 툴</span>
-                          <span className="text-muted-foreground">객체 선택/이동/크기조절</span>
-                        </div>
-                        <div className="p-2 bg-muted/50 rounded-md">
-                          <span className="font-semibold block mb-0.5">드로잉 모드</span>
-                          <span className="text-muted-foreground">연필/마커/형광펜</span>
-                        </div>
-                        <div className="p-2 bg-muted/50 rounded-md">
-                          <span className="font-semibold block mb-0.5">선 모드</span>
-                          <span className="text-muted-foreground">직선/곡선/꺾인선</span>
-                        </div>
-                        <div className="p-2 bg-muted/50 rounded-md">
-                          <span className="font-semibold block mb-0.5">텍스트</span>
-                          <span className="text-muted-foreground">폰트/크기 제어</span>
-                        </div>
-                      </div>
-                    </div>
                   )}
 
                 {activeLeftTab === "element" && !activeElementSubTab && (
@@ -6523,6 +6521,11 @@ export default function StoryPage() {
                               width={450}
                               height={600}
                               className="rounded-md"
+                              toolMode={canvaToolMode}
+                              drawConfig={canvaDrawConfig}
+                              lineConfig={canvaLineConfig}
+                              textConfig={canvaTextConfig}
+                              onToolModeChange={setCanvaToolMode}
                             />
                           </div>
                         )}
