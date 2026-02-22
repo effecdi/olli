@@ -4235,12 +4235,9 @@ export default function StoryPage() {
         bottomScript: null,
         bubbles: [],
         characters: [],
-<<<<<<< HEAD
         drawingLayers: [],
-=======
         textElements: [],
         lineElements: [],
->>>>>>> origin/claude/svg-story-effects-0ou2v
       };
       setPanels([fresh]);
       setActivePanelIndex(0);
