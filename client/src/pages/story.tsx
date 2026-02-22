@@ -3138,8 +3138,9 @@ export default function StoryPage() {
         };
         img.src = p.backgroundImageUrl;
       }
-      // Rehydrate drawing layer images
+      // Rehydrate drawing layer images + backward-compatible opacity
       (p.drawingLayers || []).forEach((dl) => {
+        if (dl.opacity === undefined || dl.opacity === null) dl.opacity = 1;
         if (dl.imageData && !dl.imageEl) {
           const img = new Image();
           img.onload = () => {
