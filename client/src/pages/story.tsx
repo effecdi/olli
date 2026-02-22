@@ -6780,41 +6780,11 @@ export default function StoryPage() {
                   ))}
                 </div>
 
-                {/* Selected effect editing UI */}
+                {/* Selected effect: inline color picker */}
                 {selEf && (
-                  <div className="space-y-3 rounded-md border border-border p-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[12px] font-semibold">선택된 효과 편집</p>
-                      <Button size="sm" variant="destructive" onClick={deleteEffect} className="h-6 px-2 text-[11px]">삭제</Button>
-                    </div>
-                    <div>
-                      <Label className="text-[11px] mb-1 block">투명도 {Math.round((selEf.opacity ?? 1) * 100)}%</Label>
-                      <Slider value={[(selEf.opacity ?? 1) * 100]} onValueChange={([v]) => updateEffect({ opacity: v / 100 })} min={10} max={100} step={5} />
-                    </div>
-                    <div>
-                      <Label className="text-[11px] mb-1 block">크기 조정</Label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <span className="text-[10px] text-muted-foreground">너비 {Math.round(selEf.width)}</span>
-                          <Slider value={[selEf.width]} onValueChange={([v]) => updateEffect({ width: v })} min={30} max={400} step={10} />
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-muted-foreground">높이 {Math.round(selEf.height)}</span>
-                          <Slider value={[selEf.height]} onValueChange={([v]) => updateEffect({ height: v })} min={30} max={400} step={10} />
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <Label className="text-[11px] mb-1 block">회전 {Math.round((selEf.rotation ?? 0) * 180 / Math.PI)}°</Label>
-                      <Slider value={[(selEf.rotation ?? 0) * 180 / Math.PI]} onValueChange={([v]) => updateEffect({ rotation: v * Math.PI / 180 })} min={-180} max={180} step={5} />
-                    </div>
-                    <div>
-                      <Label className="text-[11px] mb-1 block">색상</Label>
-                      <div className="flex gap-2">
-                        <input type="color" value={selEf.color ?? "#222222"} onChange={e => updateEffect({ color: e.target.value, strokeColor: e.target.value })} className="h-8 w-16 cursor-pointer rounded border" />
-                        <span className="text-[10px] text-muted-foreground self-center">효과 색</span>
-                      </div>
-                    </div>
+                  <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-muted/40 border border-border">
+                    <input type="color" value={selEf.color ?? "#222222"} onChange={e => updateEffect({ color: e.target.value, strokeColor: e.target.value })} className="h-6 w-6 cursor-pointer rounded border-0 p-0" />
+                    <span className="text-[11px] text-muted-foreground">효과 색</span>
                   </div>
                 )}
               </div>
