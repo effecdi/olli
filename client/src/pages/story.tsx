@@ -6822,12 +6822,18 @@ export default function StoryPage() {
                         <div className={`w-7 h-7 rounded overflow-hidden shrink-0 border ${
                           item.type === "bubble" ? "border-sky-400/50 bg-sky-50 dark:bg-sky-950/30"
                           : item.type === "drawing" ? "border-amber-400/50 bg-amber-50 dark:bg-amber-950/30"
+                          : item.type === "text" ? "border-violet-400/50 bg-violet-50 dark:bg-violet-950/30"
+                          : item.type === "line" ? "border-rose-400/50 bg-rose-50 dark:bg-rose-950/30"
                           : "border-emerald-400/50 bg-emerald-50 dark:bg-emerald-950/30"
                         }`}>
                           {item.type === "drawing" ? (
                             <div className="w-full h-full flex items-center justify-center text-amber-500">
                               <DrawingIcon className="h-3.5 w-3.5" />
                             </div>
+                          ) : item.type === "text" ? (
+                            <div className="w-full h-full flex items-center justify-center text-violet-500 text-[10px] font-semibold">T</div>
+                          ) : item.type === "line" ? (
+                            <div className="w-full h-full flex items-center justify-center text-rose-500 text-[10px] font-semibold">L</div>
                           ) : item.thumb ? (
                             <img src={item.thumb} alt="" className="w-full h-full object-cover" />
                           ) : (
