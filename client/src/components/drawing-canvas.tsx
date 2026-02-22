@@ -20,6 +20,7 @@ export interface DrawingLayer {
   visible: boolean;
   zIndex: number;
   label: string;
+  opacity: number; // 0-1, per-layer opacity
 }
 
 export interface DrawingToolState {
@@ -213,6 +214,7 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
         for (const layer of sorted) {
           if (!layer.visible || !layer.imageEl) continue;
           compCtx.save();
+          compCtx.globalAlpha = layer.opacity ?? 1;
           if (layer.type === "eraser") {
             compCtx.globalCompositeOperation = "destination-out";
           } else {
