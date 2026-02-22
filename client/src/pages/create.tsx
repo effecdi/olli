@@ -33,15 +33,41 @@ export default function CreatePage() {
   const [style, setStyle] = useState("simple-line");
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [characterId, setCharacterId] = useState<number | null>(null);
+  const [sourceImage, setSourceImage] = useState<string | null>(null);
+  const [sourceImageName, setSourceImageName] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: usage, isLoading: usageLoading } = useQuery<{ tier: string; credits: number }>({ queryKey: ["/api/usage"] });
   const isPro = usage?.tier === "pro";
-  // BUG FIX 2: If usage is still loading, credits are UNKNOWN — do NOT show "완료" yet.
-  // Previously: (undefined ?? 0) = 0 → button disabled + "오늘 무료 생성 완료" flash on every load.
   const isOutOfCredits = !usageLoading && !isPro && typeof usage?.credits === "number" && usage.credits <= 0;
   const [showStyleDialog, setShowStyleDialog] = useState(false);
+
+  const handleImageUpload = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "이미지 파일만 업로드 가능합니다", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "파일 크기 초과", description: "10MB 이하의 이미지를 업로드해주세요.", variant: "destructive" });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setSourceImage(reader.result as string);
+      setSourceImageName(file.name);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) handleImageUpload(file);
+  };
+
+  const canGenerate = (prompt.trim().length > 0 || !!sourceImage);
 
   useEffect(() => {
     try {
