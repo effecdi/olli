@@ -6,7 +6,8 @@
       "Bash(npx vite build 2>&1 | tail -20)",
       "Bash(git status -u)",
       "Bash(git push)",
-      "Bash(find /Users/ihyeonjeong/olli_project -type d -name \".env*\" -o -name \"supabase\" -o -name \"migrations\" 2>/dev/null | grep -v node_modules | grep -v \".git\")"
+      "Bash(find /Users/ihyeonjeong/olli_project -type d -name \".env*\" -o -name \"supabase\" -o -name \"migrations\" 2>/dev/null | grep -v node_modules | grep -v \".git\")",
+      "Bash(npx vite build 2>&1 | tail -30)"
     ]
   }
 }
