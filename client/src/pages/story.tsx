@@ -69,6 +69,10 @@ import {
   PenLine,
   Minus,
   Menu,
+  Spline,
+  GitCommitHorizontal,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import DrawingCanvas, { type DrawingToolState, type DrawingCanvasHandle } from "@/components/drawing-canvas";
 import "@/components/drawing-tools-panel.scss";
