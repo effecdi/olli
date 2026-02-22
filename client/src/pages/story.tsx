@@ -75,6 +75,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import DrawingCanvas, { type DrawingToolState, type DrawingCanvasHandle } from "@/components/drawing-canvas";
+import CanvasFloatingToolbar from "@/components/canvas-floating-toolbar";
 import "@/components/drawing-tools-panel.scss";
 import { FlowStepper } from "@/components/flow-stepper";
 import { EditorOnboarding } from "@/components/editor-onboarding";
