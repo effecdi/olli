@@ -207,6 +207,12 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
 
     const startStroke = useCallback(
       (point: Point) => {
+        // Text tool: delegate to external text input handler
+        if (toolState.tool === "text") {
+          onRequestTextInput?.(point.x, point.y);
+          return;
+        }
+
         isDrawingRef.current = true;
         pointsRef.current = [point];
         lastPointRef.current = point;
@@ -218,6 +224,14 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
         if (!drawLayer) return;
         const ctx = drawLayer.getContext("2d");
         if (!ctx) return;
+
+        // Line tool: save start point and snapshot for preview
+        if (toolState.tool === "line") {
+          lineStartRef.current = point;
+          preStrokeImageRef.current = ctx.getImageData(0, 0, width, height);
+          composite();
+          return;
+        }
 
         if (toolState.tool === "eraser") {
           ctx.globalCompositeOperation = "destination-out";
@@ -240,7 +254,7 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
 
         composite();
       },
-      [toolState, saveToHistory, composite],
+      [toolState, saveToHistory, composite, width, height, onRequestTextInput],
     );
 
     const continueStroke = useCallback(
