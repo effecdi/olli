@@ -259,6 +259,18 @@ interface ScriptData {
   y?: number;
 }
 
+type DrawingLayerType = "drawing" | "straight" | "curve" | "polyline" | "text" | "eraser";
+
+interface DrawingLayer {
+  id: string;
+  type: DrawingLayerType;
+  imageData: string;       // base64 PNG (single stroke)
+  imageEl?: HTMLImageElement | null;  // runtime cache (not serialized)
+  visible: boolean;
+  zIndex: number;
+  label: string;           // "드로잉", "직선", "곡선", "꺾인선", "텍스트", "지우개"
+}
+
 interface PanelData {
   id: string;
   topScript: ScriptData | null;
@@ -267,6 +279,7 @@ interface PanelData {
   characters: CharacterPlacement[];
   backgroundImageUrl?: string;
   backgroundImageEl?: HTMLImageElement | null;
+  drawingLayers: DrawingLayer[];
 }
 
 function generateId() {
