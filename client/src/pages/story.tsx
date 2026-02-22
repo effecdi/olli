@@ -6286,7 +6286,6 @@ export default function StoryPage() {
                               height={600}
                               toolState={drawingToolState}
                               className="rounded-md"
-<<<<<<< HEAD
                               drawingLayers={panel.drawingLayers || []}
                               onLayerCreated={(newLayer) => {
                                 drawingUndoStackRef.current = [];
@@ -6301,9 +6300,7 @@ export default function StoryPage() {
                                 setTextInputPos({ x: (x / 450) * 100, y: (y / 600) * 100 });
                                 setTextInputValue("");
                               }}
-=======
                               onStrokeEnd={() => setDrawingLayerSelected(true)}
->>>>>>> origin/claude/svg-story-effects-0ou2v
                             />
                             {/* Text input overlay */}
                             {textInputPos && selectedToolItem === "text" && (
