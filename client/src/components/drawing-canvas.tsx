@@ -269,6 +269,7 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
         visible: true,
         zIndex: maxZ + 1,
         label: LAYER_LABELS[layerType] || layerType,
+        opacity: 1,
       };
 
       // Load imageEl
