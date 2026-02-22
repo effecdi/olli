@@ -6490,8 +6490,9 @@ export default function StoryPage() {
                             setTimeout(() => bubbleTextareaRef.current?.focus(), 80);
                           }}
                           onDoubleClickBubble={() => {
-                            // Switch to bubble tab on double-click
-                            setActiveLeftTab("bubble");
+                            // Switch to element > bubble sub-tab on double-click
+                            setActiveLeftTab("element");
+                            setActiveElementSubTab("bubble");
                             setTimeout(() => bubbleTextareaRef.current?.focus(), 120);
                           }}
                           onSelectEffect={(id) => {
