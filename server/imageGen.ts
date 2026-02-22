@@ -264,6 +264,10 @@ export async function generatePoseImage(
 ): Promise<string> {
   const config = getStyleConfig(character.style);
 
+  // 한국어 프롬프트를 영어로 번역
+  const translatedPosePrompt = await translateToEnglish(posePrompt, ai);
+  const translatedCharPrompt = await translateToEnglish(character.prompt, ai);
+
   const parts: any[] = [];
 
   parts.push({
@@ -275,11 +279,11 @@ Generate a new pose of the same character described below. Keep the character lo
 
 IMPORTANT: Generate the image in 4:3 aspect ratio (width:height = 4:3). The image should be slightly wider than it is tall.
 
-Original character description: ${character.prompt}
+Original character description: ${translatedCharPrompt}
 Style: ${config.keywords}
-New pose/expression: ${posePrompt}
+New pose/expression: ${translatedPosePrompt}
 
-Keep the SAME style. Single character. Do NOT write any text or words in the image.`
+Keep the SAME style. Single character. Do NOT write any text or words in the image. Do NOT render any Korean, Japanese, Chinese or other non-Latin characters.`
   });
 
   if (character.imageUrl.startsWith("data:")) {
@@ -300,10 +304,10 @@ Look at this reference character image. Generate the EXACT SAME character in a d
 
 IMPORTANT: Generate the image in 4:3 aspect ratio (width:height = 4:3). The image should be slightly wider than it is tall.
 
-New pose/expression: ${posePrompt}
+New pose/expression: ${translatedPosePrompt}
 Style: ${config.keywords}
 
-Keep the character identical to the reference. Only change the pose. Single character. Do NOT write any text or words in the image.`
+Keep the character identical to the reference. Only change the pose. Single character. Do NOT write any text or words in the image. Do NOT render any Korean, Japanese, Chinese or other non-Latin characters.`
       };
     }
   }
