@@ -6470,6 +6470,7 @@ export default function StoryPage() {
                                 ...activePanel,
                                 drawingLayers: (activePanel.drawingLayers || []).filter(dl => dl.id !== item.id),
                               });
+                              if (selectedDrawingLayerId === item.id) setSelectedDrawingLayerId(null);
                             }
                           }}
                         >
