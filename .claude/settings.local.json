@@ -23,7 +23,9 @@
       "Bash(for c in cb856b1 cb17c6c fd0f1dd 30ffa7f bfd16f4 ba42556 0828604 9bd8b77; do echo \"=== $c ===\" && git -C /Users/ihyeonjeong/olli_project show --stat $c | head -8; done)",
       "Bash(git -C /Users/ihyeonjeong/olli_project diff .claude/settings.local.json)",
       "Bash(git -C /Users/ihyeonjeong/olli_project push)",
-      "Bash(npx vite build 2>&1 | tail -5)"
+      "Bash(npx vite build 2>&1 | tail -5)",
+      "Bash(npx tsc --noEmit --project client/tsconfig.json 2>&1 | head -30)",
+      "Bash(npx tsc --noEmit 2>&1 | head -40)"
     ]
   }
 }
