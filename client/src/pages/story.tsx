@@ -4292,6 +4292,14 @@ export default function StoryPage() {
           y: c.y,
           scale: c.scale,
         })),
+        drawingLayers: (p.drawingLayers || []).map((dl) => ({
+          id: dl.id,
+          type: dl.type,
+          imageData: dl.imageData,
+          visible: dl.visible,
+          zIndex: dl.zIndex,
+          label: dl.label,
+        })),
       })),
       topic,
     });
