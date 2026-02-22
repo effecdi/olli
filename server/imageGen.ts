@@ -350,14 +350,20 @@ export async function generateWithBackground(
   backgroundPrompt: string,
   itemsPrompt?: string
 ): Promise<string> {
+  // 한국어 프롬프트를 영어로 번역
+  const translatedBgPrompt = await translateToEnglish(backgroundPrompt, ai);
+  const translatedItemsPrompt = itemsPrompt ? await translateToEnglish(itemsPrompt, ai) : undefined;
+
   const parts: any[] = [];
 
-  const itemsInstruction = itemsPrompt
-    ? `Also add these items/props around or with the character: ${itemsPrompt}.`
+  const itemsInstruction = translatedItemsPrompt
+    ? `Also add these items/props around or with the character: ${translatedItemsPrompt}.`
     : "";
 
   parts.push({
     text: `Take this character image and place the character into a new scene with a background and optional items.
+
+${noTextRule}
 
 IMPORTANT RULES:
 - Keep the character looking EXACTLY the same - same style, same features, same colors, same proportions
@@ -366,12 +372,12 @@ IMPORTANT RULES:
 - The background should complement the character, not overwhelm it
 - Keep the overall style simple and cute, matching Korean Instagram webtoon (instatoon) aesthetics
 
-Background scene: ${backgroundPrompt}
+Background scene: ${translatedBgPrompt}
 ${itemsInstruction}
 
 IMPORTANT: Generate the image in 4:3 aspect ratio (width:height = 4:3). The scene should be slightly wider than it is tall.
 
-Make the background and items in the same simple, cute drawing style as the character. Keep thick outlines and flat colors. Do NOT write any text or words in the image.`
+Make the background and items in the same simple, cute drawing style as the character. Keep thick outlines and flat colors. Do NOT write any text or words in the image. Do NOT render any Korean, Japanese, Chinese or other non-Latin characters.`
   });
 
   const match = sourceImageData.match(/^data:([^;]+);base64,(.+)$/);
