@@ -5389,16 +5389,10 @@ export default function StoryPage() {
                               className="w-full"
                             />
                           </div>
-<<<<<<< HEAD
                           )}
                           <div className="tools-compact-panel__settings-actions">
                             <button
                               onClick={() => handleDrawingUndo()}
-=======
-                          <div className="tools-compact-panel__settings-actions">
-                            <button
-                              onClick={() => drawingCanvasRef.current?.undo()}
->>>>>>> claude/svg-story-effects-0ou2v
                               className="tools-compact-panel__action-btn"
                               title="실행 취소"
                             >
