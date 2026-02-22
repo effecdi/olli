@@ -1193,6 +1193,7 @@ function PanelCanvas({
           ctx.save();
           ctx.translate(ch.x, ch.y);
           ctx.rotate(ch.rotation || 0);
+          if (ch.flipX) ctx.scale(-1, 1);
           ctx.drawImage(ch.imageEl, -w / 2, -h / 2, w, h);
           ctx.restore();
         } else if (ch.imageUrl) {
