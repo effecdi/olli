@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Wand2, ArrowRight, Loader2, Palette, Sparkles, MessageCircle, Bot, Lock } from "lucide-react";
+import { Wand2, ArrowRight, Loader2, Palette, Sparkles, MessageCircle, Bot, Lock, UploadCloud, X, ImageIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { FlowStepper } from "@/components/flow-stepper";
 import { setFlowState } from "@/lib/flow";
