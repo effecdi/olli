@@ -6671,7 +6671,7 @@ export default function StoryPage() {
             eraser: Eraser,
           };
           const rightLayerItems: Array<{
-            type: "char" | "bubble" | "drawing";
+            type: "char" | "bubble" | "drawing" | "text" | "line";
             id: string;
             z: number;
             label: string;
