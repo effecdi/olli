@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo, type RefObject } from "react";
 import { useSearch } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -59,7 +59,10 @@ import {
   Sparkles,
   Zap,
   Star,
+  Pen,
 } from "lucide-react";
+import DrawingCanvas, { type DrawingToolState, type DrawingCanvasHandle } from "@/components/drawing-canvas";
+import DrawingToolsPanel from "@/components/drawing-tools-panel";
 import { FlowStepper } from "@/components/flow-stepper";
 import { EditorOnboarding } from "@/components/editor-onboarding";
 import { getFlowState, clearFlowState } from "@/lib/flow";
@@ -4740,9 +4743,20 @@ export default function StoryPage() {
   const panelCanvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map());
   const bubbleTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  type LeftTab = "image" | "ai" | "script" | "bubble" | "template" | "effects" | null;
+  type LeftTab = "image" | "ai" | "script" | "bubble" | "template" | "effects" | "drawing" | null;
   const [activeLeftTab, setActiveLeftTab] = useState<LeftTab>(null);
   const [selectedEffectId, setSelectedEffectId] = useState<string | null>(null);
+
+  // ─── Drawing tool state ─────────────────────────────────────────────
+  const [drawingToolState, setDrawingToolState] = useState<DrawingToolState>({
+    tool: "brush",
+    brushType: "ballpoint",
+    color: "#000000",
+    size: 4,
+    opacity: 1,
+  });
+  const drawingCanvasRef = useRef<DrawingCanvasHandle | null>(null);
+  const isDrawingMode = activeLeftTab === "drawing";
 
   const toggleLeftTab = (tab: LeftTab) => {
     setActiveLeftTab((prev) => (prev === tab ? null : tab));
@@ -5045,6 +5059,7 @@ export default function StoryPage() {
   const LEFT_TABS: { id: LeftTab; icon: typeof Wand2; label: string }[] = [
     { id: "image", icon: ImageIcon as any, label: "이미지 선택" },
     { id: "ai", icon: Wand2, label: "AI 프롬프트" },
+    { id: "drawing", icon: Pen as any, label: "드로잉" },
     { id: "script", icon: Type as any, label: "자막 설정" },
     { id: "bubble", icon: MessageSquare as any, label: "말풍선" },
     { id: "template", icon: Layers as any, label: "템플릿" },
@@ -5689,6 +5704,15 @@ export default function StoryPage() {
                         mode="image"
                       />
                     </>
+                  )}
+
+                  {activeLeftTab === "drawing" && (
+                    <DrawingToolsPanel
+                      toolState={drawingToolState}
+                      onToolStateChange={setDrawingToolState}
+                      canvasRef={drawingCanvasRef as RefObject<DrawingCanvasHandle | null>}
+                      onClose={() => setActiveLeftTab(null)}
+                    />
                   )}
 
                 {activeLeftTab === "bubble" && activePanel && (
@@ -6382,6 +6406,33 @@ export default function StoryPage() {
                           selectedEffectId={activePanelIndex === i ? selectedEffectId : null}
                           onDeletePanel={() => removePanel(i)}
                         />
+
+                        {/* Drawing canvas overlay — only on active panel in drawing mode */}
+                        {isDrawingMode && activePanelIndex === i && (
+                          <div
+                            className={`drawing-canvas-wrapper ${isDrawingMode ? "drawing-canvas-wrapper--active" : ""}`}
+                            style={{
+                              position: "absolute",
+                              top: 0,
+                              left: 0,
+                              width: "100%",
+                              height: "100%",
+                              zIndex: 20,
+                            }}
+                          >
+                            <DrawingCanvas
+                              ref={drawingCanvasRef}
+                              width={450}
+                              height={600}
+                              toolState={drawingToolState}
+                              className="rounded-md"
+                            />
+                            <div className="drawing-mode-indicator">
+                              <span className="drawing-mode-indicator__dot" />
+                              드로잉 모드
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </ContextMenuTrigger>
                     <ContextMenuContent>
