@@ -6188,7 +6188,7 @@ export default function StoryPage() {
                     { type: "tangled_ball", label: "복잡한 감정", emoji: "🧶", desc: "엉킨 실타래" },
                   ];
 
-                  const addEffect = (type: string) => {
+                  const addEffect = (type: EffectLayerType) => {
                     if (!activePanel) return;
                     const cx = 200, cy = 200, sz = 100;
                     const newEffect: EffectLayer = {
