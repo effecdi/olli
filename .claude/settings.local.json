@@ -3,7 +3,10 @@
     "allow": [
       "Bash(find /Users/ihyeonjeong/olli_project -maxdepth 3 -type d -name \"auth*\" -o -name \"*login*\" -o -name \"*oauth*\" 2>/dev/null | grep -v node_modules)",
       "Bash(npx tsc --noEmit --project tsconfig.json 2>&1 | head -40)",
-      "Bash(npx vite build 2>&1 | tail -20)"
+      "Bash(npx vite build 2>&1 | tail -20)",
+      "Bash(git status -u)",
+      "Bash(git push)",
+      "Bash(find /Users/ihyeonjeong/olli_project -type d -name \".env*\" -o -name \"supabase\" -o -name \"migrations\" 2>/dev/null | grep -v node_modules | grep -v \".git\")"
     ]
   }
 }
