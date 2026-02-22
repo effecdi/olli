@@ -906,6 +906,111 @@ function drawEffectLayer(ctx: CanvasRenderingContext2D, ef: EffectLayer) {
       }
       break;
     }
+
+    case "blush_lines": {
+      // 뿌끄 (부끄러움) — 볼에 빗금 치듯 그어지는 사선(//) 묶음
+      const vb = Math.min(w, h) / 100;
+      ctx.strokeStyle = strokeColor;
+      ctx.lineCap = "round";
+
+      // 두 묶음: 왼쪽 볼 + 오른쪽 볼
+      const groups = [
+        { cx: -18, cy: 4, count: 4, spread: 8 },
+        { cx: 18, cy: 4, count: 4, spread: 8 },
+      ];
+
+      for (const g of groups) {
+        for (let i = 0; i < g.count; i++) {
+          const offsetX = (i - (g.count - 1) / 2) * g.spread;
+          const jitX = (r() - 0.5) * 2;
+          const jitY = (r() - 0.5) * 2;
+          const lineLen = 10 + r() * 6;
+          ctx.lineWidth = (1.5 + r() * 1.2) * vb;
+          ctx.globalAlpha = opacity * (0.55 + r() * 0.45);
+
+          // 사선 (/) — 왼쪽 아래에서 오른쪽 위로
+          const x1 = (g.cx + offsetX + jitX - lineLen * 0.35) * vb;
+          const y1 = (g.cy + jitY + lineLen * 0.5) * vb;
+          const x2 = (g.cx + offsetX + jitX + lineLen * 0.35) * vb;
+          const y2 = (g.cy + jitY - lineLen * 0.5) * vb;
+
+          ctx.stroke(new Path2D(`M ${x1.toFixed(2)} ${y1.toFixed(2)} L ${x2.toFixed(2)} ${y2.toFixed(2)}`));
+        }
+      }
+      ctx.globalAlpha = opacity;
+      break;
+    }
+
+    case "sigh_breath": {
+      // 한숨/입김 — 입에서 빠져나가는 곡선 형태의 한숨 기호
+      const vb = Math.min(w, h) / 100;
+      ctx.strokeStyle = strokeColor;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      // 3~4개의 곡선 한숨 줄기, 오른쪽으로 퍼져나감
+      const streamCount = 3 + Math.floor(r() * 2);
+      for (let i = 0; i < streamCount; i++) {
+        const baseY = (i - (streamCount - 1) / 2) * 12;
+        const jitY = (r() - 0.5) * 6;
+        const startX = -8;
+        const endX = 22 + r() * 16;
+        const midX = (startX + endX) / 2;
+        const sway = (r() - 0.5) * 14;
+
+        ctx.lineWidth = (1.5 + r() * 1.5) * vb;
+        ctx.globalAlpha = opacity * (0.35 + r() * 0.55);
+
+        // S자 곡선: cubic Bézier
+        const d =
+          `M ${(startX * vb).toFixed(2)} ${((baseY + jitY) * vb).toFixed(2)} ` +
+          `C ${(midX * 0.6 * vb).toFixed(2)} ${((baseY + jitY + sway) * vb).toFixed(2)}, ` +
+          `${(midX * 1.2 * vb).toFixed(2)} ${((baseY + jitY - sway * 0.6) * vb).toFixed(2)}, ` +
+          `${(endX * vb).toFixed(2)} ${((baseY + jitY + sway * 0.3) * vb).toFixed(2)}`;
+        ctx.stroke(new Path2D(d));
+      }
+      ctx.globalAlpha = opacity;
+      break;
+    }
+
+    case "bubble_circles": {
+      // 몽글몽글 — 크고 작은 동그라미들이 겹쳐 떠오르는 비눗방울/구름
+      const vb = Math.min(w, h) / 100;
+
+      // 다양한 크기의 원 배치 (8~12개)
+      const circleCount = 8 + Math.floor(r() * 5);
+      const circles: { bx: number; by: number; br: number }[] = [];
+      for (let i = 0; i < circleCount; i++) {
+        const angle = r() * Math.PI * 2;
+        const dist = r() * 32;
+        circles.push({
+          bx: Math.cos(angle) * dist,
+          by: Math.sin(angle) * dist - 4,
+          br: 6 + r() * 14,
+        });
+      }
+
+      // 채우기 (반투명 배경)
+      for (const c of circles) {
+        ctx.globalAlpha = opacity * (0.12 + r() * 0.18);
+        ctx.fillStyle = color;
+        const fillPath = new Path2D();
+        fillPath.arc(c.bx * vb, c.by * vb, c.br * vb, 0, Math.PI * 2);
+        ctx.fill(fillPath);
+      }
+
+      // 윤곽선
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 1.5 * vb;
+      for (const c of circles) {
+        ctx.globalAlpha = opacity * (0.4 + r() * 0.5);
+        const strokePath = new Path2D();
+        strokePath.arc(c.bx * vb, c.by * vb, c.br * vb, 0, Math.PI * 2);
+        ctx.stroke(strokePath);
+      }
+      ctx.globalAlpha = opacity;
+      break;
+    }
   }
 
   ctx.restore();
@@ -6186,6 +6291,9 @@ export default function StoryPage() {
                     { type: "surprise_sparkle", label: "깜짝/재잘재잘", emoji: "✴️", desc: "반짝임+X" },
                     { type: "gloom_lines", label: "우울/침울", emoji: "🌧️", desc: "처지는 수직선" },
                     { type: "tangled_ball", label: "복잡한 감정", emoji: "🧶", desc: "엉킨 실타래" },
+                    { type: "blush_lines", label: "뿌끄(부끄)", emoji: "😊", desc: "볼 사선 빗금" },
+                    { type: "sigh_breath", label: "한숨/입김", emoji: "😮‍💨", desc: "곡선 한숨" },
+                    { type: "bubble_circles", label: "몽글몽글", emoji: "🫧", desc: "비눗방울 원" },
                   ];
 
                   const addEffect = (type: EffectLayerType) => {
