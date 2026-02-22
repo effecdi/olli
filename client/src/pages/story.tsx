@@ -6347,10 +6347,7 @@ export default function StoryPage() {
                       <div className="flex items-center gap-2 min-w-0">
                         <div className={`w-7 h-7 rounded overflow-hidden shrink-0 border ${
                           item.type === "bubble" ? "border-sky-400/50 bg-sky-50 dark:bg-sky-950/30"
-<<<<<<< HEAD
                           : item.type === "drawing" ? "border-amber-400/50 bg-amber-50 dark:bg-amber-950/30"
-=======
->>>>>>> claude/svg-story-effects-0ou2v
                           : "border-emerald-400/50 bg-emerald-50 dark:bg-emerald-950/30"
                         }`}>
                           {item.type === "drawing" ? (
