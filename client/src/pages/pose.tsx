@@ -32,7 +32,10 @@ export default function PosePage() {
   const isFlow = params.get("flow") === "1";
   const [, navigate] = useLocation();
 
-  const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null);
+  const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(() => {
+    const charId = params.get("characterId");
+    return charId && !isNaN(parseInt(charId)) ? parseInt(charId) : null;
+  });
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
   const [posePrompt, setPosePrompt] = useState("");
   const [poseResultImage, setPoseResultImage] = useState<string | null>(null);
