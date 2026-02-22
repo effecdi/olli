@@ -66,7 +66,7 @@ export async function registerRoutes(
       if (!parsed.success) {
         return res.status(400).json({ message: parsed.error.errors[0]?.message || "Invalid input" });
       }
-      const { prompt, style } = parsed.data;
+      const { prompt, style, sourceImageData } = parsed.data;
 
       const FREE_STYLES = ["simple-line", "minimal", "doodle"];
       const credits = await storage.getUserCredits(userId);
@@ -79,7 +79,7 @@ export async function registerRoutes(
         return res.status(403).json({ message: "이번 달의 무료 생성 횟수를 모두 사용했습니다. 다음 달에 다시 시도해주세요." });
       }
 
-      const imageDataUrl = await generateCharacterImage(prompt, style);
+      const imageDataUrl = await generateCharacterImage(prompt, style, sourceImageData);
 
       const character = await storage.createCharacter({
         userId,
