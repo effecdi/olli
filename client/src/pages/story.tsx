@@ -5733,14 +5733,6 @@ export default function StoryPage() {
                           </button>
                         ))}
                       </div>
-                      {(activePanel.effects ?? []).length > 0 && (
-                        <div className="mt-3">
-                          <Button size="sm" variant="outline" className="w-full gap-1.5" onClick={() => setShowRightPanel(true)}>
-                            <Layers className="h-3.5 w-3.5" />
-                            레이어 패널 열기 ({(activePanel.effects ?? []).length}개 효과)
-                          </Button>
-                        </div>
-                      )}
                     </>
                   );
                 })()}
