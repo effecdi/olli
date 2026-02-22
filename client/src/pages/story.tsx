@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo, type RefObject } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useSearch } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -61,8 +61,7 @@ import {
   Star,
   Pen,
 } from "lucide-react";
-import DrawingCanvas, { type DrawingToolState, type DrawingCanvasHandle } from "@/components/drawing-canvas";
-import DrawingToolsPanel from "@/components/drawing-tools-panel";
+import { CanvaEditor, type CanvaEditorHandle } from "@/components/canva-editor";
 import { FlowStepper } from "@/components/flow-stepper";
 import { EditorOnboarding } from "@/components/editor-onboarding";
 import { getFlowState, clearFlowState } from "@/lib/flow";
@@ -4747,15 +4746,8 @@ export default function StoryPage() {
   const [activeLeftTab, setActiveLeftTab] = useState<LeftTab>(null);
   const [selectedEffectId, setSelectedEffectId] = useState<string | null>(null);
 
-  // ─── Drawing tool state ─────────────────────────────────────────────
-  const [drawingToolState, setDrawingToolState] = useState<DrawingToolState>({
-    tool: "brush",
-    brushType: "ballpoint",
-    color: "#000000",
-    size: 4,
-    opacity: 1,
-  });
-  const drawingCanvasRef = useRef<DrawingCanvasHandle | null>(null);
+  // ─── Canva drawing editor state ─────────────────────────────────────
+  const canvaEditorRef = useRef<CanvaEditorHandle | null>(null);
   const isDrawingMode = activeLeftTab === "drawing";
 
   const toggleLeftTab = (tab: LeftTab) => {
@@ -5707,12 +5699,38 @@ export default function StoryPage() {
                   )}
 
                   {activeLeftTab === "drawing" && (
-                    <DrawingToolsPanel
-                      toolState={drawingToolState}
-                      onToolStateChange={setDrawingToolState}
-                      canvasRef={drawingCanvasRef as RefObject<DrawingCanvasHandle | null>}
-                      onClose={() => setActiveLeftTab(null)}
-                    />
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                        <h3 className="text-sm font-semibold">Canva 드로잉 에디터</h3>
+                        <button
+                          onClick={() => setActiveLeftTab(null)}
+                          className="text-muted-foreground hover-elevate rounded-md p-1"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed mb-3">
+                        좌측 툴바에서 도구를 선택하세요. 객체를 클릭하면 크기 조절, 회전, 이동이 가능합니다.
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 text-[10px]">
+                        <div className="p-2 bg-muted/50 rounded-md">
+                          <span className="font-semibold block mb-0.5">선택 툴</span>
+                          <span className="text-muted-foreground">객체 선택/이동/크기조절</span>
+                        </div>
+                        <div className="p-2 bg-muted/50 rounded-md">
+                          <span className="font-semibold block mb-0.5">드로잉 모드</span>
+                          <span className="text-muted-foreground">연필/마커/형광펜</span>
+                        </div>
+                        <div className="p-2 bg-muted/50 rounded-md">
+                          <span className="font-semibold block mb-0.5">선 모드</span>
+                          <span className="text-muted-foreground">직선/곡선/꺾인선</span>
+                        </div>
+                        <div className="p-2 bg-muted/50 rounded-md">
+                          <span className="font-semibold block mb-0.5">텍스트</span>
+                          <span className="text-muted-foreground">폰트/크기 제어</span>
+                        </div>
+                      </div>
+                    </div>
                   )}
 
                 {activeLeftTab === "bubble" && activePanel && (
@@ -6407,10 +6425,9 @@ export default function StoryPage() {
                           onDeletePanel={() => removePanel(i)}
                         />
 
-                        {/* Drawing canvas overlay — only on active panel in drawing mode */}
+                        {/* Canva-style drawing editor overlay — only on active panel in drawing mode */}
                         {isDrawingMode && activePanelIndex === i && (
                           <div
-                            className={`drawing-canvas-wrapper ${isDrawingMode ? "drawing-canvas-wrapper--active" : ""}`}
                             style={{
                               position: "absolute",
                               top: 0,
@@ -6418,19 +6435,15 @@ export default function StoryPage() {
                               width: "100%",
                               height: "100%",
                               zIndex: 20,
+                              pointerEvents: "auto",
                             }}
                           >
-                            <DrawingCanvas
-                              ref={drawingCanvasRef}
+                            <CanvaEditor
+                              ref={canvaEditorRef}
                               width={450}
                               height={600}
-                              toolState={drawingToolState}
                               className="rounded-md"
                             />
-                            <div className="drawing-mode-indicator">
-                              <span className="drawing-mode-indicator__dot" />
-                              드로잉 모드
-                            </div>
                           </div>
                         )}
                       </div>
