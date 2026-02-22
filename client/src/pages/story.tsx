@@ -6586,6 +6586,249 @@ export default function StoryPage() {
             </Button>
           </div>
         </div>
+
+        {/* Right Layer Panel */}
+        {showRightPanel && activePanel && (() => {
+          const rightLayerItems = [
+            ...activePanel.characters.map((c: CharacterPlacement) => ({
+              type: "char" as const,
+              id: c.id,
+              z: c.zIndex ?? 0,
+              label: "캐릭터",
+              thumb: c.imageUrl,
+            })),
+            ...activePanel.bubbles.map((b: SpeechBubble, i: number) => ({
+              type: "bubble" as const,
+              id: b.id,
+              z: b.zIndex ?? 10,
+              label: b.text || STYLE_LABELS[b.style] || `말풍선 ${i + 1}`,
+              thumb: b.style === "image" && (b as any).templateSrc ? (b as any).templateSrc : undefined,
+            })),
+            ...(activePanel.effects ?? []).map((ef: EffectLayer, i: number) => ({
+              type: "effect" as const,
+              id: ef.id,
+              z: ef.zIndex ?? 20,
+              label: (() => {
+                switch (ef.type) {
+                  case "flash_lines": return "파열 효과선";
+                  case "flash_dense": return "집중선";
+                  case "flash_small": return "작은 파열";
+                  case "firework": return "짜잔!";
+                  case "monologue_circles": return "몽글몽글";
+                  case "speed_lines": return "두둥 등장";
+                  case "star": return "별";
+                  case "sparkle": return "빛나는";
+                  case "anger": return "화를내는";
+                  case "surprise": return "놀라는";
+                  case "collapse": return "무너지는";
+                  case "arrow_up": return "위 화살표";
+                  case "arrow_down": return "아래 화살표";
+                  case "exclamation": return "느낌표";
+                  case "question": return "물음표";
+                  default: return `효과 ${i + 1}`;
+                }
+              })(),
+              thumb: undefined as string | undefined,
+            })),
+          ].sort((a, b) => b.z - a.z);
+
+          const applyRightLayerOrder = (ordered: Array<{ type: "char" | "bubble" | "effect"; id: string }>) => {
+            const n = ordered.length;
+            updatePanel(activePanelIndex, {
+              ...activePanel,
+              characters: activePanel.characters.map((c) => {
+                const idx = ordered.findIndex((it) => it.type === "char" && it.id === c.id);
+                return idx >= 0 ? { ...c, zIndex: n - 1 - idx } : c;
+              }),
+              effects: (activePanel.effects ?? []).map((ef) => {
+                const idx = ordered.findIndex((it) => it.type === "effect" && it.id === ef.id);
+                return idx >= 0 ? { ...ef, zIndex: n - 1 - idx } : ef;
+              }),
+              bubbles: activePanel.bubbles.map((b) => {
+                const idx = ordered.findIndex((it) => it.type === "bubble" && it.id === b.id);
+                return idx >= 0 ? { ...b, zIndex: n - 1 - idx } : b;
+              }),
+            });
+          };
+
+          const moveRightLayer = (index: number, direction: "up" | "down") => {
+            if (direction === "up" && index <= 0) return;
+            if (direction === "down" && index >= rightLayerItems.length - 1) return;
+            const swapIdx = direction === "up" ? index - 1 : index + 1;
+            const newOrder = rightLayerItems.map((li) => ({ type: li.type as "char" | "bubble" | "effect", id: li.id }));
+            const tmp = newOrder[index];
+            newOrder[index] = newOrder[swapIdx];
+            newOrder[swapIdx] = tmp;
+            applyRightLayerOrder(newOrder);
+          };
+
+          const selEf = selectedEffectId ? (activePanel.effects ?? []).find(e => e.id === selectedEffectId) : null;
+          const updateEffect = (updates: Partial<EffectLayer>) => {
+            if (!selEf) return;
+            const newEffects = (activePanel.effects ?? []).map(e =>
+              e.id === selEf.id ? { ...e, ...updates } : e
+            );
+            updatePanel(activePanelIndex, { ...activePanel, effects: newEffects });
+          };
+          const deleteEffect = () => {
+            if (!selEf) return;
+            const newEffects = (activePanel.effects ?? []).filter(e => e.id !== selEf.id);
+            updatePanel(activePanelIndex, { ...activePanel, effects: newEffects });
+            setSelectedEffectId(null);
+          };
+
+          return (
+            <div
+              className="h-full w-[280px] shrink-0 bg-card border-l overflow-y-auto"
+              data-testid="right-layer-panel"
+            >
+              <div className="p-3 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Layers className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-[13px] font-semibold">레이어 ({rightLayerItems.length})</span>
+                  </div>
+                  <button
+                    onClick={() => setShowRightPanel(false)}
+                    className="text-muted-foreground hover:text-foreground rounded-md p-1"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                {rightLayerItems.length === 0 && (
+                  <p className="text-[11px] text-muted-foreground text-center py-4">레이어가 없습니다</p>
+                )}
+
+                <div className="space-y-1">
+                  {rightLayerItems.map((item, i) => (
+                    <div
+                      key={`${item.type}:${item.id}`}
+                      className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${
+                        item.type === "char"
+                          ? selectedCharId === item.id ? "bg-primary/10" : "hover:bg-muted/50"
+                          : item.type === "bubble"
+                          ? selectedBubbleId === item.id ? "bg-primary/10" : "hover:bg-muted/50"
+                          : selectedEffectId === item.id ? "bg-primary/10" : "hover:bg-muted/50"
+                      }`}
+                      onClick={() => {
+                        if (item.type === "char") {
+                          setSelectedCharId(item.id);
+                          setSelectedBubbleId(null);
+                          setSelectedEffectId(null);
+                        } else if (item.type === "bubble") {
+                          setSelectedBubbleId(item.id);
+                          setSelectedCharId(null);
+                          setSelectedEffectId(null);
+                        } else {
+                          setSelectedEffectId(item.id);
+                          setSelectedCharId(null);
+                          setSelectedBubbleId(null);
+                        }
+                      }}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-7 h-7 rounded overflow-hidden shrink-0 border border-border bg-muted">
+                          {item.thumb ? (
+                            <img src={item.thumb} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[10px]">
+                              {item.type === "bubble" ? "B" : item.type === "char" ? "C" : "E"}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-xs truncate">{item.label}</span>
+                      </div>
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          disabled={i === 0}
+                          onClick={(e) => { e.stopPropagation(); moveRightLayer(i, "up"); }}
+                          title="앞으로"
+                        >
+                          <ChevronUp className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          disabled={i === rightLayerItems.length - 1}
+                          onClick={(e) => { e.stopPropagation(); moveRightLayer(i, "down"); }}
+                          title="뒤로"
+                        >
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (item.type === "char") {
+                              const newChars = activePanel.characters.filter(c => c.id !== item.id);
+                              updatePanel(activePanelIndex, { ...activePanel, characters: newChars });
+                              if (selectedCharId === item.id) setSelectedCharId(null);
+                            } else if (item.type === "bubble") {
+                              const newBubbles = activePanel.bubbles.filter(b => b.id !== item.id);
+                              updatePanel(activePanelIndex, { ...activePanel, bubbles: newBubbles });
+                              if (selectedBubbleId === item.id) setSelectedBubbleId(null);
+                            } else {
+                              const newEffects = (activePanel.effects ?? []).filter(ef => ef.id !== item.id);
+                              updatePanel(activePanelIndex, { ...activePanel, effects: newEffects });
+                              if (selectedEffectId === item.id) setSelectedEffectId(null);
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Selected effect editing UI */}
+                {selEf && (
+                  <div className="space-y-3 rounded-md border border-border p-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[12px] font-semibold">선택된 효과 편집</p>
+                      <Button size="sm" variant="destructive" onClick={deleteEffect} className="h-6 px-2 text-[11px]">삭제</Button>
+                    </div>
+                    <div>
+                      <Label className="text-[11px] mb-1 block">투명도 {Math.round((selEf.opacity ?? 1) * 100)}%</Label>
+                      <Slider value={[(selEf.opacity ?? 1) * 100]} onValueChange={([v]) => updateEffect({ opacity: v / 100 })} min={10} max={100} step={5} />
+                    </div>
+                    <div>
+                      <Label className="text-[11px] mb-1 block">크기 조정</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="text-[10px] text-muted-foreground">너비 {Math.round(selEf.width)}</span>
+                          <Slider value={[selEf.width]} onValueChange={([v]) => updateEffect({ width: v })} min={30} max={400} step={10} />
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-muted-foreground">높이 {Math.round(selEf.height)}</span>
+                          <Slider value={[selEf.height]} onValueChange={([v]) => updateEffect({ height: v })} min={30} max={400} step={10} />
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-[11px] mb-1 block">회전 {Math.round((selEf.rotation ?? 0) * 180 / Math.PI)}°</Label>
+                      <Slider value={[(selEf.rotation ?? 0) * 180 / Math.PI]} onValueChange={([v]) => updateEffect({ rotation: v * Math.PI / 180 })} min={-180} max={180} step={5} />
+                    </div>
+                    <div>
+                      <Label className="text-[11px] mb-1 block">색상</Label>
+                      <div className="flex gap-2">
+                        <input type="color" value={selEf.color ?? "#222222"} onChange={e => updateEffect({ color: e.target.value, strokeColor: e.target.value })} className="h-8 w-16 cursor-pointer rounded border" />
+                        <span className="text-[10px] text-muted-foreground self-center">효과 색</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
             <Dialog open={aiLimitOpen} onOpenChange={setAiLimitOpen}>
