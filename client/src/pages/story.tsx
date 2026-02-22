@@ -5790,7 +5790,17 @@ export default function StoryPage() {
                         <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto shrink-0" />
                       </button>
                       <button
-                        onClick={() => setActiveElementSubTab("bubble")}
+                        onClick={() => {
+                          setActiveElementSubTab("bubble");
+                          // 말풍선 바로 생성
+                          if (activePanel && activePanel.bubbles.length < 5) {
+                            const newB = createBubble(CANVAS_W, CANVAS_H);
+                            updatePanel(activePanelIndex, { ...activePanel, bubbles: [...activePanel.bubbles, newB] });
+                            setSelectedBubbleId(newB.id);
+                            setSelectedCharId(null);
+                            setSelectedEffectId(null);
+                          }
+                        }}
                         className="w-full flex items-center gap-3 px-3 py-3 rounded-lg border border-border hover:bg-muted/50 transition-colors text-left"
                       >
                         <MessageSquare className="h-5 w-5 text-muted-foreground shrink-0" />
