@@ -309,84 +309,119 @@ function drawEffectLayer(ctx: CanvasRenderingContext2D, ef: EffectLayer) {
 
   switch (type) {
     case "flash_lines": {
-      // 파열 효果선 - radial burst lines from center
-      const lineCount = 24;
-      const innerR = Math.min(w, h) * 0.18;
+      // 파열 효과선 - 테이퍼드 방사형 버스트 라인
+      const lineCount = 28;
+      const innerR = Math.min(w, h) * 0.15;
       const outerR = Math.min(w, h) * 0.5;
-      ctx.strokeStyle = strokeColor;
+      ctx.fillStyle = strokeColor;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
       for (let i = 0; i < lineCount; i++) {
         const angle = (i / lineCount) * Math.PI * 2;
-        const variance = (r() - 0.5) * 0.15;
+        const variance = (r() - 0.5) * 0.12;
         const a = angle + variance;
         const ir = innerR * (0.7 + r() * 0.6);
-        const or = outerR * (0.7 + r() * 0.3);
-        ctx.lineWidth = 1.5 + r() * 1.5;
+        const or2 = outerR * (0.7 + r() * 0.3);
+        const thickInner = 2.5 + r() * 2;
+        const thickOuter = 0.3 + r() * 0.4;
+        // 테이퍼드 삼각형 라인 (안쪽 굵고 바깥 가늘게)
+        const cos_a = Math.cos(a), sin_a = Math.sin(a);
+        const perpX = -sin_a, perpY = cos_a;
         ctx.beginPath();
-        ctx.moveTo(Math.cos(a) * ir, Math.sin(a) * ir);
-        ctx.lineTo(Math.cos(a) * or, Math.sin(a) * or);
-        ctx.stroke();
+        ctx.moveTo(cos_a * ir + perpX * thickInner, sin_a * ir + perpY * thickInner);
+        ctx.lineTo(cos_a * or2 + perpX * thickOuter, sin_a * or2 + perpY * thickOuter);
+        ctx.lineTo(cos_a * or2 - perpX * thickOuter, sin_a * or2 - perpY * thickOuter);
+        ctx.lineTo(cos_a * ir - perpX * thickInner, sin_a * ir - perpY * thickInner);
+        ctx.closePath();
+        ctx.fill();
       }
       break;
     }
     case "flash_dense": {
-      // 집중선 - dense speed lines (image 1 top row middle)
-      const lineCount = 60;
-      const innerR = Math.min(w, h) * 0.22;
+      // 집중선 - 고밀도 방사형 테이퍼드 라인
+      const lineCount = 72;
+      const innerR = Math.min(w, h) * 0.18;
       const outerR = Math.min(w, h) * 0.52;
-      ctx.strokeStyle = strokeColor;
+      ctx.fillStyle = strokeColor;
       for (let i = 0; i < lineCount; i++) {
         const angle = (i / lineCount) * Math.PI * 2;
-        const jitter = (r() - 0.5) * 0.08;
+        const jitter = (r() - 0.5) * 0.06;
         const a = angle + jitter;
         const ir = innerR * (0.8 + r() * 0.4);
-        const or = outerR * (0.85 + r() * 0.15);
-        ctx.lineWidth = 0.6 + r() * 0.8;
+        const or2 = outerR * (0.85 + r() * 0.15);
+        const thickInner = 1.2 + r() * 1.0;
+        const thickOuter = 0.1 + r() * 0.2;
+        const cos_a = Math.cos(a), sin_a = Math.sin(a);
+        const perpX = -sin_a, perpY = cos_a;
+        ctx.save();
+        ctx.globalAlpha = opacity * (0.6 + r() * 0.4);
         ctx.beginPath();
-        ctx.moveTo(Math.cos(a) * ir, Math.sin(a) * ir);
-        ctx.lineTo(Math.cos(a) * or, Math.sin(a) * or);
-        ctx.stroke();
+        ctx.moveTo(cos_a * ir + perpX * thickInner, sin_a * ir + perpY * thickInner);
+        ctx.lineTo(cos_a * or2 + perpX * thickOuter, sin_a * or2 + perpY * thickOuter);
+        ctx.lineTo(cos_a * or2 - perpX * thickOuter, sin_a * or2 - perpY * thickOuter);
+        ctx.lineTo(cos_a * ir - perpX * thickInner, sin_a * ir - perpY * thickInner);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
       }
       break;
     }
     case "flash_small": {
-      // 작은 파열 - small radial burst
-      const lineCount = 16;
-      const innerR = Math.min(w, h) * 0.12;
-      const outerR = Math.min(w, h) * 0.45;
+      // 작은 파열 - 작은 방사형 버스트 + 끝 장식
+      const lineCount = 18;
+      const innerR = Math.min(w, h) * 0.1;
+      const outerR = Math.min(w, h) * 0.44;
+      ctx.fillStyle = strokeColor;
       ctx.strokeStyle = strokeColor;
+      ctx.lineCap = "round";
       for (let i = 0; i < lineCount; i++) {
         const angle = (i / lineCount) * Math.PI * 2;
-        const a = angle + (r() - 0.5) * 0.2;
-        ctx.lineWidth = 1 + r() * 1.2;
+        const a = angle + (r() - 0.5) * 0.18;
+        const or2 = outerR * (0.65 + r() * 0.35);
+        const thickInner = 1.8 + r() * 1.2;
+        const thickOuter = 0.2 + r() * 0.3;
+        const cos_a = Math.cos(a), sin_a = Math.sin(a);
+        const perpX = -sin_a, perpY = cos_a;
         ctx.beginPath();
-        ctx.moveTo(Math.cos(a) * innerR, Math.sin(a) * innerR);
-        ctx.lineTo(Math.cos(a) * outerR * (0.7 + r() * 0.3), Math.sin(a) * outerR * (0.7 + r() * 0.3));
-        ctx.stroke();
+        ctx.moveTo(cos_a * innerR + perpX * thickInner, sin_a * innerR + perpY * thickInner);
+        ctx.lineTo(cos_a * or2 + perpX * thickOuter, sin_a * or2 + perpY * thickOuter);
+        ctx.lineTo(cos_a * or2 - perpX * thickOuter, sin_a * or2 - perpY * thickOuter);
+        ctx.lineTo(cos_a * innerR - perpX * thickInner, sin_a * innerR - perpY * thickInner);
+        ctx.closePath();
+        ctx.fill();
+        // 일부 라인 끝에 작은 원형 악센트
+        if (r() > 0.55) {
+          ctx.beginPath();
+          ctx.arc(cos_a * (or2 + 3), sin_a * (or2 + 3), 1.5 + r() * 1.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
       break;
     }
     case "firework": {
-      // 짜잔! / 불꽃 - firework sparkles (image 1 bottom left)
-      const starCount = 8;
-      const burstR = Math.min(w, h) * 0.42;
+      // 짜잔! - 불꽃 효과 + 2차 파티클
+      const starCount = 10;
+      const burstR = Math.min(w, h) * 0.4;
+      ctx.lineJoin = "round";
+      // 메인 별 파티클
       for (let i = 0; i < starCount; i++) {
-        const angle = (i / starCount) * Math.PI * 2;
-        const dist = burstR * (0.55 + r() * 0.45);
+        const angle = (i / starCount) * Math.PI * 2 + (r() - 0.5) * 0.3;
+        const dist = burstR * (0.5 + r() * 0.5);
         const px = Math.cos(angle) * dist;
         const py = Math.sin(angle) * dist;
-        const starSize = 6 + r() * 8;
+        const starSize = 5 + r() * 7;
         const spikes = 4 + Math.round(r() * 2);
         ctx.save();
         ctx.translate(px, py);
-        ctx.rotate(angle);
+        ctx.rotate(r() * Math.PI * 2);
         ctx.fillStyle = color;
         ctx.strokeStyle = strokeColor;
         ctx.lineWidth = 1;
         ctx.beginPath();
         for (let s = 0; s < spikes * 2; s++) {
           const a2 = (s / (spikes * 2)) * Math.PI * 2;
-          const sr = s % 2 === 0 ? starSize : starSize * 0.4;
-          s === 0 ? ctx.moveTo(Math.cos(a2) * sr, Math.sin(a2) * sr) 
+          const sr = s % 2 === 0 ? starSize : starSize * 0.35;
+          s === 0 ? ctx.moveTo(Math.cos(a2) * sr, Math.sin(a2) * sr)
                    : ctx.lineTo(Math.cos(a2) * sr, Math.sin(a2) * sr);
         }
         ctx.closePath();
@@ -394,24 +429,66 @@ function drawEffectLayer(ctx: CanvasRenderingContext2D, ef: EffectLayer) {
         ctx.stroke();
         ctx.restore();
       }
+      // 2차 작은 점 파티클
+      const dotCount = 14;
+      for (let i = 0; i < dotCount; i++) {
+        const angle = (i / dotCount) * Math.PI * 2 + r() * 0.5;
+        const dist = burstR * (0.3 + r() * 0.7);
+        const dx = Math.cos(angle) * dist;
+        const dy = Math.sin(angle) * dist;
+        const dotSize = 1 + r() * 2.5;
+        ctx.fillStyle = strokeColor;
+        ctx.beginPath();
+        ctx.arc(dx, dy, dotSize, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // 짧은 방사형 라인 악센트
+      const accentCount = 6;
+      ctx.strokeStyle = strokeColor;
+      ctx.lineCap = "round";
+      for (let i = 0; i < accentCount; i++) {
+        const angle = (i / accentCount) * Math.PI * 2 + r() * 0.8;
+        const dist = burstR * (0.6 + r() * 0.35);
+        const lineLen = 4 + r() * 6;
+        ctx.lineWidth = 1 + r() * 1;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(angle) * dist, Math.sin(angle) * dist);
+        ctx.lineTo(Math.cos(angle) * (dist + lineLen), Math.sin(angle) * (dist + lineLen));
+        ctx.stroke();
+      }
       break;
     }
     case "monologue_circles": {
-      // 몽글몽글 / 생각하는 효과 (image 1 bottom row, image 3)
-      const circles = [
-        { dx: -w * 0.15, dy: h * 0.12, r: Math.min(w, h) * 0.28 },
-        { dx: w * 0.2, dy: -h * 0.18, r: Math.min(w, h) * 0.22 },
-        { dx: -w * 0.3, dy: -h * 0.22, r: Math.min(w, h) * 0.18 },
-        { dx: w * 0.32, dy: h * 0.2, r: Math.min(w, h) * 0.12 },
+      // 몽글몽글 - 구름같은 생각 효과
+      const baseCircles = [
+        { dx: -w * 0.12, dy: h * 0.08, rad: Math.min(w, h) * 0.26 },
+        { dx: w * 0.18, dy: -h * 0.14, rad: Math.min(w, h) * 0.22 },
+        { dx: -w * 0.28, dy: -h * 0.18, rad: Math.min(w, h) * 0.18 },
+        { dx: w * 0.28, dy: h * 0.16, rad: Math.min(w, h) * 0.14 },
       ];
-      for (const c of circles) {
+      // 구름 느낌을 위한 보조 원들
+      const cloudCircles = [
+        { dx: -w * 0.02, dy: -h * 0.04, rad: Math.min(w, h) * 0.2 },
+        { dx: w * 0.08, dy: h * 0.1, rad: Math.min(w, h) * 0.15 },
+        { dx: -w * 0.2, dy: h * 0.0, rad: Math.min(w, h) * 0.12 },
+      ];
+      const allCircles = [...baseCircles, ...cloudCircles];
+      // 채움 (사용자 색상 사용)
+      for (const c of allCircles) {
         ctx.save();
-        ctx.globalAlpha = 0.3;
+        ctx.globalAlpha = opacity * 0.25;
         ctx.beginPath();
-        ctx.arc(c.dx, c.dy, c.r, 0, Math.PI * 2);
-        ctx.fillStyle = "#aaaaaa";
+        ctx.arc(c.dx, c.dy, c.rad, 0, Math.PI * 2);
+        ctx.fillStyle = color;
         ctx.fill();
+        ctx.restore();
+      }
+      // 외곽선 (메인 원만)
+      for (const c of baseCircles) {
+        ctx.save();
         ctx.globalAlpha = opacity;
+        ctx.beginPath();
+        ctx.arc(c.dx, c.dy, c.rad, 0, Math.PI * 2);
         ctx.strokeStyle = strokeColor;
         ctx.lineWidth = 2;
         ctx.stroke();
@@ -420,15 +497,22 @@ function drawEffectLayer(ctx: CanvasRenderingContext2D, ef: EffectLayer) {
       break;
     }
     case "speed_lines": {
-      // 두둥 등장선 (image 2 - vertical speed lines from top to bottom)
-      const lineCount = 30;
+      // 두둥 등장선 - 그라데이션 페이드 수직 라인
+      const lineCount = 35;
       const hw = w / 2, hh = h / 2;
-      ctx.strokeStyle = strokeColor;
       for (let i = 0; i < lineCount; i++) {
-        const lx = -hw + (i / lineCount) * w + (r() - 0.5) * (w / lineCount) * 1.5;
+        const lx = -hw + (i / lineCount) * w + (r() - 0.5) * (w / lineCount) * 1.4;
         const lineW = 0.5 + r() * 2.5;
-        const startY = -hh * (0.5 + r() * 0.5);
+        const startY = -hh * (0.4 + r() * 0.6);
+        // 위에서 아래로 그라데이션 (위쪽 투명 → 아래쪽 불투명)
+        const gradient = ctx.createLinearGradient(lx, startY, lx, hh);
+        gradient.addColorStop(0, "rgba(0,0,0,0)");
+        const sc = strokeColor;
+        gradient.addColorStop(0.3, sc);
+        gradient.addColorStop(1, sc);
+        ctx.strokeStyle = gradient;
         ctx.lineWidth = lineW;
+        ctx.lineCap = "round";
         ctx.beginPath();
         ctx.moveTo(lx, startY);
         ctx.lineTo(lx, hh);
@@ -437,126 +521,202 @@ function drawEffectLayer(ctx: CanvasRenderingContext2D, ef: EffectLayer) {
       break;
     }
     case "anger": {
-      // 화를 내는 효果 - anger veins/marks
-      ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 2.5;
+      // 화를내는 효과 - 만화 분노 혈관 마크 (十자형 채움)
+      ctx.fillStyle = strokeColor;
       const marks = 4;
       for (let i = 0; i < marks; i++) {
-        const angle = (i / marks) * Math.PI * 2 + Math.PI / 8;
-        const dist = Math.min(w, h) * 0.3;
+        const angle = (i / marks) * Math.PI * 2 + Math.PI / 6;
+        const dist = Math.min(w, h) * 0.28;
         const px = Math.cos(angle) * dist;
         const py = Math.sin(angle) * dist;
-        const sz = 10 + r() * 8;
+        const sz = 8 + r() * 6;
+        const bulge = sz * 0.45;
         ctx.save();
         ctx.translate(px, py);
+        ctx.rotate(r() * Math.PI * 0.5);
+        // 십자형 분노 마크 (둥글게 볼록한 형태)
         ctx.beginPath();
-        // Cross/plus shaped anger mark
-        ctx.moveTo(-sz, 0); ctx.lineTo(-sz * 0.3, -sz * 0.3);
-        ctx.moveTo(-sz * 0.3, -sz * 0.3); ctx.lineTo(0, -sz);
-        ctx.moveTo(0, -sz); ctx.lineTo(sz * 0.3, -sz * 0.3);
-        ctx.moveTo(sz * 0.3, -sz * 0.3); ctx.lineTo(sz, 0);
-        ctx.stroke();
+        ctx.moveTo(-bulge, -sz);
+        ctx.quadraticCurveTo(-bulge * 0.3, -bulge * 0.3, -sz, -bulge);
+        ctx.lineTo(-sz, bulge);
+        ctx.quadraticCurveTo(-bulge * 0.3, bulge * 0.3, -bulge, sz);
+        ctx.lineTo(bulge, sz);
+        ctx.quadraticCurveTo(bulge * 0.3, bulge * 0.3, sz, bulge);
+        ctx.lineTo(sz, -bulge);
+        ctx.quadraticCurveTo(bulge * 0.3, -bulge * 0.3, bulge, -sz);
+        ctx.closePath();
+        ctx.fill();
         ctx.restore();
       }
       break;
     }
     case "surprise": {
-      // 놀라는 효果 - exclamation + stars + lines
-      ctx.strokeStyle = strokeColor;
+      // 놀라는 효과 - 커스텀 느낌표 + 방사 라인
       ctx.fillStyle = color;
-      // Large exclamation in center
-      ctx.font = `bold ${Math.min(w, h) * 0.4}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("!", 0, 0);
-      // Small lines around
-      const lineCount = 10;
-      const r2 = Math.min(w, h) * 0.45;
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = strokeColor;
+      // 커스텀 "!" 경로로 그리기
+      const exH = Math.min(w, h) * 0.35;
+      const exW = exH * 0.22;
+      ctx.lineWidth = 1.5;
+      // 느낌표 막대 부분 (위쪽 굵고 아래쪽 가늘게)
+      ctx.beginPath();
+      ctx.moveTo(-exW, -exH);
+      ctx.lineTo(exW, -exH);
+      ctx.lineTo(exW * 0.55, exH * 0.35);
+      ctx.lineTo(-exW * 0.55, exH * 0.35);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      // 느낌표 점
+      ctx.beginPath();
+      ctx.arc(0, exH * 0.6, exW * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      // 방사형 강조 라인 (장단 교차)
+      const lineCount = 12;
+      const rBase = Math.min(w, h) * 0.42;
+      ctx.lineWidth = 1.8;
+      ctx.lineCap = "round";
       for (let i = 0; i < lineCount; i++) {
         const angle = (i / lineCount) * Math.PI * 2;
+        const isLong = i % 2 === 0;
+        const innerDist = rBase * 0.55;
+        const outerDist = rBase * (isLong ? 1.0 : 0.78);
         ctx.beginPath();
-        ctx.moveTo(Math.cos(angle) * r2 * 0.6, Math.sin(angle) * r2 * 0.6);
-        ctx.lineTo(Math.cos(angle) * r2, Math.sin(angle) * r2);
+        ctx.moveTo(Math.cos(angle) * innerDist, Math.sin(angle) * innerDist);
+        ctx.lineTo(Math.cos(angle) * outerDist, Math.sin(angle) * outerDist);
         ctx.stroke();
       }
       break;
     }
     case "collapse": {
-      // 무너지는 효果 - crumbling/falling debris
+      // 무너지는 효과 - 떨어지는 파편 + 먼지
       ctx.fillStyle = color;
       ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 1.5;
-      const pieceCount = 12;
+      ctx.lineWidth = 1.2;
+      ctx.lineJoin = "round";
+      const pieceCount = 14;
       for (let i = 0; i < pieceCount; i++) {
         const angle = (i / pieceCount) * Math.PI * 2;
-        const dist = Math.min(w, h) * (0.2 + r() * 0.3);
+        const dist = Math.min(w, h) * (0.15 + r() * 0.32);
         const px = Math.cos(angle) * dist;
-        const py = Math.sin(angle) * dist + h * 0.1 * r();
-        const sz = 6 + r() * 10;
+        // 아래쪽으로 편향 (중력감)
+        const py = Math.sin(angle) * dist + Math.min(w, h) * 0.08 * r();
+        const sz = 5 + r() * 10;
         ctx.save();
         ctx.translate(px, py);
         ctx.rotate(r() * Math.PI * 2);
-        ctx.fillRect(-sz/2, -sz/3, sz, sz * 0.65);
-        ctx.strokeRect(-sz/2, -sz/3, sz, sz * 0.65);
+        // 일부는 삼각형, 일부는 사각형
+        if (r() > 0.5) {
+          ctx.beginPath();
+          ctx.moveTo(-sz * 0.5, -sz * 0.3);
+          ctx.lineTo(sz * 0.5, -sz * 0.2);
+          ctx.lineTo(sz * 0.1, sz * 0.4);
+          ctx.closePath();
+        } else {
+          ctx.beginPath();
+          ctx.rect(-sz / 2, -sz / 3, sz, sz * 0.6);
+        }
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+      // 작은 먼지 입자
+      const dustCount = 10;
+      ctx.fillStyle = strokeColor;
+      for (let i = 0; i < dustCount; i++) {
+        const dx = (r() - 0.5) * w * 0.7;
+        const dy = (r() - 0.3) * h * 0.6;
+        const dotR = 0.8 + r() * 1.5;
+        ctx.save();
+        ctx.globalAlpha = opacity * (0.3 + r() * 0.5);
+        ctx.beginPath();
+        ctx.arc(dx, dy, dotR, 0, Math.PI * 2);
+        ctx.fill();
         ctx.restore();
       }
       break;
     }
     case "star": {
-      // 별 - star shape
+      // 별 - 부드러운 5각 별
       const spikes = 5;
       const outerR2 = Math.min(w, h) * 0.45;
       const innerR2 = outerR2 * 0.4;
       ctx.fillStyle = color;
       ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 2;
+      ctx.lineJoin = "round";
       ctx.beginPath();
       for (let s = 0; s < spikes * 2; s++) {
         const a = (s / (spikes * 2)) * Math.PI * 2 - Math.PI / 2;
         const sr = s % 2 === 0 ? outerR2 : innerR2;
-        s === 0 ? ctx.moveTo(Math.cos(a) * sr, Math.sin(a) * sr) 
+        s === 0 ? ctx.moveTo(Math.cos(a) * sr, Math.sin(a) * sr)
                  : ctx.lineTo(Math.cos(a) * sr, Math.sin(a) * sr);
       }
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
+      // 중앙 하이라이트
+      ctx.save();
+      ctx.globalAlpha = opacity * 0.15;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(-outerR2 * 0.1, -outerR2 * 0.15, outerR2 * 0.25, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
       break;
     }
     case "sparkle": {
-      // 빛나는 효果 - 4-pointed sparkle (image 3 top left)
+      // 빛나는 효과 - 메인 4각 반짝임 + 보조 반짝임
       const sSize = Math.min(w, h) * 0.45;
       ctx.fillStyle = color;
       ctx.strokeStyle = strokeColor;
       ctx.lineWidth = 1;
-      // Large 4-pointed star
+      ctx.lineJoin = "round";
+      // 메인 4각 반짝임
       ctx.beginPath();
       const pts = 4;
       for (let s = 0; s < pts * 2; s++) {
         const a = (s / (pts * 2)) * Math.PI * 2 - Math.PI / 4;
-        const sr = s % 2 === 0 ? sSize : sSize * 0.15;
-        s === 0 ? ctx.moveTo(Math.cos(a) * sr, Math.sin(a) * sr) 
+        const sr = s % 2 === 0 ? sSize : sSize * 0.12;
+        s === 0 ? ctx.moveTo(Math.cos(a) * sr, Math.sin(a) * sr)
                  : ctx.lineTo(Math.cos(a) * sr, Math.sin(a) * sr);
       }
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
+      // 보조 작은 반짝임 (45도 회전)
+      const smallSize = sSize * 0.35;
+      ctx.save();
+      ctx.globalAlpha = opacity * 0.6;
+      ctx.beginPath();
+      for (let s = 0; s < pts * 2; s++) {
+        const a = (s / (pts * 2)) * Math.PI * 2;
+        const sr = s % 2 === 0 ? smallSize : smallSize * 0.15;
+        s === 0 ? ctx.moveTo(Math.cos(a) * sr, Math.sin(a) * sr)
+                 : ctx.lineTo(Math.cos(a) * sr, Math.sin(a) * sr);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
       break;
     }
     case "arrow_up": {
       const ah = Math.min(w, h) * 0.45;
-      const aw = ah * 0.55;
+      const aw = ah * 0.6;
       ctx.fillStyle = color;
       ctx.strokeStyle = strokeColor;
       ctx.lineWidth = 1.5;
+      ctx.lineJoin = "round";
       ctx.beginPath();
       ctx.moveTo(0, -ah);
-      ctx.lineTo(aw, 0);
-      ctx.lineTo(aw * 0.45, 0);
-      ctx.lineTo(aw * 0.45, ah);
-      ctx.lineTo(-aw * 0.45, ah);
-      ctx.lineTo(-aw * 0.45, 0);
-      ctx.lineTo(-aw, 0);
+      ctx.lineTo(aw, ah * 0.05);
+      ctx.lineTo(aw * 0.4, ah * 0.05);
+      ctx.lineTo(aw * 0.4, ah);
+      ctx.lineTo(-aw * 0.4, ah);
+      ctx.lineTo(-aw * 0.4, ah * 0.05);
+      ctx.lineTo(-aw, ah * 0.05);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
@@ -564,45 +724,74 @@ function drawEffectLayer(ctx: CanvasRenderingContext2D, ef: EffectLayer) {
     }
     case "arrow_down": {
       const ah = Math.min(w, h) * 0.45;
-      const aw = ah * 0.55;
+      const aw = ah * 0.6;
       ctx.fillStyle = color;
       ctx.strokeStyle = strokeColor;
       ctx.lineWidth = 1.5;
+      ctx.lineJoin = "round";
       ctx.beginPath();
       ctx.moveTo(0, ah);
-      ctx.lineTo(aw, 0);
-      ctx.lineTo(aw * 0.45, 0);
-      ctx.lineTo(aw * 0.45, -ah);
-      ctx.lineTo(-aw * 0.45, -ah);
-      ctx.lineTo(-aw * 0.45, 0);
-      ctx.lineTo(-aw, 0);
+      ctx.lineTo(aw, -ah * 0.05);
+      ctx.lineTo(aw * 0.4, -ah * 0.05);
+      ctx.lineTo(aw * 0.4, -ah);
+      ctx.lineTo(-aw * 0.4, -ah);
+      ctx.lineTo(-aw * 0.4, -ah * 0.05);
+      ctx.lineTo(-aw, -ah * 0.05);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
       break;
     }
     case "exclamation": {
-      const fSize = Math.min(w, h) * 0.7;
-      ctx.font = `bold ${fSize}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
+      // 느낌표 - 커스텀 패스
+      const fH = Math.min(w, h) * 0.4;
+      const fW = fH * 0.28;
       ctx.fillStyle = color;
       ctx.strokeStyle = strokeColor;
       ctx.lineWidth = 2;
-      ctx.strokeText("!", 0, 0);
-      ctx.fillText("!", 0, 0);
+      ctx.lineJoin = "round";
+      // 막대 (위 굵고 아래 가늘게)
+      ctx.beginPath();
+      ctx.moveTo(-fW, -fH);
+      ctx.lineTo(fW, -fH);
+      ctx.lineTo(fW * 0.6, fH * 0.3);
+      ctx.lineTo(-fW * 0.6, fH * 0.3);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      // 점
+      ctx.beginPath();
+      ctx.arc(0, fH * 0.58, fW * 0.65, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
       break;
     }
     case "question": {
-      const fSize = Math.min(w, h) * 0.7;
-      ctx.font = `bold ${fSize}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
+      // 물음표 - 커스텀 패스
+      const fH = Math.min(w, h) * 0.38;
+      const fW = fH * 0.5;
       ctx.fillStyle = color;
       ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = fH * 0.18;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      // 물음표 곡선 부분
+      ctx.beginPath();
+      ctx.arc(0, -fH * 0.25, fW * 0.55, -Math.PI * 0.9, Math.PI * 0.15);
+      ctx.stroke();
+      ctx.fill();
+      // 아래로 내려오는 곡선
+      ctx.lineWidth = fH * 0.15;
+      ctx.beginPath();
+      ctx.moveTo(fW * 0.45, -fH * 0.05);
+      ctx.quadraticCurveTo(fW * 0.3, fH * 0.15, 0, fH * 0.3);
+      ctx.stroke();
+      // 점
       ctx.lineWidth = 2;
-      ctx.strokeText("?", 0, 0);
-      ctx.fillText("?", 0, 0);
+      ctx.beginPath();
+      ctx.arc(0, fH * 0.58, fH * 0.08, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
       break;
     }
   }
