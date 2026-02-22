@@ -6683,17 +6683,9 @@ export default function StoryPage() {
               data-testid="right-layer-panel"
             >
               <div className="p-3 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Layers className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-[13px] font-semibold">레이어 ({rightLayerItems.length})</span>
-                  </div>
-                  <button
-                    onClick={() => setShowRightPanel(false)}
-                    className="text-muted-foreground hover:text-foreground rounded-md p-1"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
+                <div className="flex items-center gap-1.5">
+                  <Layers className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-[13px] font-semibold">레이어 ({rightLayerItems.length})</span>
                 </div>
 
                 {rightLayerItems.length === 0 && (
