@@ -1133,6 +1133,7 @@ function PanelCanvas({
     } else if (p.backgroundImageUrl) {
       // Fallback: try to draw from URL (will not block — imageEl loading in progress)
       const tmpImg = new Image();
+      tmpImg.crossOrigin = "anonymous";
       tmpImg.src = p.backgroundImageUrl;
       if (tmpImg.complete && tmpImg.naturalWidth > 0) {
         const scale = Math.max(CANVAS_W / tmpImg.naturalWidth, CANVAS_H / tmpImg.naturalHeight);
