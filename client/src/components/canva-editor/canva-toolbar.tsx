@@ -126,7 +126,6 @@ export default function CanvaToolbar({
             title={tool.label}
           >
             <tool.icon className="canva-toolbar__btn-icon" />
-            <span className="canva-toolbar__btn-label">{tool.label}</span>
             {tool.indicator && toolMode === tool.id && (
               <span
                 className="canva-toolbar__color-dot"
