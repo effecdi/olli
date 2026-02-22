@@ -89,7 +89,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { KOREAN_FONTS, FONT_CSS, getFontFamily, getDefaultTailTip, getTailGeometry, drawBubble, STYLE_LABELS, FLASH_STYLE_LABELS, TAIL_LABELS } from "@/lib/bubble-utils";
-import { SpeechBubble, BubbleStyle, TailStyle, TailDrawMode, EffectLayerType, EffectLayer as SharedEffectLayer } from "@/lib/bubble-types";
+import { SpeechBubble, BubbleStyle, TailStyle, TailDrawMode } from "@/lib/bubble-types";
 
 function bubblePath(n: number) {
   return `/assets/bubbles/bubble_${String(n).padStart(3, "0")}.png`;
@@ -125,13 +125,7 @@ type DragMode =
   | "resize-script-bottom"
   | "move-tail"
   | "tail-ctrl1"
-  | "tail-ctrl2"
-  | "move-effect"
-  | "rotate-effect"
-  | "resize-effect-br"
-  | "resize-effect-bl"
-  | "resize-effect-tr"
-  | "resize-effect-tl";
+  | "tail-ctrl2";
 
 const SCRIPT_STYLE_OPTIONS: { value: ScriptStyle; label: string }[] = [
   { value: "filled", label: "채움" },
@@ -268,30 +262,12 @@ interface ScriptData {
   y?: number;
 }
 
-// Effect layer for canvas-rendered effects (arrows, flash lines, sparkles, etc.)
-interface EffectLayer {
-  id: string;
-  type: EffectLayerType;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  rotation?: number;
-  opacity?: number;
-  zIndex?: number;
-  locked?: boolean;
-  color?: string;
-  strokeColor?: string;
-  seed?: number;
-}
-
 interface PanelData {
   id: string;
   topScript: ScriptData | null;
   bottomScript: ScriptData | null;
   bubbles: SpeechBubble[];
   characters: CharacterPlacement[];
-  effects?: EffectLayer[];
   backgroundImageUrl?: string;
   backgroundImageEl?: HTMLImageElement | null;
 }
@@ -307,716 +283,7 @@ function seededRandom(seed: number) {
     return (s - 1) / 2147483646;
   };
 }
-// Draw an effect layer on canvas
-function drawEffectLayer(ctx: CanvasRenderingContext2D, ef: EffectLayer) {
-  const { x, y, width: w, height: h, type, rotation = 0, opacity = 1, seed = 42 } = ef;
-  const cx = x + w / 2, cy = y + h / 2;
-  const rand = (s: number) => {
-    let v = s; return () => { v = (v * 16807) % 2147483647; return (v - 1) / 2147483646; };
-  };
-  const r = rand(seed + 1);
-  const color = ef.color ?? "#222222";
-  const strokeColor = ef.strokeColor ?? "#222222";
 
-  ctx.save();
-  ctx.globalAlpha = opacity;
-  ctx.translate(cx, cy);
-  ctx.rotate(rotation);
-
-  switch (type) {
-    case "flash_lines": {
-      // 파열 효과선 - radial burst lines from center
-      const lineCount = 24;
-      const innerR = Math.min(w, h) * 0.18;
-      const outerR = Math.min(w, h) * 0.5;
-      ctx.strokeStyle = strokeColor;
-      for (let i = 0; i < lineCount; i++) {
-        const angle = (i / lineCount) * Math.PI * 2;
-        const variance = (r() - 0.5) * 0.15;
-        const a = angle + variance;
-        const ir = innerR * (0.7 + r() * 0.6);
-        const or = outerR * (0.7 + r() * 0.3);
-        ctx.lineWidth = 1.5 + r() * 1.5;
-        ctx.beginPath();
-        ctx.moveTo(Math.cos(a) * ir, Math.sin(a) * ir);
-        ctx.lineTo(Math.cos(a) * or, Math.sin(a) * or);
-        ctx.stroke();
-      }
-      break;
-    }
-    case "flash_dense": {
-      // 집중선 - dense speed lines (image 1 top row middle)
-      const lineCount = 60;
-      const innerR = Math.min(w, h) * 0.22;
-      const outerR = Math.min(w, h) * 0.52;
-      ctx.strokeStyle = strokeColor;
-      for (let i = 0; i < lineCount; i++) {
-        const angle = (i / lineCount) * Math.PI * 2;
-        const jitter = (r() - 0.5) * 0.08;
-        const a = angle + jitter;
-        const ir = innerR * (0.8 + r() * 0.4);
-        const or = outerR * (0.85 + r() * 0.15);
-        ctx.lineWidth = 0.6 + r() * 0.8;
-        ctx.beginPath();
-        ctx.moveTo(Math.cos(a) * ir, Math.sin(a) * ir);
-        ctx.lineTo(Math.cos(a) * or, Math.sin(a) * or);
-        ctx.stroke();
-      }
-      break;
-    }
-    case "flash_small": {
-      // 작은 파열 - small radial burst
-      const lineCount = 16;
-      const innerR = Math.min(w, h) * 0.12;
-      const outerR = Math.min(w, h) * 0.45;
-      ctx.strokeStyle = strokeColor;
-      for (let i = 0; i < lineCount; i++) {
-        const angle = (i / lineCount) * Math.PI * 2;
-        const a = angle + (r() - 0.5) * 0.2;
-        ctx.lineWidth = 1 + r() * 1.2;
-        ctx.beginPath();
-        ctx.moveTo(Math.cos(a) * innerR, Math.sin(a) * innerR);
-        ctx.lineTo(Math.cos(a) * outerR * (0.7 + r() * 0.3), Math.sin(a) * outerR * (0.7 + r() * 0.3));
-        ctx.stroke();
-      }
-      break;
-    }
-    case "firework": {
-      // 짜잔! / 불꽃 - firework sparkles (image 1 bottom left)
-      const starCount = 8;
-      const burstR = Math.min(w, h) * 0.42;
-      for (let i = 0; i < starCount; i++) {
-        const angle = (i / starCount) * Math.PI * 2;
-        const dist = burstR * (0.55 + r() * 0.45);
-        const px = Math.cos(angle) * dist;
-        const py = Math.sin(angle) * dist;
-        const starSize = 6 + r() * 8;
-        const spikes = 4 + Math.round(r() * 2);
-        ctx.save();
-        ctx.translate(px, py);
-        ctx.rotate(angle);
-        ctx.fillStyle = color;
-        ctx.strokeStyle = strokeColor;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        for (let s = 0; s < spikes * 2; s++) {
-          const a2 = (s / (spikes * 2)) * Math.PI * 2;
-          const sr = s % 2 === 0 ? starSize : starSize * 0.4;
-          s === 0 ? ctx.moveTo(Math.cos(a2) * sr, Math.sin(a2) * sr)
-                   : ctx.lineTo(Math.cos(a2) * sr, Math.sin(a2) * sr);
-        }
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-        ctx.restore();
-      }
-      break;
-    }
-    case "monologue_circles": {
-      // 몽글몽글 / 생각하는 효과 (image 1 bottom row, image 3)
-      const circles = [
-        { dx: -w * 0.15, dy: h * 0.12, r: Math.min(w, h) * 0.28 },
-        { dx: w * 0.2, dy: -h * 0.18, r: Math.min(w, h) * 0.22 },
-        { dx: -w * 0.3, dy: -h * 0.22, r: Math.min(w, h) * 0.18 },
-        { dx: w * 0.32, dy: h * 0.2, r: Math.min(w, h) * 0.12 },
-      ];
-      for (const c of circles) {
-        ctx.save();
-        ctx.globalAlpha = 0.3;
-        ctx.beginPath();
-        ctx.arc(c.dx, c.dy, c.r, 0, Math.PI * 2);
-        ctx.fillStyle = "#aaaaaa";
-        ctx.fill();
-        ctx.globalAlpha = opacity;
-        ctx.strokeStyle = strokeColor;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.restore();
-      }
-      break;
-    }
-    case "speed_lines": {
-      // 두둥 등장선 (image 2 - vertical speed lines from top to bottom)
-      const lineCount = 30;
-      const hw = w / 2, hh = h / 2;
-      ctx.strokeStyle = strokeColor;
-      for (let i = 0; i < lineCount; i++) {
-        const lx = -hw + (i / lineCount) * w + (r() - 0.5) * (w / lineCount) * 1.5;
-        const lineW = 0.5 + r() * 2.5;
-        const startY = -hh * (0.5 + r() * 0.5);
-        ctx.lineWidth = lineW;
-        ctx.beginPath();
-        ctx.moveTo(lx, startY);
-        ctx.lineTo(lx, hh);
-        ctx.stroke();
-      }
-      break;
-    }
-    case "anger": {
-      // 화를 내는 효과 - anger veins/marks
-      ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 2.5;
-      const marks = 4;
-      for (let i = 0; i < marks; i++) {
-        const angle = (i / marks) * Math.PI * 2 + Math.PI / 8;
-        const dist = Math.min(w, h) * 0.3;
-        const px = Math.cos(angle) * dist;
-        const py = Math.sin(angle) * dist;
-        const sz = 10 + r() * 8;
-        ctx.save();
-        ctx.translate(px, py);
-        ctx.beginPath();
-        // Cross/plus shaped anger mark
-        ctx.moveTo(-sz, 0); ctx.lineTo(-sz * 0.3, -sz * 0.3);
-        ctx.moveTo(-sz * 0.3, -sz * 0.3); ctx.lineTo(0, -sz);
-        ctx.moveTo(0, -sz); ctx.lineTo(sz * 0.3, -sz * 0.3);
-        ctx.moveTo(sz * 0.3, -sz * 0.3); ctx.lineTo(sz, 0);
-        ctx.stroke();
-        ctx.restore();
-      }
-      break;
-    }
-    case "surprise": {
-      // 놀라는 효과 - exclamation + stars + lines
-      ctx.strokeStyle = strokeColor;
-      ctx.fillStyle = color;
-      // Large exclamation in center
-      ctx.font = `bold ${Math.min(w, h) * 0.4}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("!", 0, 0);
-      // Small lines around
-      const lineCount = 10;
-      const r2 = Math.min(w, h) * 0.45;
-      ctx.lineWidth = 2;
-      for (let i = 0; i < lineCount; i++) {
-        const angle = (i / lineCount) * Math.PI * 2;
-        ctx.beginPath();
-        ctx.moveTo(Math.cos(angle) * r2 * 0.6, Math.sin(angle) * r2 * 0.6);
-        ctx.lineTo(Math.cos(angle) * r2, Math.sin(angle) * r2);
-        ctx.stroke();
-      }
-      break;
-    }
-    case "collapse": {
-      // 무너지는 효과 - crumbling/falling debris
-      ctx.fillStyle = color;
-      ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 1.5;
-      const pieceCount = 12;
-      for (let i = 0; i < pieceCount; i++) {
-        const angle = (i / pieceCount) * Math.PI * 2;
-        const dist = Math.min(w, h) * (0.2 + r() * 0.3);
-        const px = Math.cos(angle) * dist;
-        const py = Math.sin(angle) * dist + h * 0.1 * r();
-        const sz = 6 + r() * 10;
-        ctx.save();
-        ctx.translate(px, py);
-        ctx.rotate(r() * Math.PI * 2);
-        ctx.fillRect(-sz/2, -sz/3, sz, sz * 0.65);
-        ctx.strokeRect(-sz/2, -sz/3, sz, sz * 0.65);
-        ctx.restore();
-      }
-      break;
-    }
-    case "star": {
-      // 별 - star shape
-      const spikes = 5;
-      const outerR2 = Math.min(w, h) * 0.45;
-      const innerR2 = outerR2 * 0.4;
-      ctx.fillStyle = color;
-      ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      for (let s = 0; s < spikes * 2; s++) {
-        const a = (s / (spikes * 2)) * Math.PI * 2 - Math.PI / 2;
-        const sr = s % 2 === 0 ? outerR2 : innerR2;
-        s === 0 ? ctx.moveTo(Math.cos(a) * sr, Math.sin(a) * sr)
-                 : ctx.lineTo(Math.cos(a) * sr, Math.sin(a) * sr);
-      }
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      break;
-    }
-    case "sparkle": {
-      // 빛나는 효과 - 4-pointed sparkle (image 3 top left)
-      const sSize = Math.min(w, h) * 0.45;
-      ctx.fillStyle = color;
-      ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 1;
-      // Large 4-pointed star
-      ctx.beginPath();
-      const pts = 4;
-      for (let s = 0; s < pts * 2; s++) {
-        const a = (s / (pts * 2)) * Math.PI * 2 - Math.PI / 4;
-        const sr = s % 2 === 0 ? sSize : sSize * 0.15;
-        s === 0 ? ctx.moveTo(Math.cos(a) * sr, Math.sin(a) * sr)
-                 : ctx.lineTo(Math.cos(a) * sr, Math.sin(a) * sr);
-      }
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      break;
-    }
-    case "arrow_up": {
-      const ah = Math.min(w, h) * 0.45;
-      const aw = ah * 0.55;
-      ctx.fillStyle = color;
-      ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(0, -ah);
-      ctx.lineTo(aw, 0);
-      ctx.lineTo(aw * 0.45, 0);
-      ctx.lineTo(aw * 0.45, ah);
-      ctx.lineTo(-aw * 0.45, ah);
-      ctx.lineTo(-aw * 0.45, 0);
-      ctx.lineTo(-aw, 0);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      break;
-    }
-    case "arrow_down": {
-      const ah = Math.min(w, h) * 0.45;
-      const aw = ah * 0.55;
-      ctx.fillStyle = color;
-      ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(0, ah);
-      ctx.lineTo(aw, 0);
-      ctx.lineTo(aw * 0.45, 0);
-      ctx.lineTo(aw * 0.45, -ah);
-      ctx.lineTo(-aw * 0.45, -ah);
-      ctx.lineTo(-aw * 0.45, 0);
-      ctx.lineTo(-aw, 0);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      break;
-    }
-    case "exclamation": {
-      const fSize = Math.min(w, h) * 0.7;
-      ctx.font = `bold ${fSize}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillStyle = color;
-      ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 2;
-      ctx.strokeText("!", 0, 0);
-      ctx.fillText("!", 0, 0);
-      break;
-    }
-    case "question": {
-      const fSize = Math.min(w, h) * 0.7;
-      ctx.font = `bold ${fSize}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillStyle = color;
-      ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 2;
-      ctx.strokeText("?", 0, 0);
-      ctx.fillText("?", 0, 0);
-      break;
-    }
-    case "sunburst": {
-      // 집중선 (썬버스트) - bold black triangular rays from center
-      const rayCount = 24;
-      const innerR = Math.min(w, h) * 0.08;
-      const outerR = Math.min(w, h) * 0.5;
-      ctx.fillStyle = color;
-      for (let i = 0; i < rayCount; i++) {
-        const angle = (i / rayCount) * Math.PI * 2;
-        const nextAngle = ((i + 0.4) / rayCount) * Math.PI * 2;
-        const jitter = (r() - 0.5) * 0.03;
-        const a1 = angle + jitter;
-        const a2 = nextAngle + jitter;
-        const or1 = outerR * (0.85 + r() * 0.15);
-        ctx.beginPath();
-        ctx.moveTo(Math.cos(a1) * innerR, Math.sin(a1) * innerR);
-        ctx.lineTo(Math.cos(a1) * or1, Math.sin(a1) * or1);
-        ctx.lineTo(Math.cos(a2) * or1, Math.sin(a2) * or1);
-        ctx.lineTo(Math.cos(a2) * innerR, Math.sin(a2) * innerR);
-        ctx.closePath();
-        ctx.fill();
-      }
-      break;
-    }
-    case "scribble": {
-      // 엉킨 실타래 (낙서) - chaotic pen scribble loops
-      ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 2;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      const hw = w * 0.4, hh = h * 0.4;
-      const loops = 5;
-      for (let l = 0; l < loops; l++) {
-        ctx.beginPath();
-        let px = (r() - 0.5) * hw;
-        let py = (r() - 0.5) * hh;
-        ctx.moveTo(px, py);
-        const segs = 30 + Math.floor(r() * 20);
-        for (let s = 0; s < segs; s++) {
-          const angle = r() * Math.PI * 2;
-          const dist = 8 + r() * 18;
-          const nx = px + Math.cos(angle) * dist;
-          const ny = py + Math.sin(angle) * dist;
-          const cpx = px + (r() - 0.5) * 30;
-          const cpy = py + (r() - 0.5) * 30;
-          ctx.quadraticCurveTo(cpx, cpy, nx, ny);
-          px = Math.max(-hw, Math.min(hw, nx));
-          py = Math.max(-hh, Math.min(hh, ny));
-        }
-        ctx.stroke();
-      }
-      break;
-    }
-    case "x_mark": {
-      // X 표시 - two rough X marks drawn with sketchy strokes
-      ctx.strokeStyle = strokeColor;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      const drawX = (ox: number, oy: number, sz: number) => {
-        const jit = () => (r() - 0.5) * sz * 0.08;
-        // First stroke of X (top-left to bottom-right)
-        ctx.lineWidth = 3 + r() * 2;
-        ctx.beginPath();
-        ctx.moveTo(ox - sz + jit(), oy - sz + jit());
-        ctx.lineTo(ox - sz * 0.3 + jit(), oy - sz * 0.3 + jit());
-        ctx.lineTo(ox + sz * 0.3 + jit(), oy + sz * 0.3 + jit());
-        ctx.lineTo(ox + sz + jit(), oy + sz + jit());
-        ctx.stroke();
-        // Second stroke of X (top-right to bottom-left)
-        ctx.lineWidth = 3 + r() * 2;
-        ctx.beginPath();
-        ctx.moveTo(ox + sz + jit(), oy - sz + jit());
-        ctx.lineTo(ox + sz * 0.3 + jit(), oy - sz * 0.3 + jit());
-        ctx.lineTo(ox - sz * 0.3 + jit(), oy + sz * 0.3 + jit());
-        ctx.lineTo(ox - sz + jit(), oy + sz + jit());
-        ctx.stroke();
-      };
-      const sz = Math.min(w, h) * 0.22;
-      drawX(-w * 0.15, -h * 0.05, sz);
-      drawX(w * 0.18, h * 0.08, sz * 0.8);
-      break;
-    }
-    case "speech_cloud": {
-      // 말풍선 (구름형) - fluffy cloud speech bubble outline
-      ctx.strokeStyle = strokeColor;
-      ctx.fillStyle = "#ffffff";
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      const hw2 = w * 0.42, hh2 = h * 0.35;
-      // Draw cloud shape using overlapping arcs
-      const bumps = [
-        { x: 0, y: -hh2 * 0.6, r: hw2 * 0.5 },
-        { x: -hw2 * 0.55, y: -hh2 * 0.25, r: hw2 * 0.42 },
-        { x: hw2 * 0.55, y: -hh2 * 0.25, r: hw2 * 0.42 },
-        { x: -hw2 * 0.45, y: hh2 * 0.2, r: hw2 * 0.38 },
-        { x: hw2 * 0.45, y: hh2 * 0.2, r: hw2 * 0.38 },
-        { x: 0, y: hh2 * 0.35, r: hw2 * 0.45 },
-        { x: -hw2 * 0.2, y: -hh2 * 0.05, r: hw2 * 0.35 },
-        { x: hw2 * 0.2, y: -hh2 * 0.05, r: hw2 * 0.35 },
-      ];
-      // Fill the cloud white first
-      ctx.beginPath();
-      for (const b of bumps) {
-        ctx.moveTo(b.x + b.r, b.y);
-        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-      }
-      ctx.fill();
-      // Stroke the outline
-      ctx.beginPath();
-      for (const b of bumps) {
-        ctx.moveTo(b.x + b.r, b.y);
-        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-      }
-      ctx.stroke();
-      // Small tail circles
-      const tailSize = Math.min(w, h) * 0.06;
-      ctx.beginPath();
-      ctx.arc(w * 0.12, h * 0.32, tailSize, 0, Math.PI * 2);
-      ctx.fill(); ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(w * 0.2, h * 0.4, tailSize * 0.6, 0, Math.PI * 2);
-      ctx.fill(); ctx.stroke();
-      break;
-    }
-
-    /* ── SVG Path 기반 효과 (viewBox 0 0 100 100 스케일) ────────────── */
-
-    case "focus_zoom": {
-      // 집중선 (놀라는 효과) — 바깥에서 중앙을 향해 뾰족한 삼각 쐐기 방사
-      const vb = Math.min(w, h) / 100;
-      const wedgeCount = 36;
-      const innerR = 18;   // viewBox 단위: 투명 중심 반지름
-      const outerR = 52;   // viewBox 단위: 가장자리 반지름
-
-      ctx.fillStyle = color;
-      for (let i = 0; i < wedgeCount; i++) {
-        const baseAngle = (i / wedgeCount) * Math.PI * 2;
-        const gap = (Math.PI * 2) / wedgeCount;
-        const wedgeW = gap * (0.3 + r() * 0.25);
-        const jitter = (r() - 0.5) * gap * 0.15;
-
-        const a1 = baseAngle - wedgeW / 2 + jitter;
-        const a2 = baseAngle + wedgeW / 2 + jitter;
-        const ir = innerR * (0.8 + r() * 0.4);
-        const or1 = outerR * (0.85 + r() * 0.15);
-
-        // 뾰족한 안쪽 꼭짓점 → 넓은 바깥 변
-        const ix = (Math.cos(baseAngle + jitter) * ir * vb).toFixed(2);
-        const iy = (Math.sin(baseAngle + jitter) * ir * vb).toFixed(2);
-        const ox1 = (Math.cos(a1) * or1 * vb).toFixed(2);
-        const oy1 = (Math.sin(a1) * or1 * vb).toFixed(2);
-        const ox2 = (Math.cos(a2) * or1 * vb).toFixed(2);
-        const oy2 = (Math.sin(a2) * or1 * vb).toFixed(2);
-
-        ctx.fill(new Path2D(`M ${ix} ${iy} L ${ox1} ${oy1} L ${ox2} ${oy2} Z`));
-      }
-      break;
-    }
-
-    case "surprise_sparkle": {
-      // 깜짝/재잘재잘 — 4방향 반짝임 별 + 거친 X 표시 조합
-      const vb = Math.min(w, h) / 100;
-
-      // ── 반짝임 별 (4-pointed sparkle stars) ──
-      ctx.fillStyle = color;
-      const sparkleCount = 5;
-      for (let i = 0; i < sparkleCount; i++) {
-        const angle = (i / sparkleCount) * Math.PI * 2 + r() * 0.5;
-        const dist = 18 + r() * 22;
-        const sx = Math.cos(angle) * dist * vb;
-        const sy = Math.sin(angle) * dist * vb;
-        const sz = (5 + r() * 8) * vb;
-        const thin = sz * 0.15;
-
-        // SVG path: 4-pointed star
-        const d =
-          `M ${sx} ${sy - sz} ` +
-          `L ${sx + thin} ${sy - thin} ` +
-          `L ${sx + sz} ${sy} ` +
-          `L ${sx + thin} ${sy + thin} ` +
-          `L ${sx} ${sy + sz} ` +
-          `L ${sx - thin} ${sy + thin} ` +
-          `L ${sx - sz} ${sy} ` +
-          `L ${sx - thin} ${sy - thin} Z`;
-        ctx.fill(new Path2D(d));
-      }
-
-      // ── 거친 X 표시 2개 ──
-      ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 2.5 * vb;
-      ctx.lineCap = "round";
-      for (let i = 0; i < 2; i++) {
-        const angle = ((i + 0.5) / 2) * Math.PI + r();
-        const dist = 12 + r() * 18;
-        const xx = Math.cos(angle) * dist * vb;
-        const xy = Math.sin(angle) * dist * vb;
-        const xsz = (4 + r() * 4) * vb;
-        const jit = () => (r() - 0.5) * xsz * 0.15;
-
-        ctx.stroke(new Path2D(
-          `M ${xx - xsz + jit()} ${xy - xsz + jit()} L ${xx + xsz + jit()} ${xy + xsz + jit()}`
-        ));
-        ctx.stroke(new Path2D(
-          `M ${xx + xsz + jit()} ${xy - xsz + jit()} L ${xx - xsz + jit()} ${xy + xsz + jit()}`
-        ));
-      }
-      break;
-    }
-
-    case "gloom_lines": {
-      // 우울/침울 — 위에서 아래로 축 처지듯 내려오는 수직선 (비 내리는 느낌)
-      const vb = Math.min(w, h) / 100;
-      const hw = w / 2, hh = h / 2;
-      const lineCount = 22;
-
-      ctx.strokeStyle = strokeColor;
-      ctx.lineCap = "round";
-
-      for (let i = 0; i < lineCount; i++) {
-        const lx = -hw + (i / lineCount) * w + (r() - 0.5) * (w / lineCount);
-        const startY = -hh * (0.3 + r() * 0.5);
-        const length = hh * (0.5 + r() * 0.6);
-        const endY = startY + length;
-        const curve = (r() - 0.5) * 8 * vb;
-
-        ctx.lineWidth = (0.8 + r() * 1.8) * vb;
-        ctx.globalAlpha = opacity * (0.25 + r() * 0.65);
-
-        // SVG cubic Bézier: 살짝 휘어지며 축 늘어지는 선
-        const cp1y = (startY + (endY - startY) * 0.33).toFixed(2);
-        const cp2y = (startY + (endY - startY) * 0.66).toFixed(2);
-        const d =
-          `M ${lx.toFixed(2)} ${startY.toFixed(2)} ` +
-          `C ${(lx + curve * 0.3).toFixed(2)} ${cp1y}, ` +
-          `${(lx + curve).toFixed(2)} ${cp2y}, ` +
-          `${(lx + curve * 0.7).toFixed(2)} ${endY.toFixed(2)}`;
-        ctx.stroke(new Path2D(d));
-      }
-      ctx.globalAlpha = opacity;
-      break;
-    }
-
-    case "tangled_ball": {
-      // 복잡한 감정 (실타래) — 엉킨 실뭉치 Bézier 곡선 루프
-      const vb = Math.min(w, h) / 100;
-      const ballR = 28;
-
-      ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 2 * vb;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-
-      const loopCount = 8;
-      for (let l = 0; l < loopCount; l++) {
-        const startA = r() * Math.PI * 2;
-        const startDist = ballR * (0.2 + r() * 0.5);
-        let px = Math.cos(startA) * startDist;
-        let py = Math.sin(startA) * startDist;
-
-        let d = `M ${(px * vb).toFixed(2)} ${(py * vb).toFixed(2)}`;
-        const segs = 6 + Math.floor(r() * 5);
-
-        for (let s = 0; s < segs; s++) {
-          const angle = r() * Math.PI * 2;
-          const dist = 8 + r() * 16;
-          let nx = px + Math.cos(angle) * dist;
-          let ny = py + Math.sin(angle) * dist;
-
-          // 공 반지름 안으로 제한
-          const fromCenter = Math.sqrt(nx * nx + ny * ny);
-          if (fromCenter > ballR) {
-            nx = (nx / fromCenter) * ballR * 0.9;
-            ny = (ny / fromCenter) * ballR * 0.9;
-          }
-
-          // 제어점: 루프감을 만드는 과장된 곡률
-          const cpx = px + (r() - 0.5) * 30;
-          const cpy = py + (r() - 0.5) * 30;
-          d += ` Q ${(cpx * vb).toFixed(2)} ${(cpy * vb).toFixed(2)} ${(nx * vb).toFixed(2)} ${(ny * vb).toFixed(2)}`;
-          px = nx;
-          py = ny;
-        }
-
-        ctx.stroke(new Path2D(d));
-      }
-      break;
-    }
-
-    case "blush_lines": {
-      // 뿌끄 (부끄러움) — 볼에 빗금 치듯 그어지는 사선(//) 묶음
-      const vb = Math.min(w, h) / 100;
-      ctx.strokeStyle = strokeColor;
-      ctx.lineCap = "round";
-
-      // 두 묶음: 왼쪽 볼 + 오른쪽 볼
-      const groups = [
-        { cx: -18, cy: 4, count: 4, spread: 8 },
-        { cx: 18, cy: 4, count: 4, spread: 8 },
-      ];
-
-      for (const g of groups) {
-        for (let i = 0; i < g.count; i++) {
-          const offsetX = (i - (g.count - 1) / 2) * g.spread;
-          const jitX = (r() - 0.5) * 2;
-          const jitY = (r() - 0.5) * 2;
-          const lineLen = 10 + r() * 6;
-          ctx.lineWidth = (1.5 + r() * 1.2) * vb;
-          ctx.globalAlpha = opacity * (0.55 + r() * 0.45);
-
-          // 사선 (/) — 왼쪽 아래에서 오른쪽 위로
-          const x1 = (g.cx + offsetX + jitX - lineLen * 0.35) * vb;
-          const y1 = (g.cy + jitY + lineLen * 0.5) * vb;
-          const x2 = (g.cx + offsetX + jitX + lineLen * 0.35) * vb;
-          const y2 = (g.cy + jitY - lineLen * 0.5) * vb;
-
-          ctx.stroke(new Path2D(`M ${x1.toFixed(2)} ${y1.toFixed(2)} L ${x2.toFixed(2)} ${y2.toFixed(2)}`));
-        }
-      }
-      ctx.globalAlpha = opacity;
-      break;
-    }
-
-    case "sigh_breath": {
-      // 한숨/입김 — 입에서 빠져나가는 곡선 형태의 한숨 기호
-      const vb = Math.min(w, h) / 100;
-      ctx.strokeStyle = strokeColor;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-
-      // 3~4개의 곡선 한숨 줄기, 오른쪽으로 퍼져나감
-      const streamCount = 3 + Math.floor(r() * 2);
-      for (let i = 0; i < streamCount; i++) {
-        const baseY = (i - (streamCount - 1) / 2) * 12;
-        const jitY = (r() - 0.5) * 6;
-        const startX = -8;
-        const endX = 22 + r() * 16;
-        const midX = (startX + endX) / 2;
-        const sway = (r() - 0.5) * 14;
-
-        ctx.lineWidth = (1.5 + r() * 1.5) * vb;
-        ctx.globalAlpha = opacity * (0.35 + r() * 0.55);
-
-        // S자 곡선: cubic Bézier
-        const d =
-          `M ${(startX * vb).toFixed(2)} ${((baseY + jitY) * vb).toFixed(2)} ` +
-          `C ${(midX * 0.6 * vb).toFixed(2)} ${((baseY + jitY + sway) * vb).toFixed(2)}, ` +
-          `${(midX * 1.2 * vb).toFixed(2)} ${((baseY + jitY - sway * 0.6) * vb).toFixed(2)}, ` +
-          `${(endX * vb).toFixed(2)} ${((baseY + jitY + sway * 0.3) * vb).toFixed(2)}`;
-        ctx.stroke(new Path2D(d));
-      }
-      ctx.globalAlpha = opacity;
-      break;
-    }
-
-    case "bubble_circles": {
-      // 몽글몽글 — 크고 작은 동그라미들이 겹쳐 떠오르는 비눗방울/구름
-      const vb = Math.min(w, h) / 100;
-
-      // 다양한 크기의 원 배치 (8~12개)
-      const circleCount = 8 + Math.floor(r() * 5);
-      const circles: { bx: number; by: number; br: number }[] = [];
-      for (let i = 0; i < circleCount; i++) {
-        const angle = r() * Math.PI * 2;
-        const dist = r() * 32;
-        circles.push({
-          bx: Math.cos(angle) * dist,
-          by: Math.sin(angle) * dist - 4,
-          br: 6 + r() * 14,
-        });
-      }
-
-      // 채우기 (반투명 배경)
-      for (const c of circles) {
-        ctx.globalAlpha = opacity * (0.12 + r() * 0.18);
-        ctx.fillStyle = color;
-        const fillPath = new Path2D();
-        fillPath.arc(c.bx * vb, c.by * vb, c.br * vb, 0, Math.PI * 2);
-        ctx.fill(fillPath);
-      }
-
-      // 윤곽선
-      ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 1.5 * vb;
-      for (const c of circles) {
-        ctx.globalAlpha = opacity * (0.4 + r() * 0.5);
-        const strokePath = new Path2D();
-        strokePath.arc(c.bx * vb, c.by * vb, c.br * vb, 0, Math.PI * 2);
-        ctx.stroke(strokePath);
-      }
-      ctx.globalAlpha = opacity;
-      break;
-    }
-  }
-
-  ctx.restore();
-}
 
 
 function createBubble(
@@ -1057,7 +324,6 @@ function createPanel(): PanelData {
     bottomScript: null,
     bubbles: [],
     characters: [],
-    effects: [],
     backgroundImageUrl: undefined,
     backgroundImageEl: null,
   };
@@ -1443,8 +709,6 @@ function PanelCanvas({
   fontsReady,
   isPro,
   onEditBubble,
-  onSelectEffect,
-  selectedEffectId,
   onDoubleClickBubble,
   onDeletePanel,
 }: {
@@ -1459,8 +723,6 @@ function PanelCanvas({
   fontsReady?: boolean;
   isPro: boolean;
   onEditBubble?: () => void;
-  onSelectEffect?: (id: string | null) => void;
-  selectedEffectId?: string | null;
   onDoubleClickBubble?: () => void;
   onDeletePanel?: () => void;
 }) {
@@ -1471,8 +733,6 @@ function PanelCanvas({
   const dragStartRef = useRef({ x: 0, y: 0 });
   const dragBubbleStartRef = useRef({ x: 0, y: 0, w: 0, h: 0 });
   const dragCharStartRef = useRef({ x: 0, y: 0, scale: 1 });
-  const dragEffectStartRef = useRef({ x: 0, y: 0, w: 0, h: 0 });
-  const selectedEffectIdRef = useRef<string | null>(null);
   const dragScriptStartRef = useRef({ x: 0, y: 0 });
   const dragScriptFontStartRef = useRef(20);
   const selectedBubbleIdRef = useRef(selectedBubbleId);
@@ -1486,9 +746,6 @@ function PanelCanvas({
   useEffect(() => {
     selectedCharIdRef.current = selectedCharId;
   }, [selectedCharId]);
-  useEffect(() => {
-    selectedEffectIdRef.current = selectedEffectId ?? null;
-  }, [selectedEffectId]);
   useEffect(() => {
     panelRef.current = panel;
   }, [panel]);
@@ -1556,7 +813,6 @@ function PanelCanvas({
     const drawables: Array<
       | { type: "char"; z: number; ch: CharacterPlacement }
       | { type: "bubble"; z: number; b: SpeechBubble }
-      | { type: "effect"; z: number; ef: EffectLayer }
     > = [
         ...p.characters.map((ch) => ({
           type: "char" as const,
@@ -1568,18 +824,9 @@ function PanelCanvas({
           z: b.zIndex ?? 10,
           b,
         })),
-        ...(p.effects ?? []).map((ef) => ({
-          type: "effect" as const,
-          z: ef.zIndex ?? 20,
-          ef,
-        })),
       ];
     drawables.sort((a, b) => a.z - b.z);
     drawables.forEach((d) => {
-      if (d.type === "effect") {
-        drawEffectLayer(ctx, d.ef);
-        return;
-      }
       if (d.type === "char") {
         const ch = d.ch;
         if (ch.imageEl) {
@@ -1808,30 +1055,13 @@ function PanelCanvas({
         const drawables: Array<
           | { type: "char"; z: number; ch: CharacterPlacement }
           | { type: "bubble"; z: number; b: SpeechBubble }
-          | { type: "effect"; z: number; ef: EffectLayer }
         > = [
             ...p.characters.map((ch) => ({ type: "char" as const, z: ch.zIndex ?? 0, ch })),
             ...p.bubbles.map((b) => ({ type: "bubble" as const, z: b.zIndex ?? 10, b })),
-            ...(p.effects ?? []).map((ef) => ({ type: "effect" as const, z: ef.zIndex ?? 20, ef })),
           ];
         drawables.sort((a, b) => a.z - b.z);
         for (let i = drawables.length - 1; i >= 0; i--) {
           const d = drawables[i];
-          if (d.type === "effect") {
-            const ef = d.ef;
-            if (pos.x >= ef.x && pos.x <= ef.x + ef.width && pos.y >= ef.y && pos.y <= ef.y + ef.height) {
-              if (onSelectEffect) onSelectEffect(ef.id);
-              selectedEffectIdRef.current = ef.id;
-              onSelectBubble(null);
-              onSelectChar(null);
-              selectedBubbleIdRef.current = null;
-              selectedCharIdRef.current = null;
-              dragModeRef.current = "move-effect";
-              dragStartRef.current = pos;
-              dragEffectStartRef.current = { x: ef.x, y: ef.y, w: ef.width, h: ef.height };
-              return;
-            }
-          }
           if (d.type === "bubble") {
             const b = d.b;
             if (pos.x >= b.x && pos.x <= b.x + b.width && pos.y >= b.y && pos.y <= b.y + b.height) {
@@ -1858,8 +1088,6 @@ function PanelCanvas({
               }
               onSelectBubble(b.id);
               onSelectChar(null);
-              if (onSelectEffect) onSelectEffect(null);
-              selectedEffectIdRef.current = null;
               selectedBubbleIdRef.current = b.id;
               selectedCharIdRef.current = null;
               dragModeRef.current = "move";
@@ -1882,8 +1110,6 @@ function PanelCanvas({
             ) {
               onSelectChar(ch.id);
               onSelectBubble(null);
-              if (onSelectEffect) onSelectEffect(null);
-              selectedEffectIdRef.current = null;
               selectedBubbleIdRef.current = null;
               selectedCharIdRef.current = ch.id;
               dragStartRef.current = pos;
@@ -2015,41 +1241,13 @@ function PanelCanvas({
           const drawables: Array<
             | { type: "char"; z: number; ch: CharacterPlacement }
             | { type: "bubble"; z: number; b: SpeechBubble }
-            | { type: "effect"; z: number; ef: EffectLayer }
           > = [
               ...p.characters.map((ch) => ({ type: "char" as const, z: ch.zIndex ?? 0, ch })),
               ...p.bubbles.map((b) => ({ type: "bubble" as const, z: b.zIndex ?? 10, b })),
-              ...(p.effects ?? []).map((ef) => ({ type: "effect" as const, z: ef.zIndex ?? 20, ef })),
             ];
           drawables.sort((a, b) => a.z - b.z);
           for (let i = drawables.length - 1; i >= 0; i--) {
             const d = drawables[i];
-            if (d.type === "effect") {
-              const ef = d.ef;
-              if (pos.x >= ef.x && pos.x <= ef.x + ef.width && pos.y >= ef.y && pos.y <= ef.y + ef.height) {
-                if (canvas) canvas.style.cursor = "move";
-                return;
-              }
-            } else if (d.type === "bubble") {
-              const b = d.b;
-              if (pos.x >= b.x && pos.x <= b.x + b.width && pos.y >= b.y && pos.y <= b.y + b.height) {
-                if (canvas) canvas.style.cursor = "move";
-                return;
-              }
-            } else {
-              const ch = d.ch;
-              const w = ch.imageEl ? ch.imageEl.naturalWidth * ch.scale : 80;
-              const h = ch.imageEl ? ch.imageEl.naturalHeight * ch.scale : 80;
-              if (
-                pos.x >= ch.x - w / 2 &&
-                pos.x <= ch.x + w / 2 &&
-                pos.y >= ch.y - h / 2 &&
-                pos.y <= ch.y + h / 2
-              ) {
-                if (canvas) canvas.style.cursor = "move";
-                return;
-              }
-            }
           }
         }
 
@@ -2187,67 +1385,6 @@ function PanelCanvas({
         return;
       }
 
-      if (mode === "move-effect") {
-        const eid = selectedEffectIdRef.current;
-        if (eid) {
-          const p = panelRef.current;
-          const es = dragEffectStartRef.current;
-          const newEffects = (p.effects ?? []).map((ef) =>
-            ef.id === eid ? { ...ef, x: es.x + dx, y: es.y + dy } : ef
-          );
-          onUpdate({ ...p, effects: newEffects });
-        }
-        return;
-      }
-      if (mode === "rotate-effect") {
-        const eid = selectedEffectIdRef.current;
-        if (eid) {
-          const p = panelRef.current;
-          const ef = (p.effects ?? []).find((e) => e.id === eid);
-          if (ef) {
-            const cx = ef.x + ef.width / 2;
-            const cy = ef.y + ef.height / 2;
-            const currentAngle = Math.atan2(pos.y - cy, pos.x - cx);
-            const startAngle = (dragEffectStartRef.current as any).angleStart ?? 0;
-            const baseRotation =
-              (dragEffectStartRef.current as any).rotation ?? (ef.rotation || 0);
-            const nextRotation = baseRotation + (currentAngle - startAngle);
-            const newEffects = (p.effects ?? []).map((e) =>
-              e.id === eid ? { ...e, rotation: nextRotation } : e,
-            );
-            onUpdate({ ...p, effects: newEffects });
-          }
-        }
-        return;
-      }
-      if (mode === "resize-effect-br") {
-        const eid = selectedEffectIdRef.current;
-        if (eid) {
-          const p = panelRef.current;
-          const es = dragEffectStartRef.current;
-          const newW = Math.max(30, es.w + dx);
-          const newH = Math.max(30, es.h + dy);
-          const newEffects = (p.effects ?? []).map((ef) =>
-            ef.id === eid ? { ...ef, width: newW, height: newH } : ef
-          );
-          onUpdate({ ...p, effects: newEffects });
-        }
-        return;
-      }
-      if (mode === "resize-effect-tl") {
-        const eid = selectedEffectIdRef.current;
-        if (eid) {
-          const p = panelRef.current;
-          const es = dragEffectStartRef.current;
-          const newW = Math.max(30, es.w - dx);
-          const newH = Math.max(30, es.h - dy);
-          const newEffects = (p.effects ?? []).map((ef) =>
-            ef.id === eid ? { ...ef, x: es.x + es.w - newW, y: es.y + es.h - newH, width: newW, height: newH } : ef
-          );
-          onUpdate({ ...p, effects: newEffects });
-        }
-        return;
-      }
 
       const sid = selectedBubbleIdRef.current;
       if (!sid) return;
@@ -2342,14 +1479,12 @@ function PanelCanvas({
   const zoomScale = (zoom ?? 100) / 100;
   const hasSelection =
     !!selectedBubbleIdRef.current ||
-    !!selectedCharIdRef.current ||
-    !!selectedEffectIdRef.current;
+    !!selectedCharIdRef.current;
 
   const handleDeleteSelection = useCallback(() => {
     const p = panelRef.current;
     const sid = selectedBubbleIdRef.current;
     const cid = selectedCharIdRef.current;
-    const eid = selectedEffectIdRef.current;
     if (sid) {
       const newBubbles = p.bubbles.filter((b) => b.id !== sid);
       onUpdate({ ...p, bubbles: newBubbles });
@@ -2360,13 +1495,8 @@ function PanelCanvas({
       onUpdate({ ...p, characters: newChars });
       onSelectChar(null);
       selectedCharIdRef.current = null;
-    } else if (eid) {
-      const newEffects = (p.effects ?? []).filter((e) => e.id !== eid);
-      onUpdate({ ...p, effects: newEffects });
-      if (onSelectEffect) onSelectEffect(null);
-      selectedEffectIdRef.current = null;
     }
-  }, [onUpdate, onSelectBubble, onSelectChar, onSelectEffect]);
+  }, [onUpdate, onSelectBubble, onSelectChar]);
 
   const handleDuplicateSelection = useCallback(() => {
     const p = panelRef.current;
@@ -2440,9 +1570,8 @@ function PanelCanvas({
     const selectedId = sid || cid;
     if (!selectedId) return;
     // Build combined sorted list (asc z)
-    const list: Array<{ id: string; type: "bubble" | "char" | "effect"; z: number }> = [
+    const list: Array<{ id: string; type: "bubble" | "char"; z: number }> = [
       ...p.bubbles.map((b) => ({ id: b.id, type: "bubble" as const, z: b.zIndex ?? 0 })),
-      ...(p.effects ?? []).map((ef) => ({ id: ef.id, type: "effect" as const, z: ef.zIndex ?? 20 })),
       ...p.characters.map((c) => ({ id: c.id, type: "char" as const, z: c.zIndex ?? 0 })),
     ].sort((a, b) => a.z - b.z);
     const idx = list.findIndex((x) => x.id === selectedId);
@@ -2452,7 +1581,7 @@ function PanelCanvas({
     // Swap their z values (ensure distinct)
     const zHigh = Math.max(cur.z, nxt.z) + 1;
     const zLow = zHigh - 1;
-    const updates: Array<{ id: string; type: "bubble" | "char" | "effect"; z: number }> = [
+    const updates: Array<{ id: string; type: "bubble" | "char"; z: number }> = [
       { ...cur, z: zHigh }, { ...nxt, z: zLow }
     ];
     // Apply all in one panel update
@@ -2477,9 +1606,8 @@ function PanelCanvas({
     const cid = selectedCharIdRef.current;
     const selectedId = sid || cid;
     if (!selectedId) return;
-    const list: Array<{ id: string; type: "bubble" | "char" | "effect"; z: number }> = [
+    const list: Array<{ id: string; type: "bubble" | "char"; z: number }> = [
       ...p.bubbles.map((b) => ({ id: b.id, type: "bubble" as const, z: b.zIndex ?? 0 })),
-      ...(p.effects ?? []).map((ef) => ({ id: ef.id, type: "effect" as const, z: ef.zIndex ?? 20 })),
       ...p.characters.map((c) => ({ id: c.id, type: "char" as const, z: c.zIndex ?? 0 })),
     ].sort((a, b) => a.z - b.z);
     const idx = list.findIndex((x) => x.id === selectedId);
@@ -2488,7 +1616,7 @@ function PanelCanvas({
     const prv = list[idx - 1];
     const zHigh = Math.max(cur.z, prv.z) + 1;
     const zLow = zHigh - 1;
-    const updates: Array<{ id: string; type: "bubble" | "char" | "effect"; z: number }> = [
+    const updates: Array<{ id: string; type: "bubble" | "char"; z: number }> = [
       { ...cur, z: zLow }, { ...prv, z: zHigh }
     ];
     const newPanel = {
@@ -2606,7 +1734,7 @@ function PanelCanvas({
       const tag = target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
       if (e.key === "Delete" || e.key === "Backspace") {
-        if (selectedBubbleIdRef.current || selectedCharIdRef.current || selectedEffectIdRef.current) {
+        if (hasSelection) {
           e.preventDefault();
           handleDeleteSelection();
         } else if (onDeletePanelRef.current) {
@@ -2615,7 +1743,6 @@ function PanelCanvas({
         }
         return;
       }
-      if (!selectedBubbleIdRef.current && !selectedCharIdRef.current && !selectedEffectIdRef.current) return;
       if ((e.ctrlKey || e.metaKey) && (e.key === "]" || e.key === "[")) {
         e.preventDefault();
         if (e.key === "]") {
@@ -2693,7 +1820,6 @@ function PanelCanvas({
 
             const selBubble = selectedBubbleId ? panel.bubbles.find(b => b.id === selectedBubbleId) : null;
             const selChar = selectedCharId ? panel.characters.find(c => c.id === selectedCharId) : null;
-            const selEffect = selectedEffectId ? panel.effects?.find(e => e.id === selectedEffectId) : null;
 
             const HANDLE_R = 5;
             const HANDLE_COLOR = "hsl(173,80%,45%)";
@@ -2729,7 +1855,7 @@ function PanelCanvas({
               );
             }
 
-            if (handles.length === 0 && !selEffect) return null;
+            if (handles.length === 0) return null;
 
             return (
               <svg
@@ -2757,65 +1883,6 @@ function PanelCanvas({
                   const x1 = toSvgX(selChar.x - cw / 2 - 4), y1 = toSvgY(selChar.y - ch2 / 2 - 4);
                   const x2 = toSvgX(selChar.x + cw / 2 + 4), y2 = toSvgY(selChar.y + ch2 / 2 + 4);
                   return <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="none" stroke={HANDLE_COLOR} strokeWidth="1.5" strokeDasharray="5,3" />;
-                })()}
-                {/* Effect selection box and handles */}
-                {selEffect && (() => {
-                  const ef = selEffect;
-                  const x1 = toSvgX(ef.x - 4), y1 = toSvgY(ef.y - 4);
-                  const x2 = toSvgX(ef.x + ef.width + 4), y2 = toSvgY(ef.y + ef.height + 4);
-                  const rcx = toSvgX(ef.x + ef.width / 2);
-                  const rcy = toSvgY(ef.y - 24);
-                  return (
-                    <>
-                      <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="5,3" />
-                      {[
-                        { hx: toSvgX(ef.x - 4), hy: toSvgY(ef.y - 4), mode: "resize-effect-tl", cur: "nwse-resize" },
-                        { hx: toSvgX(ef.x + ef.width + 4), hy: toSvgY(ef.y + ef.height + 4), mode: "resize-effect-br", cur: "nwse-resize" },
-                      ].map((h2, i2) => (
-                        <circle key={i2} cx={h2.hx} cy={h2.hy} r={7} fill="white" stroke="#f59e0b" strokeWidth="1.8"
-                          style={{ pointerEvents: "all", cursor: h2.cur }}
-                          onPointerDown={(e) => {
-                            e.stopPropagation();
-                            const canvas = canvasRef.current;
-                            if (!canvas) return;
-                            canvas.setPointerCapture(e.pointerId);
-                            const pos = getCanvasPos(e.clientX, e.clientY);
-                            dragModeRef.current = h2.mode as DragMode;
-                            dragStartRef.current = pos;
-                            dragEffectStartRef.current = { x: ef.x, y: ef.y, w: ef.width, h: ef.height };
-                          }}
-                        />
-                      ))}
-                      <circle
-                        cx={rcx}
-                        cy={rcy}
-                        r={7}
-                        fill="white"
-                        stroke="#f59e0b"
-                        strokeWidth="1.8"
-                        style={{ pointerEvents: "all", cursor: "grab" }}
-                        onPointerDown={(e) => {
-                          e.stopPropagation();
-                          const canvas = canvasRef.current;
-                          if (!canvas) return;
-                          canvas.setPointerCapture(e.pointerId);
-                          const pos = getCanvasPos(e.clientX, e.clientY);
-                          dragModeRef.current = "rotate-effect";
-                          dragStartRef.current = pos;
-                          const cx = ef.x + ef.width / 2;
-                          const cy = ef.y + ef.height / 2;
-                          dragEffectStartRef.current = {
-                            x: ef.x,
-                            y: ef.y,
-                            w: ef.width,
-                            h: ef.height,
-                            rotation: ef.rotation || 0,
-                            angleStart: Math.atan2(pos.y - cy, pos.x - cx),
-                          } as any;
-                        }}
-                      />
-                    </>
-                  );
                 })()}
                 {/* Handle circles — onPointerDown initiates drag via canvas capture */}
                 {handles.map((h, i) => (
@@ -2887,8 +1954,6 @@ function EditorPanel({
   setSelectedBubbleId,
   selectedCharId,
   setSelectedCharId,
-  selectedEffectId,
-  setSelectedEffectId,
   creatorTier,
   isPro,
   mode = "image",
@@ -2905,8 +1970,6 @@ function EditorPanel({
   setSelectedBubbleId: (id: string | null) => void;
   selectedCharId: string | null;
   setSelectedCharId: (id: string | null) => void;
-   selectedEffectId: string | null;
-   setSelectedEffectId: (id: string | null) => void;
   creatorTier: number;
   isPro: boolean;
   mode?: "image" | "bubble" | "template";
@@ -2927,59 +1990,6 @@ function EditorPanel({
     panel.bubbles.find((b) => b.id === selectedBubbleId) || null;
   const selectedChar =
     panel.characters.find((c) => c.id === selectedCharId) || null;
-
-  const deleteEffectLayer = (id: string) => {
-    onUpdate({
-      ...panel,
-      effects: (panel.effects ?? []).filter((e) => e.id !== id),
-    });
-    if (selectedEffectId === id) setSelectedEffectId(null);
-  };
-
-  const getEffectLabel = (ef: EffectLayer, index: number) => {
-    switch (ef.type) {
-      case "flash_lines":
-        return "파열 효과선";
-      case "flash_dense":
-        return "집중선";
-      case "flash_small":
-        return "작은 파열";
-      case "firework":
-        return "짜잔!";
-      case "monologue_circles":
-        return "몽글몽글";
-      case "speed_lines":
-        return "두둥 등장";
-      case "star":
-        return "별";
-      case "sparkle":
-        return "빛나는";
-      case "anger":
-        return "화를내는";
-      case "surprise":
-        return "놀라는";
-      case "collapse":
-        return "무너지는";
-      case "arrow_up":
-        return "위 화살표";
-      case "arrow_down":
-        return "아래 화살표";
-      case "exclamation":
-        return "느낌표";
-      case "question":
-        return "물음표";
-      case "sunburst":
-        return "집중선(썬버스트)";
-      case "scribble":
-        return "엉킨 실타래";
-      case "x_mark":
-        return "X 표시";
-      case "speech_cloud":
-        return "말풍선";
-      default:
-        return `효과 ${index + 1}`;
-    }
-  };
 
   const getDailyKey = (feature: string) => {
     const d = new Date();
@@ -3130,7 +2140,6 @@ function EditorPanel({
     const items: Array<
       | { type: "char"; id: string; z: number; label: string; thumb?: string }
       | { type: "bubble"; id: string; z: number; label: string; thumb?: string }
-      | { type: "effect"; id: string; z: number; label: string; thumb?: string }
     > = [
         ...panel.characters.map((c) => ({
           type: "char" as const,
@@ -3146,21 +2155,14 @@ function EditorPanel({
           label: b.text || STYLE_LABELS[b.style] || `말풍선 ${i + 1}`,
           thumb: b.style === "image" && (b as any).templateSrc ? (b as any).templateSrc : undefined,
         })),
-        ...(panel.effects ?? []).map((ef, i) => ({
-          type: "effect" as const,
-          id: ef.id,
-          z: ef.zIndex ?? 20,
-          label: getEffectLabel(ef, i),
-          thumb: undefined,
-        })),
       ];
     return items.sort((a, b) => b.z - a.z);
-  }, [panel.characters, panel.bubbles, panel.effects]);
+  }, [panel.characters, panel.bubbles]);
 
   const [dragLayerIdx, setDragLayerIdx] = useState<number | null>(null);
 
   // applyLayerOrder MUST be defined before moveLayer (which calls it)
-  const applyLayerOrder = useCallback((ordered: Array<{ type: "char" | "bubble" | "effect"; id: string }>) => {
+  const applyLayerOrder = useCallback((ordered: Array<{ type: "char" | "bubble"; id: string }>) => {
     // layerItems is displayed high→low (index 0 = topmost layer).
     // zIndex: ordered[0] → highest = ordered.length-1, ordered[n-1] → lowest = 0
     const n = ordered.length;
@@ -3169,10 +2171,6 @@ function EditorPanel({
       characters: panel.characters.map((c) => {
         const idx = ordered.findIndex((it) => it.type === "char" && it.id === c.id);
         return idx >= 0 ? { ...c, zIndex: n - 1 - idx } : c;
-      }),
-      effects: (panel.effects ?? []).map((ef) => {
-        const idx = ordered.findIndex((it) => it.type === "effect" && it.id === ef.id);
-        return idx >= 0 ? { ...ef, zIndex: n - 1 - idx } : ef;
       }),
       bubbles: panel.bubbles.map((b) => {
         const idx = ordered.findIndex((it) => it.type === "bubble" && it.id === b.id);
@@ -3188,7 +2186,7 @@ function EditorPanel({
     const swapIdx = direction === "up" ? index - 1 : index + 1;
     // Swap the two items, then reassign ALL zIndexes via applyLayerOrder
     // This avoids duplicate/collision zIndex values
-    const newOrder = items.map((li) => ({ type: li.type as "char" | "bubble" | "effect", id: li.id }));
+    const newOrder = items.map((li) => ({ type: li.type as "char" | "bubble", id: li.id }));
     const tmp = newOrder[index];
     newOrder[index] = newOrder[swapIdx];
     newOrder[swapIdx] = tmp;
@@ -4516,7 +3514,7 @@ export default function StoryPage() {
             y: CANVAS_H / 2,
             scale: 1,          // will be updated to canvas-fill scale when imageEl loads
             imageEl: null,
-            zIndex: 0,         // behind bubbles/effects
+            zIndex: 0,
           };
           return { ...p, characters: [placeholder, ...p.characters] };
         })
@@ -5092,13 +4090,11 @@ export default function StoryPage() {
         bottomScript: null,
         bubbles: [],
         characters: [],
-        effects: [],
       };
       setPanels([fresh]);
       setActivePanelIndex(0);
       setSelectedBubbleId(null);
       setSelectedCharId(null);
-      setSelectedEffectId(null);
       return;
     }
     const newPanels = panels.filter((_, i) => i !== idx);
@@ -5106,7 +4102,6 @@ export default function StoryPage() {
     setActivePanelIndex(Math.min(activePanelIndex, newPanels.length - 1));
     setSelectedBubbleId(null);
     setSelectedCharId(null);
-    setSelectedEffectId(null);
   };
 
   const duplicatePanel = (idx: number) => {
@@ -5148,9 +4143,6 @@ export default function StoryPage() {
 
   type LeftTab = "image" | "ai" | "script" | "bubble" | "template" | "tools" | null;
   const [activeLeftTab, setActiveLeftTab] = useState<LeftTab>(null);
-  type ElementSubTab = "script" | "bubble" | "template" | null;
-  const [activeElementSubTab, setActiveElementSubTab] = useState<ElementSubTab>(null);
-  const [selectedEffectId, setSelectedEffectId] = useState<string | null>(null);
   const [selectedToolItem, setSelectedToolItem] = useState<string>("select");
   const [showDrawingSettings, setShowDrawingSettings] = useState(false);
   const colorInputRef = useRef<HTMLInputElement | null>(null);
@@ -5285,12 +4277,6 @@ export default function StoryPage() {
           y: c.y,
           scale: c.scale,
         })),
-        effects: (p.effects ?? []).map(ef => ({
-          id: ef.id, type: ef.type,
-          x: ef.x, y: ef.y, width: ef.width, height: ef.height,
-          rotation: ef.rotation, opacity: ef.opacity,
-          zIndex: ef.zIndex, color: ef.color, strokeColor: ef.strokeColor, seed: ef.seed,
-        })),
       })),
       topic,
     });
@@ -5385,7 +4371,6 @@ export default function StoryPage() {
               ...c,
               imageEl: null,
             })),
-            effects: (p.effects ?? []).map((ef: any) => ({ ...ef })),
           }));
           rehydrateImages(restoredPanels);
           setPanelsRaw(restoredPanels);
@@ -5516,21 +4501,7 @@ export default function StoryPage() {
       </div>
 
       <div className="flex flex-1 h-full">
-        {/* Standalone CanvaToolbar strip — appears right next to icon sidebar when 도구 tab is active */}
-        {isDrawingMode && (
-          <CanvaToolbar
-            toolMode={canvaToolMode}
-            onToolModeChange={setCanvaToolMode}
-            drawConfig={canvaDrawConfig}
-            onDrawConfigChange={setCanvaDrawConfig}
-            lineConfig={canvaLineConfig}
-            onLineConfigChange={setCanvaLineConfig}
-            textConfig={canvaTextConfig}
-            onTextConfigChange={setCanvaTextConfig}
-          />
-        )}
-
-        {activeLeftTab && activeLeftTab !== "drawing" && (
+        {activeLeftTab && (
           <div
             className={`h-full bg-card overflow-y-auto border-r ${activeLeftTab === "tools" ? "w-auto" : "w-[320px]"}`}
             data-testid="left-panel-content"
@@ -6140,8 +5111,6 @@ export default function StoryPage() {
                         setSelectedBubbleId={setSelectedBubbleId}
                         selectedCharId={selectedCharId}
                         setSelectedCharId={setSelectedCharId}
-                        selectedEffectId={selectedEffectId}
-                        setSelectedEffectId={setSelectedEffectId}
                         creatorTier={usageData?.creatorTier ?? 0}
                         isPro={isPro}
                         mode="image"
@@ -6293,7 +5262,7 @@ export default function StoryPage() {
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <div className="flex items-center gap-1.5">
                         <button
-                          onClick={() => setActiveElementSubTab(null)}
+                          onClick={() => setActiveLeftTab(null)}
                           className="text-muted-foreground hover-elevate rounded-md p-1"
                         >
                           <ArrowLeft className="h-3.5 w-3.5" />
@@ -6319,8 +5288,6 @@ export default function StoryPage() {
                       setSelectedBubbleId={setSelectedBubbleId}
                       selectedCharId={selectedCharId}
                       setSelectedCharId={setSelectedCharId}
-                      selectedEffectId={selectedEffectId}
-                      setSelectedEffectId={setSelectedEffectId}
                       creatorTier={usageData?.creatorTier ?? 0}
                       isPro={isPro}
                       mode="bubble"
@@ -6334,7 +5301,7 @@ export default function StoryPage() {
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <div className="flex items-center gap-1.5">
                         <button
-                          onClick={() => setActiveElementSubTab(null)}
+                          onClick={() => setActiveLeftTab(null)}
                           className="text-muted-foreground hover-elevate rounded-md p-1"
                         >
                           <ArrowLeft className="h-3.5 w-3.5" />
@@ -6360,8 +5327,6 @@ export default function StoryPage() {
                       setSelectedBubbleId={setSelectedBubbleId}
                       selectedCharId={selectedCharId}
                       setSelectedCharId={setSelectedCharId}
-                      selectedEffectId={selectedEffectId}
-                      setSelectedEffectId={setSelectedEffectId}
                       creatorTier={usageData?.creatorTier ?? 0}
                       isPro={isPro}
                       mode="template"
@@ -6374,7 +5339,7 @@ export default function StoryPage() {
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5">
                           <button
-                            onClick={() => setActiveElementSubTab(null)}
+                            onClick={() => setActiveLeftTab(null)}
                             className="text-muted-foreground hover-elevate rounded-md p-1"
                           >
                             <ArrowLeft className="h-3.5 w-3.5" />
@@ -6913,23 +5878,16 @@ export default function StoryPage() {
                           }}
                           onDoubleClickBubble={() => {
                             // Switch to element > bubble sub-tab on double-click
-                            setActiveLeftTab("element");
-                            setActiveElementSubTab("bubble");
+                            setActiveLeftTab("bubble");
                             setTimeout(() => bubbleTextareaRef.current?.focus(), 120);
                           }}
-                          onSelectEffect={(id) => {
-                            setSelectedEffectId(id);
-                            setSelectedBubbleId(null);
-                            setSelectedCharId(null);
-                            setActivePanelIndex(i);
-                          }}
-                          selectedEffectId={activePanelIndex === i ? selectedEffectId : null}
                           onDeletePanel={() => removePanel(i)}
                         />
 
                         {/* Canva-style drawing editor overlay — only on active panel in drawing mode */}
                         {isDrawingMode && activePanelIndex === i && (
                           <div
+                            className={`drawing-canvas-wrapper ${isDrawingMode ? "drawing-canvas-wrapper--active" : ""}`}
                             style={{
                               position: "absolute",
                               top: 0,
@@ -6937,20 +5895,19 @@ export default function StoryPage() {
                               width: "100%",
                               height: "100%",
                               zIndex: 20,
-                              pointerEvents: "auto",
                             }}
                           >
-                            <CanvaEditor
-                              ref={canvaEditorRef}
+                            <DrawingCanvas
+                              ref={drawingCanvasRef}
                               width={450}
                               height={600}
+                              toolState={drawingToolState}
                               className="rounded-md"
-                              toolMode={canvaToolMode}
-                              drawConfig={canvaDrawConfig}
-                              lineConfig={canvaLineConfig}
-                              textConfig={canvaTextConfig}
-                              onToolModeChange={setCanvaToolMode}
                             />
+                            <div className="drawing-mode-indicator">
+                              <span className="drawing-mode-indicator__dot" />
+                              드로잉 모드
+                            </div>
                           </div>
                         )}
                       </div>
@@ -7063,49 +6020,15 @@ export default function StoryPage() {
               label: b.text || STYLE_LABELS[b.style] || `말풍선 ${i + 1}`,
               thumb: b.style === "image" && (b as any).templateSrc ? (b as any).templateSrc : undefined,
             })),
-            ...(activePanel.effects ?? []).map((ef: EffectLayer, i: number) => ({
-              type: "effect" as const,
-              id: ef.id,
-              z: ef.zIndex ?? 20,
-              label: (() => {
-                switch (ef.type) {
-                  case "flash_lines": return "파열 효과선";
-                  case "flash_dense": return "집중선";
-                  case "flash_small": return "작은 파열";
-                  case "firework": return "짜잔!";
-                  case "monologue_circles": return "몽글몽글";
-                  case "speed_lines": return "두둥 등장";
-                  case "star": return "별";
-                  case "sparkle": return "빛나는";
-                  case "anger": return "화를내는";
-                  case "surprise": return "놀라는";
-                  case "collapse": return "무너지는";
-                  case "arrow_up": return "위 화살표";
-                  case "arrow_down": return "아래 화살표";
-                  case "exclamation": return "느낌표";
-                  case "question": return "물음표";
-                  case "sunburst": return "집중선(썬버스트)";
-                  case "scribble": return "엉킨 실타래";
-                  case "x_mark": return "X 표시";
-                  case "speech_cloud": return "말풍선";
-                  default: return `효과 ${i + 1}`;
-                }
-              })(),
-              thumb: undefined as string | undefined,
-            })),
           ].sort((a, b) => b.z - a.z);
 
-          const applyRightLayerOrder = (ordered: Array<{ type: "char" | "bubble" | "effect"; id: string }>) => {
+          const applyRightLayerOrder = (ordered: Array<{ type: "char" | "bubble"; id: string }>) => {
             const n = ordered.length;
             updatePanel(activePanelIndex, {
               ...activePanel,
               characters: activePanel.characters.map((c) => {
                 const idx = ordered.findIndex((it) => it.type === "char" && it.id === c.id);
                 return idx >= 0 ? { ...c, zIndex: n - 1 - idx } : c;
-              }),
-              effects: (activePanel.effects ?? []).map((ef) => {
-                const idx = ordered.findIndex((it) => it.type === "effect" && it.id === ef.id);
-                return idx >= 0 ? { ...ef, zIndex: n - 1 - idx } : ef;
               }),
               bubbles: activePanel.bubbles.map((b) => {
                 const idx = ordered.findIndex((it) => it.type === "bubble" && it.id === b.id);
@@ -7118,26 +6041,11 @@ export default function StoryPage() {
             if (direction === "up" && index <= 0) return;
             if (direction === "down" && index >= rightLayerItems.length - 1) return;
             const swapIdx = direction === "up" ? index - 1 : index + 1;
-            const newOrder = rightLayerItems.map((li) => ({ type: li.type as "char" | "bubble" | "effect", id: li.id }));
+            const newOrder = rightLayerItems.map((li) => ({ type: li.type as "char" | "bubble", id: li.id }));
             const tmp = newOrder[index];
             newOrder[index] = newOrder[swapIdx];
             newOrder[swapIdx] = tmp;
             applyRightLayerOrder(newOrder);
-          };
-
-          const selEf = selectedEffectId ? (activePanel.effects ?? []).find(e => e.id === selectedEffectId) : null;
-          const updateEffect = (updates: Partial<EffectLayer>) => {
-            if (!selEf) return;
-            const newEffects = (activePanel.effects ?? []).map(e =>
-              e.id === selEf.id ? { ...e, ...updates } : e
-            );
-            updatePanel(activePanelIndex, { ...activePanel, effects: newEffects });
-          };
-          const deleteEffect = () => {
-            if (!selEf) return;
-            const newEffects = (activePanel.effects ?? []).filter(e => e.id !== selEf.id);
-            updatePanel(activePanelIndex, { ...activePanel, effects: newEffects });
-            setSelectedEffectId(null);
           };
 
           return (
@@ -7160,10 +6068,8 @@ export default function StoryPage() {
                     const isSelected =
                       item.type === "char" ? selectedCharId === item.id
                       : item.type === "bubble" ? selectedBubbleId === item.id
-                      : selectedEffectId === item.id;
-                    const typeBg = item.type === "effect"
-                      ? isSelected ? "bg-violet-500/15 border border-violet-500/30" : "hover:bg-violet-500/5"
-                      : item.type === "bubble"
+                      : false;
+                    const typeBg = item.type === "bubble"
                       ? isSelected ? "bg-sky-500/15 border border-sky-500/30" : "hover:bg-sky-500/5"
                       : isSelected ? "bg-emerald-500/15 border border-emerald-500/30" : "hover:bg-muted/50";
                     return (
@@ -7174,33 +6080,25 @@ export default function StoryPage() {
                         if (item.type === "char") {
                           setSelectedCharId(item.id);
                           setSelectedBubbleId(null);
-                          setSelectedEffectId(null);
                         } else if (item.type === "bubble") {
                           setSelectedBubbleId(item.id);
                           setSelectedCharId(null);
-                          setSelectedEffectId(null);
-                        } else {
-                          setSelectedEffectId(item.id);
-                          setSelectedCharId(null);
-                          setSelectedBubbleId(null);
                         }
                       }}
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <div className={`w-7 h-7 rounded overflow-hidden shrink-0 border ${
-                          item.type === "effect" ? "border-violet-400/50 bg-violet-50 dark:bg-violet-950/30"
-                          : item.type === "bubble" ? "border-sky-400/50 bg-sky-50 dark:bg-sky-950/30"
+                          item.type === "bubble" ? "border-sky-400/50 bg-sky-50 dark:bg-sky-950/30"
                           : "border-emerald-400/50 bg-emerald-50 dark:bg-emerald-950/30"
                         }`}>
                           {item.thumb ? (
                             <img src={item.thumb} alt="" className="w-full h-full object-cover" />
                           ) : (
                             <div className={`w-full h-full flex items-center justify-center text-[10px] font-semibold ${
-                              item.type === "effect" ? "text-violet-500"
-                              : item.type === "bubble" ? "text-sky-500"
+                              item.type === "bubble" ? "text-sky-500"
                               : "text-emerald-500"
                             }`}>
-                              {item.type === "bubble" ? "B" : item.type === "char" ? "C" : "E"}
+                              {item.type === "bubble" ? "B" : "C"}
                             </div>
                           )}
                         </div>
@@ -7262,10 +6160,6 @@ export default function StoryPage() {
                               const newBubbles = activePanel.bubbles.filter(b => b.id !== item.id);
                               updatePanel(activePanelIndex, { ...activePanel, bubbles: newBubbles });
                               if (selectedBubbleId === item.id) setSelectedBubbleId(null);
-                            } else {
-                              const newEffects = (activePanel.effects ?? []).filter(ef => ef.id !== item.id);
-                              updatePanel(activePanelIndex, { ...activePanel, effects: newEffects });
-                              if (selectedEffectId === item.id) setSelectedEffectId(null);
                             }
                           }}
                         >
@@ -7276,13 +6170,6 @@ export default function StoryPage() {
                   ); })}
                 </div>
 
-                {/* Selected effect: inline color picker */}
-                {selEf && (
-                  <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-muted/40 border border-border">
-                    <input type="color" value={selEf.color ?? "#222222"} onChange={e => updateEffect({ color: e.target.value, strokeColor: e.target.value })} className="h-6 w-6 cursor-pointer rounded border-0 p-0" />
-                    <span className="text-[11px] text-muted-foreground">효과 색</span>
-                  </div>
-                )}
               </div>
             </div>
           );
