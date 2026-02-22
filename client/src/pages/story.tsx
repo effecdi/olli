@@ -6356,7 +6356,7 @@ export default function StoryPage() {
                             )}
                             <div className="drawing-mode-indicator">
                               <span className="drawing-mode-indicator__dot" />
-                              {selectedToolItem === "line" ? "선 모드" : selectedToolItem === "text" ? "텍스트 모드" : selectedToolItem === "eraser" ? "지우개 모드" : "드로잉 모드"}
+                              {selectedToolItem === "line" ? "선 모드" : selectedToolItem === "text" ? "텍스트 모드" : "드로잉 모드"}
                             </div>
                           </div>
                         )}
