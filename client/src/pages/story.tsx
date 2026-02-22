@@ -6262,7 +6262,6 @@ export default function StoryPage() {
               label: b.text || STYLE_LABELS[b.style] || `말풍선 ${i + 1}`,
               thumb: b.style === "image" && (b as any).templateSrc ? (b as any).templateSrc : undefined,
             })),
-<<<<<<< HEAD
             ...(activePanel.drawingLayers || []).map((dl) => ({
               type: "drawing" as const,
               id: dl.id,
@@ -6275,11 +6274,6 @@ export default function StoryPage() {
           ].sort((a, b) => b.z - a.z);
 
           const applyRightLayerOrder = (ordered: Array<{ type: "char" | "bubble" | "drawing"; id: string }>) => {
-=======
-          ].sort((a, b) => b.z - a.z);
-
-          const applyRightLayerOrder = (ordered: Array<{ type: "char" | "bubble"; id: string }>) => {
->>>>>>> claude/svg-story-effects-0ou2v
             const n = ordered.length;
             updatePanel(activePanelIndex, {
               ...activePanel,
