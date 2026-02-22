@@ -4117,6 +4117,7 @@ export default function StoryPage() {
         bottomScript: null,
         bubbles: [],
         characters: [],
+        drawingLayers: [],
       };
       setPanels([fresh]);
       setActivePanelIndex(0);
