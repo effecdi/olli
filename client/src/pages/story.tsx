@@ -2339,32 +2339,10 @@ function EditorPanel({
             템플릿 가져오기
           </Button>
         )}
-        {isImageMode && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowCharPicker(!showCharPicker)}
-            data-testid={`button-add-character-${index}`}
-          >
-            <ImageIcon className="h-3.5 w-3.5 mr-1" />
-            이미지 선택
-          </Button>
-        )}
       </div>
 
-      {isImageMode && showCharPicker && (
+      {isImageMode && (
         <div className="rounded-md p-3 space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-medium">이미지 선택 / 업로드</span>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => setShowCharPicker(false)}
-            >
-              <X className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-
           <div className="space-y-1.5">
             <Label className="text-[12px] text-muted-foreground">이미지 업로드 (여러 장 가능)</Label>
             <button
