@@ -77,7 +77,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { KOREAN_FONTS, FONT_CSS, getFontFamily, getDefaultTailTip, getTailGeometry, drawBubble, STYLE_LABELS, FLASH_STYLE_LABELS, TAIL_LABELS } from "@/lib/bubble-utils";
-import { SpeechBubble, BubbleStyle, TailStyle, TailDrawMode } from "@/lib/bubble-types";
+import { SpeechBubble, BubbleStyle, TailStyle, TailDrawMode, EffectLayerType, EffectLayer as SharedEffectLayer } from "@/lib/bubble-types";
 
 function bubblePath(n: number) {
   return `/assets/bubbles/bubble_${String(n).padStart(3, "0")}.png`;
@@ -258,7 +258,7 @@ interface ScriptData {
 // Effect layer for canvas-rendered effects (arrows, flash lines, sparkles, etc.)
 interface EffectLayer {
   id: string;
-  type: string;  // "flash_lines"|"flash_dense"|"flash_small"|"firework"|"monologue_circles"|"speed_lines"|"star"|"sparkle"|"anger"|"surprise"|"collapse"|"arrow_up"|"arrow_down"|"exclamation"|"question"|"sunburst"|"scribble"|"x_mark"|"speech_cloud"
+  type: EffectLayerType;
   x: number;
   y: number;
   width: number;
