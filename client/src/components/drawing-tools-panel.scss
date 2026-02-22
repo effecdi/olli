@@ -468,22 +468,41 @@ $transition-normal: 200ms ease;
     transform: scale(1.1);
   }
 
-  // ─── Settings panel ───────────────────────────────────────────────────
+  // ─── Settings floating modal ─────────────────────────────────────────
 
-  &__settings {
-    position: absolute;
-    left: calc(100% + 56px); // main strip width (~56px) + sub strip
-    top: 0;
+  &__settings-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+  }
+
+  &__settings-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 220px;
+    padding: 16px;
+    background: hsl(var(--card));
+    border: 1px solid $border-color;
+    border-radius: $radius-lg;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    z-index: 100;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 12px 10px;
-    border-right: 1px solid $border-color;
-    width: 160px;
-    background: hsl(var(--card));
-    z-index: 10;
-    height: 100%;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06);
+    animation: settings-modal-in 150ms ease;
+  }
+
+  @keyframes settings-modal-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
   }
 
   &__settings-section {
