@@ -4755,7 +4755,11 @@ export default function StoryPage() {
   const isDrawingMode = activeLeftTab === "drawing";
 
   const toggleLeftTab = (tab: LeftTab) => {
-    setActiveLeftTab((prev) => (prev === tab ? null : tab));
+    setActiveLeftTab((prev) => {
+      const next = prev === tab ? null : tab;
+      if (next !== "element") setActiveElementSubTab(null);
+      return next;
+    });
   };
 
   const downloadPanel = (idx: number) => {
