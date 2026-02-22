@@ -4185,7 +4185,6 @@ export default function StoryPage() {
     opacity: 1,
   });
   const drawingCanvasRef = useRef<DrawingCanvasHandle | null>(null);
-<<<<<<< HEAD
   const isDrawingMode = activeLeftTab === "tools" && ["drawing", "line", "text", "eraser"].includes(selectedToolItem);
 
   // Drawing layer undo/redo
@@ -4216,9 +4215,6 @@ export default function StoryPage() {
   // Text tool input state
   const [textInputPos, setTextInputPos] = useState<{ x: number; y: number } | null>(null);
   const [textInputValue, setTextInputValue] = useState("");
-=======
-  const isDrawingMode = activeLeftTab === "tools" && selectedToolItem === "drawing";
->>>>>>> claude/svg-story-effects-0ou2v
 
   const toggleLeftTab = (tab: LeftTab) => {
     setActiveLeftTab((prev) => {
