@@ -22,6 +22,7 @@ import BackgroundPage from "@/pages/background";
 import StoryPage from "@/pages/story";
 import EditsPage from "@/pages/edits";
 import LoginPage from "@/pages/login";
+import AuthCallbackPage from "@/pages/auth-callback";
 import DashboardPage from "@/pages/dashboard";
 
 function Router() {
