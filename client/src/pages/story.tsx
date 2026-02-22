@@ -5406,11 +5406,7 @@ export default function StoryPage() {
                               <Redo2 className="h-3.5 w-3.5" />
                             </button>
                             <button
-<<<<<<< HEAD
                               onClick={() => handleDrawingClear()}
-=======
-                              onClick={() => drawingCanvasRef.current?.clear()}
->>>>>>> claude/svg-story-effects-0ou2v
                               className="tools-compact-panel__action-btn tools-compact-panel__action-btn--danger"
                               title="전체 삭제"
                             >
