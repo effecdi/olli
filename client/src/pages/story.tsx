@@ -4535,7 +4535,6 @@ export default function StoryPage() {
   const TOOL_ITEMS: { id: string; icon: typeof Pen; label: string; color?: string }[] = [
     { id: "select", icon: MousePointer2, label: "선택" },
     { id: "drawing", icon: Pen, label: "드로잉", color: "#ef4444" },
-<<<<<<< HEAD
     { id: "line", icon: Minus, label: "선", color: "#3b82f6" },
     { id: "text", icon: Type, label: "텍스트", color: "#8b5cf6" },
     { id: "eraser", icon: Eraser, label: "지우개", color: "#f472b6" },
@@ -4549,15 +4548,6 @@ export default function StoryPage() {
 
   const [lineSubType, setLineSubType] = useState<"straight" | "curve" | "polyline">("straight");
 
-=======
-    { id: "shape", icon: Circle, label: "도형", color: "#6b7280" },
-    { id: "line", icon: Minus, label: "선", color: "#3b82f6" },
-    { id: "sticky", icon: StickyNote, label: "메모", color: "#eab308" },
-    { id: "text", icon: Type, label: "텍스트", color: "#8b5cf6" },
-    { id: "grid", icon: Grid3X3, label: "그리드", color: "#3b82f6" },
-  ];
-
->>>>>>> claude/svg-story-effects-0ou2v
   // ─── Drawing brush items for sub-panel ──────────────────────────────
   const DRAWING_BRUSH_ITEMS: { id: string; icon: typeof Pen; label: string; color?: string }[] = [
     { id: "ballpoint", icon: Pen, label: "볼펜", color: "#3b82f6" },
