@@ -5273,7 +5273,6 @@ export default function StoryPage() {
                         </div>
                       )}
 
-<<<<<<< HEAD
                       {/* Line sub-tools strip */}
                       {selectedToolItem === "line" && (
                         <div className="tools-compact-panel__strip tools-compact-panel__strip--sub">
@@ -5360,10 +5359,6 @@ export default function StoryPage() {
 
                       {/* Drawing settings popover */}
                       {(selectedToolItem === "drawing" || selectedToolItem === "line" || selectedToolItem === "eraser") && showDrawingSettings && (
-=======
-                      {/* Drawing settings popover */}
-                      {selectedToolItem === "drawing" && showDrawingSettings && (
->>>>>>> claude/svg-story-effects-0ou2v
                         <div className="tools-compact-panel__settings">
                           <div className="tools-compact-panel__settings-section">
                             <div className="tools-compact-panel__settings-row">
