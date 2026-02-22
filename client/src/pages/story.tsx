@@ -4713,39 +4713,66 @@ export default function StoryPage() {
   };
 
   const downloadPanel = (idx: number) => {
-    const isPro = usageData?.tier === "pro";
-    const credits = usageData?.credits ?? 0;
-    if (!isPro && credits <= 0) {
-      toast({ title: "크레딧 부족", description: "다운로드는 크레딧이 필요합니다. Pro 업그레이드 또는 크레딧을 구매하세요.", variant: "destructive" });
+    const p = panels[idx];
+    if (!p) {
+      toast({ title: "다운로드 실패", description: "패널을 찾을 수 없습니다.", variant: "destructive" });
       return;
     }
-    const p = panels[idx];
     const canvas = panelCanvasRefs.current.get(p.id);
-    if (!canvas) return;
+    if (!canvas) {
+      toast({ title: "다운로드 실패", description: "캔버스가 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.", variant: "destructive" });
+      return;
+    }
     try {
+      // Try direct toDataURL first
+      const dataUrl = canvas.toDataURL("image/png");
       const link = document.createElement("a");
       link.download = `panel_${idx + 1}.png`;
-      link.href = canvas.toDataURL("image/png");
+      link.href = dataUrl;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
     } catch (err: any) {
-      if (err?.name === "SecurityError" || /tainted/.test(err?.message ?? "")) {
-        toast({ title: "다운로드 실패", description: "외부 이미지가 포함되어 다운로드할 수 없습니다. 이미지를 다시 업로드하거나 로컬 이미지를 사용해주세요.", variant: "destructive" });
-      } else {
-        toast({ title: "다운로드 실패", description: err?.message || "알 수 없는 오류가 발생했습니다.", variant: "destructive" });
-      }
+      // Tainted canvas fallback: re-draw onto a clean canvas
+      try {
+        const cleanCanvas = document.createElement("canvas");
+        cleanCanvas.width = canvas.width;
+        cleanCanvas.height = canvas.height;
+        const ctx = cleanCanvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(canvas, 0, 0);
+          const dataUrl = cleanCanvas.toDataURL("image/png");
+          const link = document.createElement("a");
+          link.download = `panel_${idx + 1}.png`;
+          link.href = dataUrl;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          return;
+        }
+      } catch {}
+      // Final fallback: toBlob
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          toast({ title: "다운로드 실패", description: "이미지를 생성할 수 없습니다.", variant: "destructive" });
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.download = `panel_${idx + 1}.png`;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, "image/png");
     }
   };
 
   const downloadAll = () => {
-    let errorCount = 0;
+    if (panels.length === 0) return;
     panels.forEach((_, i) => {
-      setTimeout(() => {
-        try {
-          downloadPanel(i);
-        } catch {
-          errorCount++;
-        }
-      }, i * 200);
+      setTimeout(() => downloadPanel(i), i * 300);
     });
   };
 
