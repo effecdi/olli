@@ -1778,18 +1778,7 @@ function PanelCanvas({
         return;
       }
 
-      const sid = selectedBubbleIdRef.current;
-      if (!sid) return;
-      const bs = dragBubbleStartRef.current;
-      const minSize = 40;
-
-      if (mode === "tail-ctrl1") {
-        updateBubbleInPanel(sid, { tailCtrl1X: pos.x, tailCtrl1Y: pos.y });
-      } else if (mode === "tail-ctrl2") {
-        updateBubbleInPanel(sid, { tailCtrl2X: pos.x, tailCtrl2Y: pos.y });
-      } else if (mode === "move-tail") {
-        updateBubbleInPanel(sid, { tailTipX: pos.x, tailTipY: pos.y });
-      } else if (mode === "move-effect") {
+      if (mode === "move-effect") {
         const eid = selectedEffectIdRef.current;
         if (eid) {
           const p = panelRef.current;
@@ -1800,7 +1789,8 @@ function PanelCanvas({
           onUpdate({ ...p, effects: newEffects });
         }
         return;
-      } else if (mode === "rotate-effect") {
+      }
+      if (mode === "rotate-effect") {
         const eid = selectedEffectIdRef.current;
         if (eid) {
           const p = panelRef.current;
@@ -1820,7 +1810,8 @@ function PanelCanvas({
           }
         }
         return;
-      } else if (mode === "resize-effect-br") {
+      }
+      if (mode === "resize-effect-br") {
         const eid = selectedEffectIdRef.current;
         if (eid) {
           const p = panelRef.current;
@@ -1833,7 +1824,8 @@ function PanelCanvas({
           onUpdate({ ...p, effects: newEffects });
         }
         return;
-      } else if (mode === "resize-effect-tl") {
+      }
+      if (mode === "resize-effect-tl") {
         const eid = selectedEffectIdRef.current;
         if (eid) {
           const p = panelRef.current;
@@ -1846,6 +1838,19 @@ function PanelCanvas({
           onUpdate({ ...p, effects: newEffects });
         }
         return;
+      }
+
+      const sid = selectedBubbleIdRef.current;
+      if (!sid) return;
+      const bs = dragBubbleStartRef.current;
+      const minSize = 40;
+
+      if (mode === "tail-ctrl1") {
+        updateBubbleInPanel(sid, { tailCtrl1X: pos.x, tailCtrl1Y: pos.y });
+      } else if (mode === "tail-ctrl2") {
+        updateBubbleInPanel(sid, { tailCtrl2X: pos.x, tailCtrl2Y: pos.y });
+      } else if (mode === "move-tail") {
+        updateBubbleInPanel(sid, { tailTipX: pos.x, tailTipY: pos.y });
       } else if (mode === "move") {
         updateBubbleInPanel(sid, { x: bs.x + dx, y: bs.y + dy });
       } else if (mode === "resize-br") {
