@@ -266,6 +266,28 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
         const ctx = drawLayer.getContext("2d");
         if (!ctx) return;
 
+        // Line tool: restore snapshot then draw preview line
+        if (toolState.tool === "line") {
+          const start = lineStartRef.current;
+          const snapshot = preStrokeImageRef.current;
+          if (!start || !snapshot) return;
+
+          ctx.putImageData(snapshot, 0, 0);
+          ctx.save();
+          ctx.strokeStyle = toolState.color;
+          ctx.lineWidth = toolState.size;
+          ctx.lineCap = "round";
+          ctx.globalAlpha = toolState.opacity;
+          ctx.globalCompositeOperation = "source-over";
+          ctx.beginPath();
+          ctx.moveTo(start.x, start.y);
+          ctx.lineTo(point.x, point.y);
+          ctx.stroke();
+          ctx.restore();
+          composite();
+          return;
+        }
+
         pointsRef.current.push(point);
         const pts = pointsRef.current;
 
