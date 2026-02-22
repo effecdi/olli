@@ -48,6 +48,7 @@ interface DrawingCanvasProps {
   drawingLayers: DrawingLayer[];
   onLayerCreated?: (layer: DrawingLayer) => void;
   onRequestTextInput?: (x: number, y: number) => void;
+  onStrokeEnd?: () => void;
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
