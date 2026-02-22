@@ -35,6 +35,7 @@ interface DrawingCanvasProps {
   backgroundImage?: HTMLImageElement | null;
   className?: string;
   onStrokeEnd?: () => void;
+  onRequestTextInput?: (x: number, y: number) => void;
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
