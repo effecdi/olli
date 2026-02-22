@@ -1,2 +1,10 @@
 export { default as CanvaEditor } from "./canva-editor";
-export type { CanvaEditorHandle, CanvaEditorProps } from "./types";
+export { default as CanvaToolbar } from "./canva-toolbar";
+export type {
+  CanvaEditorHandle,
+  CanvaEditorProps,
+  ToolMode,
+  DrawingConfig,
+  LineConfig,
+  TextConfig,
+} from "./types";

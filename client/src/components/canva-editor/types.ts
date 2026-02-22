@@ -63,6 +63,11 @@ export interface CanvaEditorProps {
   height: number;
   className?: string;
   backgroundImage?: string | null;
+  toolMode: ToolMode;
+  drawConfig: DrawingConfig;
+  lineConfig: LineConfig;
+  textConfig: TextConfig;
+  onToolModeChange?: (mode: ToolMode) => void;
   onObjectSelected?: (obj: FabricObject | null) => void;
 }
 
