@@ -3155,6 +3155,17 @@ export default function StoryPage() {
         };
         img.src = p.backgroundImageUrl;
       }
+      // Rehydrate drawing layer images
+      (p.drawingLayers || []).forEach((dl) => {
+        if (dl.imageData && !dl.imageEl) {
+          const img = new Image();
+          img.onload = () => {
+            dl.imageEl = img;
+            setPanelsRaw((cur) => [...cur]);
+          };
+          img.src = dl.imageData;
+        }
+      });
     });
   }, []);
 
