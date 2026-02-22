@@ -59,20 +59,31 @@ import {
   Zap,
   Star,
   Pen,
+<<<<<<< HEAD
   ArrowLeft,
   Boxes,
   FlipHorizontal2,
   MousePointer2,
   Eraser,
+=======
+  MousePointer2,
+  Eraser,
+  StickyNote,
+>>>>>>> claude/svg-story-effects-0ou2v
   Highlighter,
   Pencil,
   PenLine,
   Minus,
   Menu,
+<<<<<<< HEAD
   Spline,
   GitCommitHorizontal,
   Eye,
   EyeOff,
+=======
+  Grid3X3,
+  Circle,
+>>>>>>> claude/svg-story-effects-0ou2v
 } from "lucide-react";
 import DrawingCanvas, { type DrawingToolState, type DrawingCanvasHandle } from "@/components/drawing-canvas";
 import "@/components/drawing-tools-panel.scss";
@@ -263,6 +274,7 @@ interface ScriptData {
   y?: number;
 }
 
+<<<<<<< HEAD
 type DrawingLayerType = "drawing" | "straight" | "curve" | "polyline" | "text" | "eraser";
 
 interface DrawingLayer {
@@ -275,6 +287,8 @@ interface DrawingLayer {
   label: string;           // "드로잉", "직선", "곡선", "꺾인선", "텍스트", "지우개"
 }
 
+=======
+>>>>>>> claude/svg-story-effects-0ou2v
 interface PanelData {
   id: string;
   topScript: ScriptData | null;
@@ -4117,7 +4131,10 @@ export default function StoryPage() {
         bottomScript: null,
         bubbles: [],
         characters: [],
+<<<<<<< HEAD
         drawingLayers: [],
+=======
+>>>>>>> claude/svg-story-effects-0ou2v
       };
       setPanels([fresh]);
       setActivePanelIndex(0);
@@ -4185,6 +4202,7 @@ export default function StoryPage() {
     opacity: 1,
   });
   const drawingCanvasRef = useRef<DrawingCanvasHandle | null>(null);
+<<<<<<< HEAD
   const isDrawingMode = activeLeftTab === "tools" && ["drawing", "line", "text", "eraser"].includes(selectedToolItem);
 
   // Drawing layer undo/redo
@@ -4215,6 +4233,9 @@ export default function StoryPage() {
   // Text tool input state
   const [textInputPos, setTextInputPos] = useState<{ x: number; y: number } | null>(null);
   const [textInputValue, setTextInputValue] = useState("");
+=======
+  const isDrawingMode = activeLeftTab === "tools" && selectedToolItem === "drawing";
+>>>>>>> claude/svg-story-effects-0ou2v
 
   const toggleLeftTab = (tab: LeftTab) => {
     setActiveLeftTab((prev) => {
@@ -4335,6 +4356,7 @@ export default function StoryPage() {
           y: c.y,
           scale: c.scale,
         })),
+<<<<<<< HEAD
         drawingLayers: (p.drawingLayers || []).map((dl) => ({
           id: dl.id,
           type: dl.type,
@@ -4343,6 +4365,8 @@ export default function StoryPage() {
           zIndex: dl.zIndex,
           label: dl.label,
         })),
+=======
+>>>>>>> claude/svg-story-effects-0ou2v
       })),
       topic,
     });
@@ -4437,10 +4461,13 @@ export default function StoryPage() {
               ...c,
               imageEl: null,
             })),
+<<<<<<< HEAD
             drawingLayers: (p.drawingLayers || []).map((dl: any) => ({
               ...dl,
               imageEl: null,
             })),
+=======
+>>>>>>> claude/svg-story-effects-0ou2v
           }));
           rehydrateImages(restoredPanels);
           setPanelsRaw(restoredPanels);
@@ -4535,6 +4562,7 @@ export default function StoryPage() {
   const TOOL_ITEMS: { id: string; icon: typeof Pen; label: string; color?: string }[] = [
     { id: "select", icon: MousePointer2, label: "선택" },
     { id: "drawing", icon: Pen, label: "드로잉", color: "#ef4444" },
+<<<<<<< HEAD
     { id: "line", icon: Minus, label: "선", color: "#3b82f6" },
     { id: "text", icon: Type, label: "텍스트", color: "#8b5cf6" },
     { id: "eraser", icon: Eraser, label: "지우개", color: "#f472b6" },
@@ -4548,6 +4576,15 @@ export default function StoryPage() {
 
   const [lineSubType, setLineSubType] = useState<"straight" | "curve" | "polyline">("straight");
 
+=======
+    { id: "shape", icon: Circle, label: "도형", color: "#6b7280" },
+    { id: "line", icon: Minus, label: "선", color: "#3b82f6" },
+    { id: "sticky", icon: StickyNote, label: "메모", color: "#eab308" },
+    { id: "text", icon: Type, label: "텍스트", color: "#8b5cf6" },
+    { id: "grid", icon: Grid3X3, label: "그리드", color: "#3b82f6" },
+  ];
+
+>>>>>>> claude/svg-story-effects-0ou2v
   // ─── Drawing brush items for sub-panel ──────────────────────────────
   const DRAWING_BRUSH_ITEMS: { id: string; icon: typeof Pen; label: string; color?: string }[] = [
     { id: "ballpoint", icon: Pen, label: "볼펜", color: "#3b82f6" },
@@ -5213,6 +5250,7 @@ export default function StoryPage() {
                               setSelectedToolItem(item.id);
                               if (item.id === "drawing") {
                                 setDrawingToolState(s => ({ ...s, tool: "brush" }));
+<<<<<<< HEAD
                               } else if (item.id === "line") {
                                 setDrawingToolState(s => ({ ...s, tool: "line", lineSubType }));
                               } else if (item.id === "text") {
@@ -5222,6 +5260,10 @@ export default function StoryPage() {
                               }
                               setShowDrawingSettings(false);
                               setTextInputPos(null);
+=======
+                              }
+                              setShowDrawingSettings(false);
+>>>>>>> claude/svg-story-effects-0ou2v
                             }}
                             className={`tools-compact-panel__tool-btn ${selectedToolItem === item.id ? "tools-compact-panel__tool-btn--active" : ""}`}
                             title={item.label}
@@ -5244,6 +5286,17 @@ export default function StoryPage() {
                               <brush.icon className="h-5 w-5" style={brush.color && !(drawingToolState.tool === "brush" && drawingToolState.brushType === brush.id) ? { color: brush.color } : undefined} />
                             </button>
                           ))}
+<<<<<<< HEAD
+=======
+                          {/* Eraser */}
+                          <button
+                            onClick={() => setDrawingToolState(s => ({ ...s, tool: "eraser" }))}
+                            className={`tools-compact-panel__tool-btn ${drawingToolState.tool === "eraser" ? "tools-compact-panel__tool-btn--active" : ""}`}
+                            title="지우개"
+                          >
+                            <Eraser className="h-5 w-5" style={drawingToolState.tool !== "eraser" ? { color: "#f472b6" } : undefined} />
+                          </button>
+>>>>>>> claude/svg-story-effects-0ou2v
                           {/* Color picker */}
                           <button
                             onClick={() => colorInputRef.current?.click()}
@@ -5273,6 +5326,7 @@ export default function StoryPage() {
                         </div>
                       )}
 
+<<<<<<< HEAD
                       {/* Line sub-tools strip */}
                       {selectedToolItem === "line" && (
                         <div className="tools-compact-panel__strip tools-compact-panel__strip--sub">
@@ -5359,6 +5413,10 @@ export default function StoryPage() {
 
                       {/* Drawing settings popover */}
                       {(selectedToolItem === "drawing" || selectedToolItem === "line" || selectedToolItem === "eraser") && showDrawingSettings && (
+=======
+                      {/* Drawing settings popover */}
+                      {selectedToolItem === "drawing" && showDrawingSettings && (
+>>>>>>> claude/svg-story-effects-0ou2v
                         <div className="tools-compact-panel__settings">
                           <div className="tools-compact-panel__settings-section">
                             <div className="tools-compact-panel__settings-row">
@@ -5374,7 +5432,10 @@ export default function StoryPage() {
                               className="w-full"
                             />
                           </div>
+<<<<<<< HEAD
                           {selectedToolItem !== "eraser" && (
+=======
+>>>>>>> claude/svg-story-effects-0ou2v
                           <div className="tools-compact-panel__settings-section">
                             <div className="tools-compact-panel__settings-row">
                               <span className="text-[11px] text-muted-foreground font-medium">불투명도</span>
@@ -5389,24 +5450,38 @@ export default function StoryPage() {
                               className="w-full"
                             />
                           </div>
+<<<<<<< HEAD
                           )}
                           <div className="tools-compact-panel__settings-actions">
                             <button
                               onClick={() => handleDrawingUndo()}
+=======
+                          <div className="tools-compact-panel__settings-actions">
+                            <button
+                              onClick={() => drawingCanvasRef.current?.undo()}
+>>>>>>> claude/svg-story-effects-0ou2v
                               className="tools-compact-panel__action-btn"
                               title="실행 취소"
                             >
                               <Undo2 className="h-3.5 w-3.5" />
                             </button>
                             <button
+<<<<<<< HEAD
                               onClick={() => handleDrawingRedo()}
+=======
+                              onClick={() => drawingCanvasRef.current?.redo()}
+>>>>>>> claude/svg-story-effects-0ou2v
                               className="tools-compact-panel__action-btn"
                               title="다시 실행"
                             >
                               <Redo2 className="h-3.5 w-3.5" />
                             </button>
                             <button
+<<<<<<< HEAD
                               onClick={() => handleDrawingClear()}
+=======
+                              onClick={() => drawingCanvasRef.current?.clear()}
+>>>>>>> claude/svg-story-effects-0ou2v
                               className="tools-compact-panel__action-btn tools-compact-panel__action-btn--danger"
                               title="전체 삭제"
                             >
@@ -6262,6 +6337,7 @@ export default function StoryPage() {
               label: b.text || STYLE_LABELS[b.style] || `말풍선 ${i + 1}`,
               thumb: b.style === "image" && (b as any).templateSrc ? (b as any).templateSrc : undefined,
             })),
+<<<<<<< HEAD
             ...(activePanel.drawingLayers || []).map((dl) => ({
               type: "drawing" as const,
               id: dl.id,
@@ -6274,6 +6350,11 @@ export default function StoryPage() {
           ].sort((a, b) => b.z - a.z);
 
           const applyRightLayerOrder = (ordered: Array<{ type: "char" | "bubble" | "drawing"; id: string }>) => {
+=======
+          ].sort((a, b) => b.z - a.z);
+
+          const applyRightLayerOrder = (ordered: Array<{ type: "char" | "bubble"; id: string }>) => {
+>>>>>>> claude/svg-story-effects-0ou2v
             const n = ordered.length;
             updatePanel(activePanelIndex, {
               ...activePanel,
@@ -6296,7 +6377,11 @@ export default function StoryPage() {
             if (direction === "up" && index <= 0) return;
             if (direction === "down" && index >= rightLayerItems.length - 1) return;
             const swapIdx = direction === "up" ? index - 1 : index + 1;
+<<<<<<< HEAD
             const newOrder = rightLayerItems.map((li) => ({ type: li.type as "char" | "bubble" | "drawing", id: li.id }));
+=======
+            const newOrder = rightLayerItems.map((li) => ({ type: li.type as "char" | "bubble", id: li.id }));
+>>>>>>> claude/svg-story-effects-0ou2v
             const tmp = newOrder[index];
             newOrder[index] = newOrder[swapIdx];
             newOrder[swapIdx] = tmp;
@@ -6347,7 +6432,10 @@ export default function StoryPage() {
                       <div className="flex items-center gap-2 min-w-0">
                         <div className={`w-7 h-7 rounded overflow-hidden shrink-0 border ${
                           item.type === "bubble" ? "border-sky-400/50 bg-sky-50 dark:bg-sky-950/30"
+<<<<<<< HEAD
                           : item.type === "drawing" ? "border-amber-400/50 bg-amber-50 dark:bg-amber-950/30"
+=======
+>>>>>>> claude/svg-story-effects-0ou2v
                           : "border-emerald-400/50 bg-emerald-50 dark:bg-emerald-950/30"
                         }`}>
                           {item.type === "drawing" ? (
@@ -6446,11 +6534,14 @@ export default function StoryPage() {
                               const newBubbles = activePanel.bubbles.filter(b => b.id !== item.id);
                               updatePanel(activePanelIndex, { ...activePanel, bubbles: newBubbles });
                               if (selectedBubbleId === item.id) setSelectedBubbleId(null);
+<<<<<<< HEAD
                             } else if (item.type === "drawing") {
                               updatePanel(activePanelIndex, {
                                 ...activePanel,
                                 drawingLayers: (activePanel.drawingLayers || []).filter(dl => dl.id !== item.id),
                               });
+=======
+>>>>>>> claude/svg-story-effects-0ou2v
                             }
                           }}
                         >
