@@ -4707,7 +4707,6 @@ export default function StoryPage() {
   type LeftTab = "image" | "ai" | "script" | "bubble" | "template" | "effects" | null;
   const [activeLeftTab, setActiveLeftTab] = useState<LeftTab>(null);
   const [selectedEffectId, setSelectedEffectId] = useState<string | null>(null);
-  const [showRightPanel, setShowRightPanel] = useState(false);
 
   const toggleLeftTab = (tab: LeftTab) => {
     setActiveLeftTab((prev) => (prev === tab ? null : tab));
