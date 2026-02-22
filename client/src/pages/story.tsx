@@ -5056,9 +5056,7 @@ export default function StoryPage() {
     { id: "image", icon: ImageIcon as any, label: "이미지 선택" },
     { id: "ai", icon: Wand2, label: "AI 프롬프트" },
     { id: "drawing", icon: Pen as any, label: "드로잉" },
-    { id: "script", icon: Type as any, label: "자막 설정" },
-    { id: "bubble", icon: MessageSquare as any, label: "말풍선" },
-    { id: "template", icon: Layers as any, label: "템플릿" },
+    { id: "element", icon: Boxes as any, label: "요소" },
     { id: "effects", icon: Sparkles as any, label: "효과" },
   ];
 
