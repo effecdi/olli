@@ -3031,6 +3031,22 @@ function EditorPanel({
           </div>
           <Button
             size="sm"
+            variant="outline"
+            className="w-full justify-center gap-1.5"
+            onClick={() => {
+              onUpdate({
+                ...panel,
+                characters: panel.characters.map(c =>
+                  c.id === selectedChar.id ? { ...c, flipX: !c.flipX } : c
+                ),
+              });
+            }}
+          >
+            <FlipHorizontal2 className="h-3.5 w-3.5" />
+            <span className="text-xs">좌우 반전</span>
+          </Button>
+          <Button
+            size="sm"
             className="w-full justify-center gap-1.5"
             onClick={handleRemoveBackground}
             disabled={removingBg || !isPro}
