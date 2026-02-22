@@ -4510,7 +4510,16 @@ export default function StoryPage() {
     { id: "drawing", icon: Pen, label: "드로잉", color: "#ef4444" },
     { id: "line", icon: Minus, label: "선", color: "#3b82f6" },
     { id: "text", icon: Type, label: "텍스트", color: "#8b5cf6" },
+    { id: "eraser", icon: Eraser, label: "지우개", color: "#f472b6" },
   ];
+
+  const LINE_SUB_ITEMS: { id: string; icon: typeof Pen; label: string }[] = [
+    { id: "straight", icon: Minus, label: "직선" },
+    { id: "curve", icon: Spline, label: "곡선" },
+    { id: "polyline", icon: GitCommitHorizontal, label: "꺾인선" },
+  ];
+
+  const [lineSubType, setLineSubType] = useState<"straight" | "curve" | "polyline">("straight");
 
   // ─── Drawing brush items for sub-panel ──────────────────────────────
   const DRAWING_BRUSH_ITEMS: { id: string; icon: typeof Pen; label: string; color?: string }[] = [
