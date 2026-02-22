@@ -4146,6 +4146,7 @@ export default function StoryPage() {
       backgroundImageEl: source.backgroundImageEl,
       bubbles: source.bubbles.map((b) => ({ ...b, id: generateId() })),
       characters: source.characters.map((c) => ({ ...c, id: generateId() })),
+      drawingLayers: (source.drawingLayers || []).map((dl) => ({ ...dl, id: generateId() })),
     };
     const newPanels = [...panels];
     newPanels.splice(idx + 1, 0, cloned);
