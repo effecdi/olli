@@ -3478,30 +3478,7 @@ function EditorPanel({
               삭제
             </Button>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() =>
-                updateBubble(selectedBubble.id, {
-                  zIndex: (selectedBubble.zIndex ?? 10) + 1,
-                })
-              }
-            >
-              앞으로
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() =>
-                updateBubble(selectedBubble.id, {
-                  zIndex: (selectedBubble.zIndex ?? 10) - 1,
-                })
-              }
-            >
-              뒤로
-            </Button>
-          </div>
+         
 
           <div>
             <Label className="text-[13px] mb-1 block">텍스트</Label>
