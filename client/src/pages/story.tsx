@@ -2402,7 +2402,7 @@ function EditorPanel({
       )}
 
       {/* Character placement note - images are added as moveable characters */}
-      {isImageMode && !showCharPicker && panel.characters.length === 0 && (
+      {isImageMode && panel.characters.length === 0 && (
         <div className="rounded-md bg-muted/40 p-3 text-[11px] text-muted-foreground text-center">
           <ImageIcon className="h-4 w-4 mx-auto mb-1 opacity-50" />
           이미지를 추가하면 캔버스에서<br/>이동·크기·회전 편집이 가능합니다
