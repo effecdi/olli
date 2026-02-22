@@ -6350,9 +6350,16 @@ export default function StoryPage() {
                         if (item.type === "char") {
                           setSelectedCharId(item.id);
                           setSelectedBubbleId(null);
+                          setSelectedDrawingLayerId(null);
                         } else if (item.type === "bubble") {
                           setSelectedBubbleId(item.id);
                           setSelectedCharId(null);
+                          setSelectedDrawingLayerId(null);
+                        } else if (item.type === "drawing") {
+                          setSelectedDrawingLayerId(item.id);
+                          setSelectedCharId(null);
+                          setSelectedBubbleId(null);
+                          setSelectedToolItem("select");
                         }
                       }}
                     >
