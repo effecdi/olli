@@ -6150,66 +6150,6 @@ export default function StoryPage() {
                     </>
                   )}
 
-<<<<<<< HEAD
-                {activeLeftTab === "element" && !activeElementSubTab && (
-                  <>
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                      <h3 className="text-sm font-semibold">요소</h3>
-                      <button
-                        onClick={() => setActiveLeftTab(null)}
-                        className="text-muted-foreground hover-elevate rounded-md p-1"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                    <div className="space-y-2">
-                      <button
-                        onClick={() => setActiveElementSubTab("script")}
-                        className="w-full flex items-center gap-3 px-3 py-3 rounded-lg border border-border hover:bg-muted/50 transition-colors text-left"
-                      >
-                        <Type className="h-5 w-5 text-muted-foreground shrink-0" />
-                        <div>
-                          <div className="text-sm font-medium">자막 설정</div>
-                          <div className="text-[11px] text-muted-foreground">상단/하단 스크립트 편집</div>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto shrink-0" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setActiveElementSubTab("bubble");
-                          // 말풍선 바로 생성
-                          if (activePanel && activePanel.bubbles.length < 5) {
-                            const newB = createBubble(CANVAS_W, CANVAS_H);
-                            updatePanel(activePanelIndex, { ...activePanel, bubbles: [...activePanel.bubbles, newB] });
-                            setSelectedBubbleId(newB.id);
-                            setSelectedCharId(null);
-                            setSelectedEffectId(null);
-                          }
-                        }}
-                        className="w-full flex items-center gap-3 px-3 py-3 rounded-lg border border-border hover:bg-muted/50 transition-colors text-left"
-                      >
-                        <MessageSquare className="h-5 w-5 text-muted-foreground shrink-0" />
-                        <div>
-                          <div className="text-sm font-medium">말풍선</div>
-                          <div className="text-[11px] text-muted-foreground">말풍선 추가 및 편집</div>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto shrink-0" />
-                      </button>
-                      <button
-                        onClick={() => setActiveElementSubTab("template")}
-                        className="w-full flex items-center gap-3 px-3 py-3 rounded-lg border border-border hover:bg-muted/50 transition-colors text-left"
-                      >
-                        <Layers className="h-5 w-5 text-muted-foreground shrink-0" />
-                        <div>
-                          <div className="text-sm font-medium">템플릿</div>
-                          <div className="text-[11px] text-muted-foreground">템플릿 말풍선 가져오기</div>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto shrink-0" />
-                      </button>
-                    </div>
-                  </>
-                )}
-=======
                   {/* ─── Compact Tools Panel ─────────────────────────── */}
                   {activeLeftTab === "tools" && (
                     <div className="tools-compact-panel">
@@ -6348,7 +6288,6 @@ export default function StoryPage() {
                       )}
                     </div>
                   )}
->>>>>>> 424aa13 (refactor: 도구 탭을 컴팩트 아이콘 패널로 변경, 효과 탭 삭제)
 
                 {activeLeftTab === "element" && activeElementSubTab === "bubble" && activePanel && (
                   <>
