@@ -5399,11 +5399,7 @@ export default function StoryPage() {
                               <Undo2 className="h-3.5 w-3.5" />
                             </button>
                             <button
-<<<<<<< HEAD
                               onClick={() => handleDrawingRedo()}
-=======
-                              onClick={() => drawingCanvasRef.current?.redo()}
->>>>>>> claude/svg-story-effects-0ou2v
                               className="tools-compact-panel__action-btn"
                               title="다시 실행"
                             >
