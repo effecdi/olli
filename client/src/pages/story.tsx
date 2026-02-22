@@ -5204,8 +5204,64 @@ export default function StoryPage() {
                         </div>
                       )}
 
+                      {/* Line sub-tools strip */}
+                      {selectedToolItem === "line" && (
+                        <div className="tools-compact-panel__strip tools-compact-panel__strip--sub">
+                          {/* Color picker */}
+                          <button
+                            onClick={() => colorInputRef.current?.click()}
+                            className="tools-compact-panel__tool-btn tools-compact-panel__color-btn"
+                            title="색상 선택"
+                          >
+                            <span
+                              className="tools-compact-panel__color-circle"
+                              style={{ backgroundColor: drawingToolState.color }}
+                            />
+                            <input
+                              ref={colorInputRef}
+                              type="color"
+                              value={drawingToolState.color}
+                              onChange={(e) => setDrawingToolState(s => ({ ...s, color: e.target.value }))}
+                              className="sr-only"
+                            />
+                          </button>
+                          {/* Settings menu */}
+                          <button
+                            onClick={() => setShowDrawingSettings(s => !s)}
+                            className={`tools-compact-panel__tool-btn ${showDrawingSettings ? "tools-compact-panel__tool-btn--active" : ""}`}
+                            title="설정"
+                          >
+                            <Menu className="h-5 w-5" />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Text sub-tools strip */}
+                      {selectedToolItem === "text" && (
+                        <div className="tools-compact-panel__strip tools-compact-panel__strip--sub">
+                          {/* Color picker */}
+                          <button
+                            onClick={() => colorInputRef.current?.click()}
+                            className="tools-compact-panel__tool-btn tools-compact-panel__color-btn"
+                            title="색상 선택"
+                          >
+                            <span
+                              className="tools-compact-panel__color-circle"
+                              style={{ backgroundColor: drawingToolState.color }}
+                            />
+                            <input
+                              ref={colorInputRef}
+                              type="color"
+                              value={drawingToolState.color}
+                              onChange={(e) => setDrawingToolState(s => ({ ...s, color: e.target.value }))}
+                              className="sr-only"
+                            />
+                          </button>
+                        </div>
+                      )}
+
                       {/* Drawing settings popover */}
-                      {selectedToolItem === "drawing" && showDrawingSettings && (
+                      {(selectedToolItem === "drawing" || selectedToolItem === "line") && showDrawingSettings && (
                         <div className="tools-compact-panel__settings">
                           <div className="tools-compact-panel__settings-section">
                             <div className="tools-compact-panel__settings-row">
