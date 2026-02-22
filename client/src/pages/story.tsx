@@ -59,21 +59,9 @@ import {
   Zap,
   Star,
   Pen,
-<<<<<<< HEAD
   ArrowLeft,
   Boxes,
   FlipHorizontal2,
-} from "lucide-react";
-import {
-  CanvaEditor,
-  CanvaToolbar,
-  type CanvaEditorHandle,
-  type ToolMode,
-  type DrawingConfig,
-  type LineConfig,
-  type TextConfig,
-} from "@/components/canva-editor";
-=======
   MousePointer2,
   Eraser,
   StickyNote,
@@ -87,7 +75,6 @@ import {
 } from "lucide-react";
 import DrawingCanvas, { type DrawingToolState, type DrawingCanvasHandle } from "@/components/drawing-canvas";
 import "@/components/drawing-tools-panel.scss";
->>>>>>> 424aa13 (refactor: 도구 탭을 컴팩트 아이콘 패널로 변경, 효과 탭 삭제)
 import { FlowStepper } from "@/components/flow-stepper";
 import { EditorOnboarding } from "@/components/editor-onboarding";
 import { getFlowState, clearFlowState } from "@/lib/flow";
