@@ -4320,6 +4320,7 @@ export default function StoryPage() {
           visible: dl.visible,
           zIndex: dl.zIndex,
           label: dl.label,
+          opacity: dl.opacity ?? 1,
         })),
       })),
       topic,
