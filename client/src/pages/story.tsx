@@ -3767,6 +3767,23 @@ export default function StoryPage() {
     return () => window.removeEventListener("keydown", handler);
   }, [undo, redo]);
 
+  // Delete key: remove active panel when no element is selected
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Delete" || e.key === "Backspace") {
+        // Skip if user is typing in an input/textarea
+        const tag = (e.target as HTMLElement)?.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return;
+        // Skip if a bubble, character, or effect is selected (those have their own delete)
+        if (selectedBubbleId || selectedCharId || selectedEffectId) return;
+        e.preventDefault();
+        removePanel(activePanelIndex);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [activePanelIndex, selectedBubbleId, selectedCharId, selectedEffectId]);
+
   const [zoom, setZoom] = useState(100);
   const flowZoomScale = zoom / 100;
   const canvasAreaRef = useRef<HTMLDivElement>(null);
