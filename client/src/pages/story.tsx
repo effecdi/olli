@@ -4394,6 +4394,10 @@ export default function StoryPage() {
               ...c,
               imageEl: null,
             })),
+            drawingLayers: (p.drawingLayers || []).map((dl: any) => ({
+              ...dl,
+              imageEl: null,
+            })),
           }));
           rehydrateImages(restoredPanels);
           setPanelsRaw(restoredPanels);
