@@ -5983,6 +5983,7 @@ export default function StoryPage() {
                 if (e.target === e.currentTarget) {
                   setSelectedBubbleId(null);
                   setSelectedCharId(null);
+                  setSelectedDrawingLayerId(null);
                 }
               }}
             >
@@ -5995,6 +5996,7 @@ export default function StoryPage() {
                           if (e.target === e.currentTarget) {
                             setSelectedBubbleId(null);
                             setSelectedCharId(null);
+                            setSelectedDrawingLayerId(null);
                           }
                         }}
                         onClick={() => setActivePanelIndex(i)}
