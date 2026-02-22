@@ -297,23 +297,94 @@ const CanvaEditor = forwardRef<CanvaEditorHandle, CanvaEditorProps>(
           });
 
           if (lineConfig.subTool === "curve") {
-            // ── Curve: PencilBrush with decimate for smooth curves ──
-            fc.isDrawingMode = true;
-            const brush = new PencilBrush(fc);
-            brush.color = lineConfig.color;
-            brush.width = lineConfig.size;
-            brush.decimate = 5;
-            fc.freeDrawingBrush = brush;
+            // ── Curve: 3-click quadratic bezier (start → end → control point) ──
+            curveStepRef.current = 0;
 
-            on("path:created", (e: any) => {
-              const path = e.path as Path;
-              if (!path) return;
-              path.set({
-                opacity: lineConfig.opacity,
-                selectable: true,
-                evented: true,
-              });
-              fc.requestRenderAll();
+            on("mouse:down", (opt: any) => {
+              const pointer = fc.getScenePoint(opt.e);
+              const step = curveStepRef.current;
+
+              if (step === 0) {
+                // 1st click: set start point
+                curveStartRef.current = new Point(pointer.x, pointer.y);
+                curveStepRef.current = 1;
+              } else if (step === 1) {
+                // 2nd click: set end point, show straight line preview
+                curveEndRef.current = new Point(pointer.x, pointer.y);
+                const s = curveStartRef.current!;
+                const e = curveEndRef.current;
+                const midX = (s.x + e.x) / 2;
+                const midY = (s.y + e.y) / 2;
+                const pathStr = `M ${s.x} ${s.y} Q ${midX} ${midY} ${e.x} ${e.y}`;
+                if (tempCurveRef.current) fc.remove(tempCurveRef.current);
+                const p = new Path(pathStr, {
+                  fill: "transparent",
+                  stroke: lineConfig.color,
+                  strokeWidth: lineConfig.size,
+                  opacity: lineConfig.opacity,
+                  selectable: false,
+                  evented: false,
+                  objectCaching: false,
+                });
+                tempCurveRef.current = p;
+                fc.add(p);
+                fc.requestRenderAll();
+                curveStepRef.current = 2;
+              } else {
+                // 3rd click: finalize curve at current control point
+                if (tempCurveRef.current) {
+                  tempCurveRef.current.set({ selectable: true, evented: true, objectCaching: true });
+                  fc.requestRenderAll();
+                  saveHistory();
+                }
+                tempCurveRef.current = null;
+                curveStartRef.current = null;
+                curveEndRef.current = null;
+                curveStepRef.current = 0;
+              }
+            });
+
+            on("mouse:move", (opt: any) => {
+              const step = curveStepRef.current;
+              if (step === 1 && curveStartRef.current) {
+                // Preview straight line from start to cursor
+                const pointer = fc.getScenePoint(opt.e);
+                const s = curveStartRef.current;
+                const pathStr = `M ${s.x} ${s.y} L ${pointer.x} ${pointer.y}`;
+                if (tempCurveRef.current) fc.remove(tempCurveRef.current);
+                const p = new Path(pathStr, {
+                  fill: "transparent",
+                  stroke: lineConfig.color,
+                  strokeWidth: lineConfig.size,
+                  opacity: lineConfig.opacity * 0.5,
+                  selectable: false,
+                  evented: false,
+                  objectCaching: false,
+                  strokeDashArray: [6, 4],
+                });
+                tempCurveRef.current = p;
+                fc.add(p);
+                fc.requestRenderAll();
+              } else if (step === 2 && curveStartRef.current && curveEndRef.current) {
+                // Bend curve: mouse position = control point
+                const pointer = fc.getScenePoint(opt.e);
+                const s = curveStartRef.current;
+                const e = curveEndRef.current;
+                const pathStr = `M ${s.x} ${s.y} Q ${pointer.x} ${pointer.y} ${e.x} ${e.y}`;
+                if (tempCurveRef.current) fc.remove(tempCurveRef.current);
+                const p = new Path(pathStr, {
+                  fill: "transparent",
+                  stroke: lineConfig.color,
+                  strokeWidth: lineConfig.size,
+                  opacity: lineConfig.opacity,
+                  selectable: false,
+                  evented: false,
+                  objectCaching: false,
+                });
+                tempCurveRef.current = p;
+                fc.add(p);
+                fc.requestRenderAll();
+              }
             });
           } else if (lineConfig.subTool === "polyline") {
             // ── Polyline: click to add points, dblclick to finish ──
