@@ -6186,46 +6186,6 @@ export default function StoryPage() {
                     </div>
                     <span className="text-sm font-bold tracking-tight" data-testid="text-story-title">스토리</span>
                   </div>
-                  <div className="flex items-center gap-0.5 bg-muted/40 dark:bg-muted/20 rounded-md px-0.5 py-0.5">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-6 w-6"
-                      onClick={() => setActivePanelIndex(Math.max(0, activePanelIndex - 1))}
-                      disabled={activePanelIndex === 0}
-                      data-testid="button-prev-panel"
-                    >
-                      <ChevronLeft className="h-3.5 w-3.5" />
-                    </Button>
-                    <span className="text-[11px] font-medium tabular-nums px-1 min-w-[2.5rem] text-center" data-testid="text-panel-indicator">
-                      {activePanelIndex + 1} / {panels.length}
-                    </span>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-6 w-6"
-                      onClick={() => setActivePanelIndex(Math.min(panels.length - 1, activePanelIndex + 1))}
-                      disabled={activePanelIndex >= panels.length - 1}
-                      data-testid="button-next-panel"
-                    >
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                  <Button size="sm" variant="ghost" onClick={addPanel} disabled={panels.length >= maxPanels} className="gap-1 h-7 text-xs px-2" data-testid="button-add-panel">
-                    <Plus className="h-3 w-3" />
-                    추가
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => removePanel(activePanelIndex)}
-                    disabled={panels.length <= 1}
-                    className="gap-1 h-7 text-xs px-2 text-red-500"
-                    data-testid="button-remove-panel"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                    삭제
-                  </Button>
                   <div className="flex items-center gap-0.5">
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={undo} disabled={historyRef.current.length === 0} title="실행 취소 (Ctrl+Z)" data-testid="button-undo">
                       <Undo2 className="h-3.5 w-3.5" />
