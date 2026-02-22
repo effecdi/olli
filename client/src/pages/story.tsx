@@ -6792,6 +6792,27 @@ export default function StoryPage() {
                         <span className="text-xs truncate">{item.label}</span>
                       </div>
                       <div className="flex items-center gap-0.5 shrink-0">
+                        {item.type === "char" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const ch = activePanel.characters.find(c => c.id === item.id);
+                              if (!ch) return;
+                              updatePanel(activePanelIndex, {
+                                ...activePanel,
+                                characters: activePanel.characters.map(c =>
+                                  c.id === item.id ? { ...c, flipX: !c.flipX } : c
+                                ),
+                              });
+                            }}
+                            title="좌우 반전"
+                          >
+                            <FlipHorizontal2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
