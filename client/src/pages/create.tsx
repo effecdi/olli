@@ -142,15 +142,71 @@ export default function CreatePage() {
               </div>
               <h2 className="text-base font-semibold">캐릭터 설명</h2>
             </div>
+
+            {/* Image Upload Area */}
+            <div className="mb-4">
+              <p className="text-xs font-medium text-muted-foreground mb-2">참고 이미지 (선택)</p>
+              {sourceImage ? (
+                <div className="relative w-full max-w-[180px] aspect-square rounded-lg overflow-hidden border border-border bg-muted">
+                  <img src={sourceImage} alt="참고 이미지" className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => { setSourceImage(null); setSourceImageName(""); }}
+                    className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full p-1 hover:bg-black/80 transition-colors"
+                    data-testid="button-remove-source-image"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-2 py-1 truncate">
+                    {sourceImageName || "업로드됨"}
+                  </div>
+                </div>
+              ) : (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDrop={handleDrop}
+                  onDragOver={(e) => e.preventDefault()}
+                  className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 p-5 cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
+                  data-testid="dropzone-source-image"
+                >
+                  <UploadCloud className="h-7 w-7 text-muted-foreground/60" />
+                  <span className="text-xs text-muted-foreground font-medium">이미지를 드래그하거나 클릭하여 업로드</span>
+                  <span className="text-[10px] text-muted-foreground/60">JPG, PNG (최대 10MB)</span>
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleImageUpload(file);
+                  e.target.value = "";
+                }}
+                data-testid="input-source-image-file"
+              />
+              {sourceImage && !prompt.trim() && (
+                <p className="mt-2 text-[11px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 rounded px-2 py-1.5">
+                  이미지만으로도 캐릭터를 생성할 수 있어요. 추가 설명을 입력하면 더 정확한 결과를 얻을 수 있습니다.
+                </p>
+              )}
+            </div>
+
+            <p className="text-xs font-medium text-muted-foreground mb-2">프롬프트 {sourceImage ? "(선택)" : ""}</p>
             <Textarea
-              placeholder="예: 안경 쓴 동글동글한 고양이, 작은 모자를 쓴 곰돌이, 큰 동그란 안경을 쓴 짧은 머리 소녀..."
+              placeholder={sourceImage
+                ? "예: 이 이미지와 같은 야구선수인데 토끼머리띠를 썼다, 이 캐릭터를 귀엽게 변환..."
+                : "예: 안경 쓴 동글동글한 고양이, 작은 모자를 쓴 곰돌이, 큰 동그란 안경을 쓴 짧은 머리 소녀..."
+              }
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              className="min-h-[120px] resize-none text-base"
+              className="min-h-[100px] resize-none text-base"
               data-testid="input-prompt"
             />
             <div className="mt-2.5 flex items-center justify-between gap-2 flex-wrap">
-              <p className="text-xs text-muted-foreground">간단한 설명일수록 더 좋은 결과를 얻을 수 있어요!</p>
+              <p className="text-xs text-muted-foreground">
+                {sourceImage ? "이미지를 분석하여 캐릭터를 생성합니다" : "간단한 설명일수록 더 좋은 결과를 얻을 수 있어요!"}
+              </p>
               <Button
                 size="sm"
                 variant="outline"
