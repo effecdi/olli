@@ -85,8 +85,9 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
 });
 
 export const generateCharacterSchema = z.object({
-  prompt: z.string().min(3, "Description must be at least 3 characters"),
+  prompt: z.string().min(1, "프롬프트 또는 이미지를 입력해주세요"),
   style: z.enum(["simple-line", "cute-animal", "doodle", "minimal", "scribble", "ink-sketch"]),
+  sourceImageData: z.string().optional(),
 });
 
 export const generatePoseSchema = z.object({
