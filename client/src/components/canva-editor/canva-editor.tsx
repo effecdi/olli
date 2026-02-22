@@ -65,6 +65,11 @@ const CanvaEditor = forwardRef<CanvaEditorHandle, CanvaEditorProps>(
     const polyPointsRef = useRef<Point[]>([]);
     const tempPolyRef = useRef<Polyline | null>(null);
 
+    // Track ALL event handlers registered by tool modes for reliable cleanup
+    const toolHandlersRef = useRef<
+      Array<{ event: string; handler: (...args: any[]) => void }>
+    >([]);
+
     // ─── Save to history ──────────────────────────────────────────────
 
     const saveHistory = useCallback(() => {
@@ -183,35 +188,51 @@ const CanvaEditor = forwardRef<CanvaEditorHandle, CanvaEditorProps>(
 
     // ─── Tool mode switching (reacts to prop changes) ─────────────────
 
-    // stable refs for handlers so cleanup works
-    const lineMouseDownRef = useRef<(opt: any) => void>(() => {});
-    const lineMouseMoveRef = useRef<(opt: any) => void>(() => {});
-    const lineMouseUpRef = useRef<(opt: any) => void>(() => {});
-    const textMouseDownRef = useRef<(opt: any) => void>(() => {});
-
     useEffect(() => {
       const fc = fabricRef.current;
       if (!fc) return;
 
-      // Reset
+      // ── 1. Complete cleanup of ALL previous tool handlers ──
+      for (const { event, handler } of toolHandlersRef.current) {
+        fc.off(event as any, handler as any);
+      }
+      toolHandlersRef.current = [];
+
+      // ── 2. Reset canvas state ──
       fc.isDrawingMode = false;
       fc.selection = true;
       fc.defaultCursor = "default";
       fc.hoverCursor = "move";
 
-      if (tempLineRef.current) { fc.remove(tempLineRef.current); tempLineRef.current = null; }
-      lineStartRef.current = null;
-      if (tempPolyRef.current) { fc.remove(tempPolyRef.current); tempPolyRef.current = null; }
+      // Finalize any in-progress polyline before clearing
+      if (tempPolyRef.current && polyPointsRef.current.length >= 2) {
+        tempPolyRef.current.set({ selectable: true, evented: true });
+        fc.requestRenderAll();
+        saveHistory();
+      }
+      tempPolyRef.current = null;
       polyPointsRef.current = [];
 
-      // remove previous listeners
-      fc.off("mouse:down", lineMouseDownRef.current as any);
-      fc.off("mouse:move", lineMouseMoveRef.current as any);
-      fc.off("mouse:up", lineMouseUpRef.current as any);
-      fc.off("mouse:down", textMouseDownRef.current as any);
+      // Clean up temp straight line
+      if (tempLineRef.current) {
+        fc.remove(tempLineRef.current);
+        tempLineRef.current = null;
+      }
+      lineStartRef.current = null;
 
-      fc.forEachObject((o) => { o.selectable = true; o.evented = true; });
+      // Restore all objects to selectable
+      fc.forEachObject((o) => {
+        o.selectable = true;
+        o.evented = true;
+      });
 
+      // ── 3. Helper: register handler with tracking ──
+      const on = (event: string, handler: (...args: any[]) => void) => {
+        toolHandlersRef.current.push({ event, handler });
+        fc.on(event as any, handler as any);
+      };
+
+      // ── 4. Set up new tool mode ──
       switch (toolMode) {
         case "draw": {
           fc.isDrawingMode = true;
@@ -219,21 +240,21 @@ const CanvaEditor = forwardRef<CanvaEditorHandle, CanvaEditorProps>(
           const brush = new PencilBrush(fc);
           brush.color = drawConfig.color;
           brush.width =
-            drawConfig.subTool === "marker" ? drawConfig.size * 2.5 :
-            drawConfig.subTool === "highlighter" ? drawConfig.size * 4 :
-            drawConfig.size;
+            drawConfig.subTool === "marker"
+              ? drawConfig.size * 2.5
+              : drawConfig.subTool === "highlighter"
+                ? drawConfig.size * 4
+                : drawConfig.size;
           fc.freeDrawingBrush = brush;
 
-          const onPath = (e: any) => {
+          on("path:created", (e: any) => {
             const path = e.path as Path;
             if (!path) return;
             let op = drawConfig.opacity;
             if (drawConfig.subTool === "highlighter") op *= 0.4;
             path.set({ opacity: op });
             fc.requestRenderAll();
-          };
-          fc.off("path:created", onPath);
-          fc.on("path:created", onPath);
+          });
           break;
         }
 
@@ -241,10 +262,13 @@ const CanvaEditor = forwardRef<CanvaEditorHandle, CanvaEditorProps>(
           fc.selection = false;
           fc.defaultCursor = "crosshair";
           fc.hoverCursor = "crosshair";
-          const onDown = (opt: any) => {
-            if (opt.target) { fc.remove(opt.target); fc.requestRenderAll(); saveHistory(); }
-          };
-          fc.on("mouse:down", onDown);
+          on("mouse:down", (opt: any) => {
+            if (opt.target) {
+              fc.remove(opt.target);
+              fc.requestRenderAll();
+              saveHistory();
+            }
+          });
           break;
         }
 
@@ -252,74 +276,114 @@ const CanvaEditor = forwardRef<CanvaEditorHandle, CanvaEditorProps>(
           fc.selection = false;
           fc.defaultCursor = "crosshair";
           fc.hoverCursor = "crosshair";
-          fc.forEachObject((o) => { o.selectable = false; o.evented = false; });
+          fc.forEachObject((o) => {
+            o.selectable = false;
+            o.evented = false;
+          });
 
-          const onDown = (opt: any) => {
-            const pointer = fc.getScenePoint(opt.e);
-            if (lineConfig.subTool === "polyline") {
+          if (lineConfig.subTool === "curve") {
+            // ── Curve: PencilBrush with decimate for smooth curves ──
+            fc.isDrawingMode = true;
+            const brush = new PencilBrush(fc);
+            brush.color = lineConfig.color;
+            brush.width = lineConfig.size;
+            brush.decimate = 5;
+            fc.freeDrawingBrush = brush;
+
+            on("path:created", (e: any) => {
+              const path = e.path as Path;
+              if (!path) return;
+              path.set({
+                opacity: lineConfig.opacity,
+                selectable: true,
+                evented: true,
+              });
+              fc.requestRenderAll();
+            });
+          } else if (lineConfig.subTool === "polyline") {
+            // ── Polyline: click to add points, dblclick to finish ──
+            on("mouse:down", (opt: any) => {
+              const pointer = fc.getScenePoint(opt.e);
               polyPointsRef.current.push(new Point(pointer.x, pointer.y));
               if (tempPolyRef.current) fc.remove(tempPolyRef.current);
-              if (polyPointsRef.current.length >= 2) {
-                const pl = new Polyline(
-                  polyPointsRef.current.map((p) => ({ x: p.x, y: p.y })),
-                  { fill: "transparent", stroke: lineConfig.color, strokeWidth: lineConfig.size, opacity: lineConfig.opacity, selectable: false, evented: false, objectCaching: false },
-                );
-                tempPolyRef.current = pl;
-                fc.add(pl);
-                fc.requestRenderAll();
-              }
-              return;
-            }
-            lineStartRef.current = new Point(pointer.x, pointer.y);
-            const l = new Line([pointer.x, pointer.y, pointer.x, pointer.y], {
-              stroke: lineConfig.color, strokeWidth: lineConfig.size, opacity: lineConfig.opacity, selectable: false, evented: false,
+              const pl = new Polyline(
+                polyPointsRef.current.map((p) => ({ x: p.x, y: p.y })),
+                {
+                  fill: "transparent",
+                  stroke: lineConfig.color,
+                  strokeWidth: lineConfig.size,
+                  opacity: lineConfig.opacity,
+                  selectable: false,
+                  evented: false,
+                  objectCaching: false,
+                },
+              );
+              tempPolyRef.current = pl;
+              fc.add(pl);
+              fc.requestRenderAll();
             });
-            tempLineRef.current = l;
-            fc.add(l);
-          };
-          const onMove = (opt: any) => {
-            if (!lineStartRef.current || !tempLineRef.current) return;
-            const pointer = fc.getScenePoint(opt.e);
-            tempLineRef.current.set({ x2: pointer.x, y2: pointer.y });
-            fc.requestRenderAll();
-          };
-          const onUp = (opt: any) => {
-            if (lineConfig.subTool === "polyline") return;
-            if (!lineStartRef.current || !tempLineRef.current) return;
-            const pointer = fc.getScenePoint(opt.e);
-            fc.remove(tempLineRef.current);
-            const s = lineStartRef.current;
-            if (lineConfig.subTool === "curve") {
-              const mx = (s.x + pointer.x) / 2;
-              const my = Math.min(s.y, pointer.y) - 50;
-              fc.add(new Path(`M ${s.x} ${s.y} Q ${mx} ${my} ${pointer.x} ${pointer.y}`, {
-                fill: "transparent", stroke: lineConfig.color, strokeWidth: lineConfig.size, opacity: lineConfig.opacity, selectable: true, evented: true,
-              }));
-            } else {
-              fc.add(new Line([s.x, s.y, pointer.x, pointer.y], {
-                stroke: lineConfig.color, strokeWidth: lineConfig.size, opacity: lineConfig.opacity, selectable: true, evented: true,
-              }));
-            }
-            lineStartRef.current = null; tempLineRef.current = null;
-            fc.requestRenderAll(); saveHistory();
-          };
 
-          lineMouseDownRef.current = onDown;
-          lineMouseMoveRef.current = onMove;
-          lineMouseUpRef.current = onUp;
-          fc.on("mouse:down", onDown as any);
-          fc.on("mouse:move", onMove as any);
-          fc.on("mouse:up", onUp as any);
-
-          fc.on("mouse:dblclick", () => {
-            if (lineConfig.subTool === "polyline" && polyPointsRef.current.length >= 2) {
-              if (tempPolyRef.current) {
-                tempPolyRef.current.set({ selectable: true, evented: true });
-                fc.requestRenderAll(); saveHistory();
+            on("mouse:dblclick", () => {
+              if (
+                polyPointsRef.current.length >= 2 &&
+                tempPolyRef.current
+              ) {
+                tempPolyRef.current.set({
+                  selectable: true,
+                  evented: true,
+                });
+                fc.requestRenderAll();
+                saveHistory();
               }
-              polyPointsRef.current = []; tempPolyRef.current = null;
-            }
-          });
+              polyPointsRef.current = [];
+              tempPolyRef.current = null;
+            });
+          } else {
+            // ── Straight line: drag to draw ──
+            on("mouse:down", (opt: any) => {
+              const pointer = fc.getScenePoint(opt.e);
+              lineStartRef.current = new Point(pointer.x, pointer.y);
+              const l = new Line(
+                [pointer.x, pointer.y, pointer.x, pointer.y],
+                {
+                  stroke: lineConfig.color,
+                  strokeWidth: lineConfig.size,
+                  opacity: lineConfig.opacity,
+                  selectable: false,
+                  evented: false,
+                },
+              );
+              tempLineRef.current = l;
+              fc.add(l);
+            });
+
+            on("mouse:move", (opt: any) => {
+              if (!lineStartRef.current || !tempLineRef.current) return;
+              const pointer = fc.getScenePoint(opt.e);
+              tempLineRef.current.set({ x2: pointer.x, y2: pointer.y });
+              fc.requestRenderAll();
+            });
+
+            on("mouse:up", (opt: any) => {
+              if (!lineStartRef.current || !tempLineRef.current) return;
+              const pointer = fc.getScenePoint(opt.e);
+              fc.remove(tempLineRef.current);
+              const s = lineStartRef.current;
+              fc.add(
+                new Line([s.x, s.y, pointer.x, pointer.y], {
+                  stroke: lineConfig.color,
+                  strokeWidth: lineConfig.size,
+                  opacity: lineConfig.opacity,
+                  selectable: true,
+                  evented: true,
+                }),
+              );
+              lineStartRef.current = null;
+              tempLineRef.current = null;
+              fc.requestRenderAll();
+              saveHistory();
+            });
+          }
           break;
         }
 
@@ -327,26 +391,35 @@ const CanvaEditor = forwardRef<CanvaEditorHandle, CanvaEditorProps>(
           fc.selection = false;
           fc.defaultCursor = "text";
           fc.hoverCursor = "text";
-          fc.forEachObject((o) => { o.selectable = false; o.evented = false; });
+          fc.forEachObject((o) => {
+            o.selectable = false;
+            o.evented = false;
+          });
 
-          const onDown = (opt: any) => {
+          on("mouse:down", (opt: any) => {
             if (opt.target) return;
             const pointer = fc.getScenePoint(opt.e);
             const t = new Textbox("텍스트 입력", {
-              left: pointer.x, top: pointer.y, width: 200,
-              fontSize: textConfig.fontSize, fontFamily: textConfig.fontFamily,
+              left: pointer.x,
+              top: pointer.y,
+              width: 200,
+              fontSize: textConfig.fontSize,
+              fontFamily: textConfig.fontFamily,
               fill: textConfig.color,
               fontWeight: textConfig.bold ? "bold" : "normal",
               fontStyle: textConfig.italic ? "italic" : "normal",
-              editable: true, selectable: true, evented: true,
+              editable: true,
+              selectable: true,
+              evented: true,
             });
-            fc.add(t); fc.setActiveObject(t);
-            t.enterEditing(); t.selectAll();
-            fc.requestRenderAll(); saveHistory();
+            fc.add(t);
+            fc.setActiveObject(t);
+            t.enterEditing();
+            t.selectAll();
+            fc.requestRenderAll();
+            saveHistory();
             onToolModeChange?.("select");
-          };
-          textMouseDownRef.current = onDown;
-          fc.on("mouse:down", onDown as any);
+          });
           break;
         }
       }
