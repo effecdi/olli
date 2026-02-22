@@ -25,6 +25,7 @@ export interface DrawingCanvasHandle {
   exportImage: (format?: "png" | "jpeg") => string | null;
   exportMask: () => string | null;
   getCanvas: () => HTMLCanvasElement | null;
+  commitText: (x: number, y: number, text: string, fontSize: number, color: string) => void;
 }
 
 interface DrawingCanvasProps {
