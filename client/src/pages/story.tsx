@@ -4147,6 +4147,7 @@ export default function StoryPage() {
   const activePanel = panels[activePanelIndex];
   const [selectedBubbleId, setSelectedBubbleId] = useState<string | null>(null);
   const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
+  const [selectedDrawingLayerId, setSelectedDrawingLayerId] = useState<string | null>(null);
   const panelCanvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map());
   const bubbleTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
