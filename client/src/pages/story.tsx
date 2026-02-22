@@ -6229,7 +6229,23 @@ export default function StoryPage() {
 
         {/* Right Layer Panel — always visible */}
         {activePanel && (() => {
-          const rightLayerItems = [
+          const DRAWING_TYPE_ICONS: Record<string, typeof Pen> = {
+            drawing: Pen,
+            straight: Minus,
+            curve: Spline,
+            polyline: GitCommitHorizontal,
+            text: Type,
+            eraser: Eraser,
+          };
+          const rightLayerItems: Array<{
+            type: "char" | "bubble" | "drawing";
+            id: string;
+            z: number;
+            label: string;
+            thumb?: string;
+            drawingType?: string;
+            visible?: boolean;
+          }> = [
             ...activePanel.characters.map((c: CharacterPlacement) => ({
               type: "char" as const,
               id: c.id,
@@ -6244,9 +6260,18 @@ export default function StoryPage() {
               label: b.text || STYLE_LABELS[b.style] || `말풍선 ${i + 1}`,
               thumb: b.style === "image" && (b as any).templateSrc ? (b as any).templateSrc : undefined,
             })),
+            ...(activePanel.drawingLayers || []).map((dl) => ({
+              type: "drawing" as const,
+              id: dl.id,
+              z: dl.zIndex,
+              label: dl.label,
+              thumb: dl.imageData,
+              drawingType: dl.type,
+              visible: dl.visible,
+            })),
           ].sort((a, b) => b.z - a.z);
 
-          const applyRightLayerOrder = (ordered: Array<{ type: "char" | "bubble"; id: string }>) => {
+          const applyRightLayerOrder = (ordered: Array<{ type: "char" | "bubble" | "drawing"; id: string }>) => {
             const n = ordered.length;
             updatePanel(activePanelIndex, {
               ...activePanel,
@@ -6258,6 +6283,10 @@ export default function StoryPage() {
                 const idx = ordered.findIndex((it) => it.type === "bubble" && it.id === b.id);
                 return idx >= 0 ? { ...b, zIndex: n - 1 - idx } : b;
               }),
+              drawingLayers: (activePanel.drawingLayers || []).map((dl) => {
+                const idx = ordered.findIndex((it) => it.type === "drawing" && it.id === dl.id);
+                return idx >= 0 ? { ...dl, zIndex: n - 1 - idx } : dl;
+              }),
             });
           };
 
@@ -6265,7 +6294,7 @@ export default function StoryPage() {
             if (direction === "up" && index <= 0) return;
             if (direction === "down" && index >= rightLayerItems.length - 1) return;
             const swapIdx = direction === "up" ? index - 1 : index + 1;
-            const newOrder = rightLayerItems.map((li) => ({ type: li.type as "char" | "bubble", id: li.id }));
+            const newOrder = rightLayerItems.map((li) => ({ type: li.type as "char" | "bubble" | "drawing", id: li.id }));
             const tmp = newOrder[index];
             newOrder[index] = newOrder[swapIdx];
             newOrder[swapIdx] = tmp;
@@ -6295,11 +6324,14 @@ export default function StoryPage() {
                       : false;
                     const typeBg = item.type === "bubble"
                       ? isSelected ? "bg-sky-500/15 border border-sky-500/30" : "hover:bg-sky-500/5"
+                      : item.type === "drawing"
+                      ? "hover:bg-amber-500/5"
                       : isSelected ? "bg-emerald-500/15 border border-emerald-500/30" : "hover:bg-muted/50";
+                    const DrawingIcon = item.drawingType ? (DRAWING_TYPE_ICONS[item.drawingType] || Pen) : Pen;
                     return (
                     <div
                       key={`${item.type}:${item.id}`}
-                      className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${typeBg}`}
+                      className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${typeBg} ${item.type === "drawing" && item.visible === false ? "opacity-40" : ""}`}
                       onClick={() => {
                         if (item.type === "char") {
                           setSelectedCharId(item.id);
@@ -6313,9 +6345,14 @@ export default function StoryPage() {
                       <div className="flex items-center gap-2 min-w-0">
                         <div className={`w-7 h-7 rounded overflow-hidden shrink-0 border ${
                           item.type === "bubble" ? "border-sky-400/50 bg-sky-50 dark:bg-sky-950/30"
+                          : item.type === "drawing" ? "border-amber-400/50 bg-amber-50 dark:bg-amber-950/30"
                           : "border-emerald-400/50 bg-emerald-50 dark:bg-emerald-950/30"
                         }`}>
-                          {item.thumb ? (
+                          {item.type === "drawing" ? (
+                            <div className="w-full h-full flex items-center justify-center text-amber-500">
+                              <DrawingIcon className="h-3.5 w-3.5" />
+                            </div>
+                          ) : item.thumb ? (
                             <img src={item.thumb} alt="" className="w-full h-full object-cover" />
                           ) : (
                             <div className={`w-full h-full flex items-center justify-center text-[10px] font-semibold ${
@@ -6329,6 +6366,29 @@ export default function StoryPage() {
                         <span className="text-xs truncate">{item.label}</span>
                       </div>
                       <div className="flex items-center gap-0.5 shrink-0">
+                        {item.type === "drawing" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updatePanel(activePanelIndex, {
+                                ...activePanel,
+                                drawingLayers: (activePanel.drawingLayers || []).map(dl =>
+                                  dl.id === item.id ? { ...dl, visible: !dl.visible } : dl
+                                ),
+                              });
+                            }}
+                            title={item.visible !== false ? "숨기기" : "보이기"}
+                          >
+                            {item.visible !== false ? (
+                              <Eye className="h-3.5 w-3.5" />
+                            ) : (
+                              <EyeOff className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        )}
                         {item.type === "char" && (
                           <Button
                             variant="ghost"
@@ -6384,6 +6444,11 @@ export default function StoryPage() {
                               const newBubbles = activePanel.bubbles.filter(b => b.id !== item.id);
                               updatePanel(activePanelIndex, { ...activePanel, bubbles: newBubbles });
                               if (selectedBubbleId === item.id) setSelectedBubbleId(null);
+                            } else if (item.type === "drawing") {
+                              updatePanel(activePanelIndex, {
+                                ...activePanel,
+                                drawingLayers: (activePanel.drawingLayers || []).filter(dl => dl.id !== item.id),
+                              });
                             }
                           }}
                         >
