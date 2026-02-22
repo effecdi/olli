@@ -732,6 +732,169 @@ function drawEffectLayer(ctx: CanvasRenderingContext2D, ef: EffectLayer) {
       ctx.fill(); ctx.stroke();
       break;
     }
+
+    /* ── SVG Path 기반 효과 (viewBox 0 0 100 100 스케일) ────────────── */
+
+    case "focus_zoom": {
+      // 집중선 (놀라는 효과) — 바깥에서 중앙을 향해 뾰족한 삼각 쐐기 방사
+      const vb = Math.min(w, h) / 100;
+      const wedgeCount = 36;
+      const innerR = 18;   // viewBox 단위: 투명 중심 반지름
+      const outerR = 52;   // viewBox 단위: 가장자리 반지름
+
+      ctx.fillStyle = color;
+      for (let i = 0; i < wedgeCount; i++) {
+        const baseAngle = (i / wedgeCount) * Math.PI * 2;
+        const gap = (Math.PI * 2) / wedgeCount;
+        const wedgeW = gap * (0.3 + r() * 0.25);
+        const jitter = (r() - 0.5) * gap * 0.15;
+
+        const a1 = baseAngle - wedgeW / 2 + jitter;
+        const a2 = baseAngle + wedgeW / 2 + jitter;
+        const ir = innerR * (0.8 + r() * 0.4);
+        const or1 = outerR * (0.85 + r() * 0.15);
+
+        // 뾰족한 안쪽 꼭짓점 → 넓은 바깥 변
+        const ix = (Math.cos(baseAngle + jitter) * ir * vb).toFixed(2);
+        const iy = (Math.sin(baseAngle + jitter) * ir * vb).toFixed(2);
+        const ox1 = (Math.cos(a1) * or1 * vb).toFixed(2);
+        const oy1 = (Math.sin(a1) * or1 * vb).toFixed(2);
+        const ox2 = (Math.cos(a2) * or1 * vb).toFixed(2);
+        const oy2 = (Math.sin(a2) * or1 * vb).toFixed(2);
+
+        ctx.fill(new Path2D(`M ${ix} ${iy} L ${ox1} ${oy1} L ${ox2} ${oy2} Z`));
+      }
+      break;
+    }
+
+    case "surprise_sparkle": {
+      // 깜짝/재잘재잘 — 4방향 반짝임 별 + 거친 X 표시 조합
+      const vb = Math.min(w, h) / 100;
+
+      // ── 반짝임 별 (4-pointed sparkle stars) ──
+      ctx.fillStyle = color;
+      const sparkleCount = 5;
+      for (let i = 0; i < sparkleCount; i++) {
+        const angle = (i / sparkleCount) * Math.PI * 2 + r() * 0.5;
+        const dist = 18 + r() * 22;
+        const sx = Math.cos(angle) * dist * vb;
+        const sy = Math.sin(angle) * dist * vb;
+        const sz = (5 + r() * 8) * vb;
+        const thin = sz * 0.15;
+
+        // SVG path: 4-pointed star
+        const d =
+          `M ${sx} ${sy - sz} ` +
+          `L ${sx + thin} ${sy - thin} ` +
+          `L ${sx + sz} ${sy} ` +
+          `L ${sx + thin} ${sy + thin} ` +
+          `L ${sx} ${sy + sz} ` +
+          `L ${sx - thin} ${sy + thin} ` +
+          `L ${sx - sz} ${sy} ` +
+          `L ${sx - thin} ${sy - thin} Z`;
+        ctx.fill(new Path2D(d));
+      }
+
+      // ── 거친 X 표시 2개 ──
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 2.5 * vb;
+      ctx.lineCap = "round";
+      for (let i = 0; i < 2; i++) {
+        const angle = ((i + 0.5) / 2) * Math.PI + r();
+        const dist = 12 + r() * 18;
+        const xx = Math.cos(angle) * dist * vb;
+        const xy = Math.sin(angle) * dist * vb;
+        const xsz = (4 + r() * 4) * vb;
+        const jit = () => (r() - 0.5) * xsz * 0.15;
+
+        ctx.stroke(new Path2D(
+          `M ${xx - xsz + jit()} ${xy - xsz + jit()} L ${xx + xsz + jit()} ${xy + xsz + jit()}`
+        ));
+        ctx.stroke(new Path2D(
+          `M ${xx + xsz + jit()} ${xy - xsz + jit()} L ${xx - xsz + jit()} ${xy + xsz + jit()}`
+        ));
+      }
+      break;
+    }
+
+    case "gloom_lines": {
+      // 우울/침울 — 위에서 아래로 축 처지듯 내려오는 수직선 (비 내리는 느낌)
+      const vb = Math.min(w, h) / 100;
+      const hw = w / 2, hh = h / 2;
+      const lineCount = 22;
+
+      ctx.strokeStyle = strokeColor;
+      ctx.lineCap = "round";
+
+      for (let i = 0; i < lineCount; i++) {
+        const lx = -hw + (i / lineCount) * w + (r() - 0.5) * (w / lineCount);
+        const startY = -hh * (0.3 + r() * 0.5);
+        const length = hh * (0.5 + r() * 0.6);
+        const endY = startY + length;
+        const curve = (r() - 0.5) * 8 * vb;
+
+        ctx.lineWidth = (0.8 + r() * 1.8) * vb;
+        ctx.globalAlpha = opacity * (0.25 + r() * 0.65);
+
+        // SVG cubic Bézier: 살짝 휘어지며 축 늘어지는 선
+        const cp1y = (startY + (endY - startY) * 0.33).toFixed(2);
+        const cp2y = (startY + (endY - startY) * 0.66).toFixed(2);
+        const d =
+          `M ${lx.toFixed(2)} ${startY.toFixed(2)} ` +
+          `C ${(lx + curve * 0.3).toFixed(2)} ${cp1y}, ` +
+          `${(lx + curve).toFixed(2)} ${cp2y}, ` +
+          `${(lx + curve * 0.7).toFixed(2)} ${endY.toFixed(2)}`;
+        ctx.stroke(new Path2D(d));
+      }
+      ctx.globalAlpha = opacity;
+      break;
+    }
+
+    case "tangled_ball": {
+      // 복잡한 감정 (실타래) — 엉킨 실뭉치 Bézier 곡선 루프
+      const vb = Math.min(w, h) / 100;
+      const ballR = 28;
+
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 2 * vb;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      const loopCount = 8;
+      for (let l = 0; l < loopCount; l++) {
+        const startA = r() * Math.PI * 2;
+        const startDist = ballR * (0.2 + r() * 0.5);
+        let px = Math.cos(startA) * startDist;
+        let py = Math.sin(startA) * startDist;
+
+        let d = `M ${(px * vb).toFixed(2)} ${(py * vb).toFixed(2)}`;
+        const segs = 6 + Math.floor(r() * 5);
+
+        for (let s = 0; s < segs; s++) {
+          const angle = r() * Math.PI * 2;
+          const dist = 8 + r() * 16;
+          let nx = px + Math.cos(angle) * dist;
+          let ny = py + Math.sin(angle) * dist;
+
+          // 공 반지름 안으로 제한
+          const fromCenter = Math.sqrt(nx * nx + ny * ny);
+          if (fromCenter > ballR) {
+            nx = (nx / fromCenter) * ballR * 0.9;
+            ny = (ny / fromCenter) * ballR * 0.9;
+          }
+
+          // 제어점: 루프감을 만드는 과장된 곡률
+          const cpx = px + (r() - 0.5) * 30;
+          const cpy = py + (r() - 0.5) * 30;
+          d += ` Q ${(cpx * vb).toFixed(2)} ${(cpy * vb).toFixed(2)} ${(nx * vb).toFixed(2)} ${(ny * vb).toFixed(2)}`;
+          px = nx;
+          py = ny;
+        }
+
+        ctx.stroke(new Path2D(d));
+      }
+      break;
+    }
   }
 
   ctx.restore();
@@ -5901,6 +6064,10 @@ export default function StoryPage() {
                     { type: "scribble", label: "엉킨 실타래", emoji: "〰️", desc: "낙서 효과" },
                     { type: "x_mark", label: "X 표시", emoji: "✖️", desc: "거친 X 마크" },
                     { type: "speech_cloud", label: "말풍선", emoji: "☁️", desc: "구름형 말풍선" },
+                    { type: "focus_zoom", label: "집중선(놀람)", emoji: "🎯", desc: "줌 집중선" },
+                    { type: "surprise_sparkle", label: "깜짝/재잘재잘", emoji: "✴️", desc: "반짝임+X" },
+                    { type: "gloom_lines", label: "우울/침울", emoji: "🌧️", desc: "처지는 수직선" },
+                    { type: "tangled_ball", label: "복잡한 감정", emoji: "🧶", desc: "엉킨 실타래" },
                   ];
 
                   const addEffect = (type: string) => {
