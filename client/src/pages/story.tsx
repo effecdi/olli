@@ -6080,6 +6080,7 @@ export default function StoryPage() {
                             id: generateId(),
                             bubbles: panel.bubbles.map((b) => ({ ...b, id: generateId() })),
                             characters: panel.characters.map((c) => ({ ...c, id: generateId() })),
+                            drawingLayers: (panel.drawingLayers || []).map((dl) => ({ ...dl, id: generateId() })),
                           };
                           const newPanels = [...panels];
                           newPanels.splice(i + 1, 0, newPanel);
