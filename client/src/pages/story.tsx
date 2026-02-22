@@ -64,14 +64,11 @@ import {
   FlipHorizontal2,
   MousePointer2,
   Eraser,
-  StickyNote,
   Highlighter,
   Pencil,
   PenLine,
   Minus,
   Menu,
-  Grid3X3,
-  Circle,
 } from "lucide-react";
 import DrawingCanvas, { type DrawingToolState, type DrawingCanvasHandle } from "@/components/drawing-canvas";
 import "@/components/drawing-tools-panel.scss";
