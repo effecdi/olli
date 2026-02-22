@@ -6054,6 +6054,8 @@ export default function StoryPage() {
                                   ...panel,
                                   drawingLayers: [...(panel.drawingLayers || []), newLayer],
                                 });
+                                setSelectedDrawingLayerId(newLayer.id);
+                                setSelectedToolItem("select");
                               }}
                               onRequestTextInput={(x, y) => {
                                 setTextInputPos({ x: (x / 450) * 100, y: (y / 600) * 100 });
