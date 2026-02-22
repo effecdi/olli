@@ -5219,15 +5219,8 @@ export default function StoryPage() {
                               setSelectedDrawingLayerId(null);
                               if (item.id === "drawing") {
                                 setDrawingToolState(s => ({ ...s, tool: "brush" }));
-                              } else if (item.id === "line") {
-                                setDrawingToolState(s => ({ ...s, tool: "line", lineSubType }));
-                              } else if (item.id === "text") {
-                                setDrawingToolState(s => ({ ...s, tool: "text" }));
-                              } else if (item.id === "eraser") {
-                                setDrawingToolState(s => ({ ...s, tool: "eraser" }));
                               }
                               setShowDrawingSettings(false);
-                              setTextInputPos(null);
                             }}
                             className={`tools-compact-panel__tool-btn ${selectedToolItem === item.id ? "tools-compact-panel__tool-btn--active" : ""}`}
                             title={item.label}
@@ -5250,6 +5243,14 @@ export default function StoryPage() {
                               <brush.icon className="h-5 w-5" style={brush.color && !(drawingToolState.tool === "brush" && drawingToolState.brushType === brush.id) ? { color: brush.color } : undefined} />
                             </button>
                           ))}
+                          {/* Eraser */}
+                          <button
+                            onClick={() => setDrawingToolState(s => ({ ...s, tool: "eraser" }))}
+                            className={`tools-compact-panel__tool-btn ${drawingToolState.tool === "eraser" ? "tools-compact-panel__tool-btn--active" : ""}`}
+                            title="지우개"
+                          >
+                            <Eraser className="h-5 w-5" style={drawingToolState.tool !== "eraser" ? { color: "#f472b6" } : undefined} />
+                          </button>
                           {/* Color picker */}
                           <button
                             onClick={() => colorInputRef.current?.click()}
@@ -5279,162 +5280,61 @@ export default function StoryPage() {
                         </div>
                       )}
 
-                      {/* Line sub-tools strip */}
-                      {selectedToolItem === "line" && (
-                        <div className="tools-compact-panel__strip tools-compact-panel__strip--sub">
-                          {LINE_SUB_ITEMS.map((sub) => (
-                            <button
-                              key={sub.id}
-                              onClick={() => {
-                                const st = sub.id as "straight" | "curve" | "polyline";
-                                setLineSubType(st);
-                                setDrawingToolState(s => ({ ...s, tool: "line", lineSubType: st }));
-                              }}
-                              className={`tools-compact-panel__tool-btn ${lineSubType === sub.id ? "tools-compact-panel__tool-btn--active" : ""}`}
-                              title={sub.label}
-                            >
-                              <sub.icon className="h-5 w-5" />
-                            </button>
-                          ))}
-                          {/* Color picker */}
-                          <button
-                            onClick={() => colorInputRef.current?.click()}
-                            className="tools-compact-panel__tool-btn tools-compact-panel__color-btn"
-                            title="색상 선택"
-                          >
-                            <span
-                              className="tools-compact-panel__color-circle"
-                              style={{ backgroundColor: drawingToolState.color }}
-                            />
-                            <input
-                              ref={colorInputRef}
-                              type="color"
-                              value={drawingToolState.color}
-                              onChange={(e) => setDrawingToolState(s => ({ ...s, color: e.target.value }))}
-                              className="sr-only"
-                            />
-                          </button>
-                          {/* Settings menu */}
-                          <button
-                            onClick={() => setShowDrawingSettings(s => !s)}
-                            className={`tools-compact-panel__tool-btn ${showDrawingSettings ? "tools-compact-panel__tool-btn--active" : ""}`}
-                            title="설정"
-                          >
-                            <Menu className="h-5 w-5" />
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Text sub-tools strip */}
-                      {selectedToolItem === "text" && (
-                        <div className="tools-compact-panel__strip tools-compact-panel__strip--sub">
-                          {/* Color picker */}
-                          <button
-                            onClick={() => colorInputRef.current?.click()}
-                            className="tools-compact-panel__tool-btn tools-compact-panel__color-btn"
-                            title="색상 선택"
-                          >
-                            <span
-                              className="tools-compact-panel__color-circle"
-                              style={{ backgroundColor: drawingToolState.color }}
-                            />
-                            <input
-                              ref={colorInputRef}
-                              type="color"
-                              value={drawingToolState.color}
-                              onChange={(e) => setDrawingToolState(s => ({ ...s, color: e.target.value }))}
-                              className="sr-only"
-                            />
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Eraser sub-tools strip */}
-                      {selectedToolItem === "eraser" && (
-                        <div className="tools-compact-panel__strip tools-compact-panel__strip--sub">
-                          {/* Settings menu */}
-                          <button
-                            onClick={() => setShowDrawingSettings(s => !s)}
-                            className={`tools-compact-panel__tool-btn ${showDrawingSettings ? "tools-compact-panel__tool-btn--active" : ""}`}
-                            title="설정"
-                          >
-                            <Menu className="h-5 w-5" />
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Drawing settings popover */}
-                      {(selectedToolItem === "drawing" || selectedToolItem === "line" || selectedToolItem === "eraser") && showDrawingSettings && (
-                        <>
-                          <div
-                            className="tools-compact-panel__settings-backdrop"
-                            onClick={() => setShowDrawingSettings(false)}
-                          />
-                          <div className="tools-compact-panel__settings-modal">
-                            <div className="flex items-center justify-between mb-3">
-                              <span className="text-xs font-semibold">설정</span>
-                              <button
-                                onClick={() => setShowDrawingSettings(false)}
-                                className="p-0.5 rounded hover:bg-muted"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
+                      {/* Drawing settings inline panel */}
+                      {selectedToolItem === "drawing" && showDrawingSettings && (
+                        <div className="tools-compact-panel__settings">
+                          <div className="tools-compact-panel__settings-section">
+                            <div className="tools-compact-panel__settings-row">
+                              <span className="text-[11px] text-muted-foreground font-medium">굵기</span>
+                              <span className="text-[11px] text-primary font-medium tabular-nums">{drawingToolState.size}px</span>
                             </div>
-                            <div className="tools-compact-panel__settings-section">
-                              <div className="tools-compact-panel__settings-row">
-                                <span className="text-[11px] text-muted-foreground font-medium">굵기</span>
-                                <span className="text-[11px] text-primary font-medium tabular-nums">{drawingToolState.size}px</span>
-                              </div>
-                              <Slider
-                                min={1}
-                                max={100}
-                                step={1}
-                                value={[drawingToolState.size]}
-                                onValueChange={([v]) => setDrawingToolState(s => ({ ...s, size: v }))}
-                                className="w-full"
-                              />
-                            </div>
-                            {selectedToolItem !== "eraser" && (
-                            <div className="tools-compact-panel__settings-section">
-                              <div className="tools-compact-panel__settings-row">
-                                <span className="text-[11px] text-muted-foreground font-medium">불투명도</span>
-                                <span className="text-[11px] text-primary font-medium tabular-nums">{Math.round(drawingToolState.opacity * 100)}%</span>
-                              </div>
-                              <Slider
-                                min={5}
-                                max={100}
-                                step={1}
-                                value={[Math.round(drawingToolState.opacity * 100)]}
-                                onValueChange={([v]) => setDrawingToolState(s => ({ ...s, opacity: v / 100 }))}
-                                className="w-full"
-                              />
-                            </div>
-                            )}
-                            <div className="tools-compact-panel__settings-actions">
-                              <button
-                                onClick={() => handleDrawingUndo()}
-                                className="tools-compact-panel__action-btn"
-                                title="실행 취소"
-                              >
-                                <Undo2 className="h-3.5 w-3.5" />
-                              </button>
-                              <button
-                                onClick={() => handleDrawingRedo()}
-                                className="tools-compact-panel__action-btn"
-                                title="다시 실행"
-                              >
-                                <Redo2 className="h-3.5 w-3.5" />
-                              </button>
-                              <button
-                                onClick={() => handleDrawingClear()}
-                                className="tools-compact-panel__action-btn tools-compact-panel__action-btn--danger"
-                                title="전체 삭제"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
+                            <Slider
+                              min={1}
+                              max={100}
+                              step={1}
+                              value={[drawingToolState.size]}
+                              onValueChange={([v]) => setDrawingToolState(s => ({ ...s, size: v }))}
+                              className="w-full"
+                            />
                           </div>
-                        </>
+                          <div className="tools-compact-panel__settings-section">
+                            <div className="tools-compact-panel__settings-row">
+                              <span className="text-[11px] text-muted-foreground font-medium">불투명도</span>
+                              <span className="text-[11px] text-primary font-medium tabular-nums">{Math.round(drawingToolState.opacity * 100)}%</span>
+                            </div>
+                            <Slider
+                              min={5}
+                              max={100}
+                              step={1}
+                              value={[Math.round(drawingToolState.opacity * 100)]}
+                              onValueChange={([v]) => setDrawingToolState(s => ({ ...s, opacity: v / 100 }))}
+                              className="w-full"
+                            />
+                          </div>
+                          <div className="tools-compact-panel__settings-actions">
+                            <button
+                              onClick={() => handleDrawingUndo()}
+                              className="tools-compact-panel__action-btn"
+                              title="실행 취소"
+                            >
+                              <Undo2 className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDrawingRedo()}
+                              className="tools-compact-panel__action-btn"
+                              title="다시 실행"
+                            >
+                              <Redo2 className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDrawingClear()}
+                              className="tools-compact-panel__action-btn tools-compact-panel__action-btn--danger"
+                              title="전체 삭제"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
                       )}
                     </div>
                   )}
