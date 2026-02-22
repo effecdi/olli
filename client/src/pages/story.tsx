@@ -6267,10 +6267,10 @@ export default function StoryPage() {
                           onDeletePanel={() => removePanel(i)}
                         />
 
-                        {/* Canva-style drawing editor overlay — only on active panel in drawing mode */}
-                        {isDrawingMode && activePanelIndex === i && (
+                        {/* Canva-style drawing editor overlay — on active panel in drawing/text/line mode */}
+                        {(isDrawingMode || isTextMode || isLineMode) && activePanelIndex === i && (
                           <div
-                            className={`drawing-canvas-wrapper ${isDrawingMode ? "drawing-canvas-wrapper--active" : ""}`}
+                            className={`drawing-canvas-wrapper drawing-canvas-wrapper--active`}
                             style={{
                               position: "absolute",
                               top: 0,
