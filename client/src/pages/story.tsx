@@ -6446,14 +6446,11 @@ export default function StoryPage() {
                               const newBubbles = activePanel.bubbles.filter(b => b.id !== item.id);
                               updatePanel(activePanelIndex, { ...activePanel, bubbles: newBubbles });
                               if (selectedBubbleId === item.id) setSelectedBubbleId(null);
-<<<<<<< HEAD
                             } else if (item.type === "drawing") {
                               updatePanel(activePanelIndex, {
                                 ...activePanel,
                                 drawingLayers: (activePanel.drawingLayers || []).filter(dl => dl.id !== item.id),
                               });
-=======
->>>>>>> claude/svg-story-effects-0ou2v
                             }
                           }}
                         >
