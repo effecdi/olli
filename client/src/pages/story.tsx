@@ -6148,6 +6148,156 @@ export default function StoryPage() {
                             </div>
                           </div>
                         )}
+
+                        {/* Select-mode: click to select drawing layers + visual feedback + floating toolbar */}
+                        {selectedToolItem === "select" && activePanelIndex === i && (panel.drawingLayers || []).length > 0 && (
+                          <div
+                            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", zIndex: 22, pointerEvents: "auto" }}
+                            onClick={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              const canvasX = ((e.clientX - rect.left) / rect.width) * 450;
+                              const canvasY = ((e.clientY - rect.top) / rect.height) * 600;
+                              const hit = hitTestDrawingLayers(panel.drawingLayers || [], canvasX, canvasY, 450, 600);
+                              if (hit) {
+                                setSelectedDrawingLayerId(hit.id);
+                                setSelectedCharId(null);
+                                setSelectedBubbleId(null);
+                              } else {
+                                setSelectedDrawingLayerId(null);
+                              }
+                            }}
+                          />
+                        )}
+
+                        {/* Selected drawing layer bounding box */}
+                        {selectedToolItem === "select" && activePanelIndex === i && selectedDrawingLayerId && (() => {
+                          const layer = (panel.drawingLayers || []).find(l => l.id === selectedDrawingLayerId);
+                          if (!layer || !layer.visible || !layer.imageEl) return null;
+                          // Compute bounding box from image data
+                          const testCanvas = document.createElement("canvas");
+                          testCanvas.width = 450;
+                          testCanvas.height = 600;
+                          const tCtx = testCanvas.getContext("2d");
+                          if (!tCtx) return null;
+                          tCtx.drawImage(layer.imageEl, 0, 0);
+                          const imgData = tCtx.getImageData(0, 0, 450, 600);
+                          let minX = 450, minY = 600, maxX = 0, maxY = 0;
+                          for (let py = 0; py < 600; py++) {
+                            for (let px = 0; px < 450; px++) {
+                              if (imgData.data[(py * 450 + px) * 4 + 3] > 10) {
+                                if (px < minX) minX = px;
+                                if (px > maxX) maxX = px;
+                                if (py < minY) minY = py;
+                                if (py > maxY) maxY = py;
+                              }
+                            }
+                          }
+                          if (maxX <= minX || maxY <= minY) return null;
+                          const pad = 4;
+                          return (
+                            <div style={{
+                              position: "absolute",
+                              left: `${((minX - pad) / 450) * 100}%`,
+                              top: `${((minY - pad) / 600) * 100}%`,
+                              width: `${((maxX - minX + pad * 2) / 450) * 100}%`,
+                              height: `${((maxY - minY + pad * 2) / 600) * 100}%`,
+                              border: "2px dashed hsl(var(--primary))",
+                              pointerEvents: "none",
+                              zIndex: 25,
+                              borderRadius: "2px",
+                            }} />
+                          );
+                        })()}
+
+                        {/* Floating toolbar for selected drawing layer */}
+                        {selectedToolItem === "select" && activePanelIndex === i && selectedDrawingLayerId && (() => {
+                          const layer = (panel.drawingLayers || []).find(l => l.id === selectedDrawingLayerId);
+                          if (!layer) return null;
+                          return (
+                            <CanvasFloatingToolbar
+                              layer={layer}
+                              onDelete={() => {
+                                updatePanel(i, {
+                                  ...panel,
+                                  drawingLayers: (panel.drawingLayers || []).filter(l => l.id !== selectedDrawingLayerId),
+                                });
+                                setSelectedDrawingLayerId(null);
+                              }}
+                              onDuplicate={() => {
+                                const maxZ = (panel.drawingLayers || []).reduce((max, l) => Math.max(max, l.zIndex), 0);
+                                const newLayer: DrawingLayer = {
+                                  ...layer,
+                                  id: generateId(),
+                                  zIndex: maxZ + 1,
+                                };
+                                // Load imageEl for the clone
+                                const img = new Image();
+                                img.onload = () => {
+                                  newLayer.imageEl = img;
+                                  updatePanel(i, {
+                                    ...panel,
+                                    drawingLayers: [...(panel.drawingLayers || []), newLayer],
+                                  });
+                                  setSelectedDrawingLayerId(newLayer.id);
+                                };
+                                img.src = layer.imageData;
+                              }}
+                              onToggleVisibility={() => {
+                                updatePanel(i, {
+                                  ...panel,
+                                  drawingLayers: (panel.drawingLayers || []).map(l =>
+                                    l.id === selectedDrawingLayerId ? { ...l, visible: !l.visible } : l
+                                  ),
+                                });
+                              }}
+                              onOpacityChange={(opacity) => {
+                                updatePanel(i, {
+                                  ...panel,
+                                  drawingLayers: (panel.drawingLayers || []).map(l =>
+                                    l.id === selectedDrawingLayerId ? { ...l, opacity } : l
+                                  ),
+                                });
+                              }}
+                              onBringForward={() => {
+                                const layers = [...(panel.drawingLayers || [])].sort((a, b) => a.zIndex - b.zIndex);
+                                const idx = layers.findIndex(l => l.id === selectedDrawingLayerId);
+                                if (idx < 0 || idx >= layers.length - 1) return;
+                                const cur = layers[idx].zIndex;
+                                layers[idx] = { ...layers[idx], zIndex: layers[idx + 1].zIndex };
+                                layers[idx + 1] = { ...layers[idx + 1], zIndex: cur };
+                                updatePanel(i, { ...panel, drawingLayers: layers });
+                              }}
+                              onSendBackward={() => {
+                                const layers = [...(panel.drawingLayers || [])].sort((a, b) => a.zIndex - b.zIndex);
+                                const idx = layers.findIndex(l => l.id === selectedDrawingLayerId);
+                                if (idx <= 0) return;
+                                const cur = layers[idx].zIndex;
+                                layers[idx] = { ...layers[idx], zIndex: layers[idx - 1].zIndex };
+                                layers[idx - 1] = { ...layers[idx - 1], zIndex: cur };
+                                updatePanel(i, { ...panel, drawingLayers: layers });
+                              }}
+                              onBringToFront={() => {
+                                const maxZ = (panel.drawingLayers || []).reduce((max, l) => Math.max(max, l.zIndex), 0);
+                                updatePanel(i, {
+                                  ...panel,
+                                  drawingLayers: (panel.drawingLayers || []).map(l =>
+                                    l.id === selectedDrawingLayerId ? { ...l, zIndex: maxZ + 1 } : l
+                                  ),
+                                });
+                              }}
+                              onSendToBack={() => {
+                                const minZ = (panel.drawingLayers || []).reduce((min, l) => Math.min(min, l.zIndex), Infinity);
+                                updatePanel(i, {
+                                  ...panel,
+                                  drawingLayers: (panel.drawingLayers || []).map(l =>
+                                    l.id === selectedDrawingLayerId ? { ...l, zIndex: minZ - 1 } : l
+                                  ),
+                                });
+                              }}
+                              onClose={() => setSelectedDrawingLayerId(null)}
+                            />
+                          );
+                        })()}
                       </div>
                     </ContextMenuTrigger>
                     <ContextMenuContent>
