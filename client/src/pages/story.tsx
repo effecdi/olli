@@ -6375,6 +6375,7 @@ export default function StoryPage() {
                             setActivePanelIndex(i);
                           }}
                           selectedEffectId={activePanelIndex === i ? selectedEffectId : null}
+                          onDeletePanel={() => removePanel(i)}
                         />
                       </div>
                     </ContextMenuTrigger>
