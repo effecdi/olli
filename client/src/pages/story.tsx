@@ -4335,7 +4335,6 @@ export default function StoryPage() {
           y: c.y,
           scale: c.scale,
         })),
-<<<<<<< HEAD
         drawingLayers: (p.drawingLayers || []).map((dl) => ({
           id: dl.id,
           type: dl.type,
@@ -4344,8 +4343,6 @@ export default function StoryPage() {
           zIndex: dl.zIndex,
           label: dl.label,
         })),
-=======
->>>>>>> claude/svg-story-effects-0ou2v
       })),
       topic,
     });
