@@ -130,7 +130,7 @@ export default function CreatePage() {
       <FlowStepper currentStep={1} />
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight" data-testid="text-create-title">캐릭터 만들기</h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">캐릭터를 설명하면 귀엽고 간단한 인스타툰 스타일로 그려드려요</p>
+        <p className="mt-1.5 text-sm text-muted-foreground">이미지 업로드, 프롬프트 입력, 또는 둘 다 사용하여 캐릭터를 만들어보세요</p>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
