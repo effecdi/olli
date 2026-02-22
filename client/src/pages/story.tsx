@@ -6490,7 +6490,7 @@ export default function StoryPage() {
                             setSelectedBubbleId(null);
                             setSelectedCharId(null);
                             setActivePanelIndex(i);
-                            if (id) setActiveLeftTab("effects");
+                            if (id) setShowRightPanel(true);
                           }}
                           selectedEffectId={activePanelIndex === i ? selectedEffectId : null}
                         />
