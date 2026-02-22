@@ -2506,7 +2506,8 @@ function EditorPanel({
   bubbleTextareaRef?: React.MutableRefObject<HTMLTextAreaElement | null>;
 }) {
   const [showCharPicker, setShowCharPicker] = useState(false);
-  const [showBubbleTemplatePicker, setShowBubbleTemplatePicker] = useState(false);
+  const isTemplateMode = mode === "template";
+  const [showBubbleTemplatePicker, setShowBubbleTemplatePicker] = useState(isTemplateMode);
   const [templateCatIdx, setTemplateCatIdx] = useState(0);
   const [removingBg, setRemovingBg] = useState(false);
   const { toast } = useToast();
