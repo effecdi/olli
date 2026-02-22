@@ -6718,7 +6718,7 @@ export default function StoryPage() {
             })),
           ].sort((a, b) => b.z - a.z);
 
-          const applyRightLayerOrder = (ordered: Array<{ type: "char" | "bubble" | "drawing"; id: string }>) => {
+          const applyRightLayerOrder = (ordered: Array<{ type: "char" | "bubble" | "drawing" | "text" | "line"; id: string }>) => {
             const n = ordered.length;
             updatePanel(activePanelIndex, {
               ...activePanel,
@@ -6733,6 +6733,14 @@ export default function StoryPage() {
               drawingLayers: (activePanel.drawingLayers || []).map((dl) => {
                 const idx = ordered.findIndex((it) => it.type === "drawing" && it.id === dl.id);
                 return idx >= 0 ? { ...dl, zIndex: n - 1 - idx } : dl;
+              }),
+              textElements: (activePanel.textElements || []).map((te) => {
+                const idx = ordered.findIndex((it) => it.type === "text" && it.id === te.id);
+                return idx >= 0 ? { ...te, zIndex: n - 1 - idx } : te;
+              }),
+              lineElements: (activePanel.lineElements || []).map((le) => {
+                const idx = ordered.findIndex((it) => it.type === "line" && it.id === le.id);
+                return idx >= 0 ? { ...le, zIndex: n - 1 - idx } : le;
               }),
             });
           };
