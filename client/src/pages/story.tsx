@@ -263,7 +263,6 @@ interface ScriptData {
   y?: number;
 }
 
-<<<<<<< HEAD
 type DrawingLayerType = "drawing" | "straight" | "curve" | "polyline" | "text" | "eraser";
 
 interface DrawingLayer {
@@ -276,8 +275,6 @@ interface DrawingLayer {
   label: string;           // "드로잉", "직선", "곡선", "꺾인선", "텍스트", "지우개"
 }
 
-=======
->>>>>>> claude/svg-story-effects-0ou2v
 interface PanelData {
   id: string;
   topScript: ScriptData | null;
