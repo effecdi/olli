@@ -340,6 +340,13 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
     const endStroke = useCallback(() => {
       if (!isDrawingRef.current) return;
       isDrawingRef.current = false;
+
+      // Line tool: the final line is already drawn in continueStroke, just clean up refs
+      if (toolState.tool === "line") {
+        lineStartRef.current = null;
+        preStrokeImageRef.current = null;
+      }
+
       pointsRef.current = [];
       lastPointRef.current = null;
 
@@ -355,7 +362,7 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
 
       composite();
       onStrokeEnd?.();
-    }, [composite, onStrokeEnd]);
+    }, [composite, onStrokeEnd, toolState.tool]);
 
     // ─── Mouse event handlers ───
 
