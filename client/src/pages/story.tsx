@@ -5006,6 +5006,7 @@ export default function StoryPage() {
               ...c,
               imageEl: null,
             })),
+            effects: (p.effects ?? []).map((ef: any) => ({ ...ef })),
           }));
           rehydrateImages(restoredPanels);
           setPanelsRaw(restoredPanels);
