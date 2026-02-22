@@ -273,6 +273,7 @@ interface DrawingLayer {
   visible: boolean;
   zIndex: number;
   label: string;           // "드로잉", "직선", "곡선", "꺾인선", "텍스트", "지우개"
+  opacity: number;         // 0-1, per-layer opacity
 }
 
 interface PanelData {
