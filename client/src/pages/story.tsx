@@ -5471,11 +5471,6 @@ export default function StoryPage() {
   const LEFT_TABS: { id: LeftTab; icon: typeof Wand2; label: string }[] = [
     { id: "image", icon: ImageIcon as any, label: "이미지 선택" },
     { id: "ai", icon: Wand2, label: "AI 프롬프트" },
-<<<<<<< HEAD
-    { id: "drawing", icon: Pen as any, label: "도구" },
-    { id: "element", icon: Boxes as any, label: "요소" },
-    { id: "effects", icon: Sparkles as any, label: "효과" },
-=======
     { id: "tools", icon: Pen as any, label: "도구" },
     { id: "script", icon: Type as any, label: "자막 설정" },
     { id: "bubble", icon: MessageSquare as any, label: "말풍선" },
@@ -5499,7 +5494,6 @@ export default function StoryPage() {
     { id: "marker", icon: PenLine, label: "마커", color: "#ef4444" },
     { id: "highlighter", icon: Highlighter, label: "형광펜", color: "#eab308" },
     { id: "pencil", icon: Pencil, label: "연필", color: "#6b7280" },
->>>>>>> 424aa13 (refactor: 도구 탭을 컴팩트 아이콘 패널로 변경, 효과 탭 삭제)
   ];
 
   return (
