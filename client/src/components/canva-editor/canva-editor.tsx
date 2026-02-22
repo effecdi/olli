@@ -65,6 +65,12 @@ const CanvaEditor = forwardRef<CanvaEditorHandle, CanvaEditorProps>(
     const polyPointsRef = useRef<Point[]>([]);
     const tempPolyRef = useRef<Polyline | null>(null);
 
+    // Curve drawing refs (3-click bezier: start -> end -> control point)
+    const curveStepRef = useRef<0 | 1 | 2>(0); // 0=waiting start, 1=waiting end, 2=waiting control
+    const curveStartRef = useRef<Point | null>(null);
+    const curveEndRef = useRef<Point | null>(null);
+    const tempCurveRef = useRef<Path | null>(null);
+
     // Track ALL event handlers registered by tool modes for reliable cleanup
     const toolHandlersRef = useRef<
       Array<{ event: string; handler: (...args: any[]) => void }>
