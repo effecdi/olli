@@ -62,6 +62,7 @@ import {
   Pen,
   ArrowLeft,
   Boxes,
+  FlipHorizontal2,
 } from "lucide-react";
 import {
   CanvaEditor,
