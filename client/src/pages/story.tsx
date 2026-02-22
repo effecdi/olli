@@ -6637,7 +6637,6 @@ export default function StoryPage() {
               label: b.text || STYLE_LABELS[b.style] || `말풍선 ${i + 1}`,
               thumb: b.style === "image" && (b as any).templateSrc ? (b as any).templateSrc : undefined,
             })),
-<<<<<<< HEAD
             ...(activePanel.drawingLayers || []).map((dl) => ({
               type: "drawing" as const,
               id: dl.id,
@@ -6646,7 +6645,7 @@ export default function StoryPage() {
               thumb: dl.imageData,
               drawingType: dl.type,
               visible: dl.visible,
-=======
+            })),
             ...(activePanel.textElements || []).map((te: CanvasTextElement, i: number) => ({
               type: "text" as const,
               id: te.id,
@@ -6660,7 +6659,6 @@ export default function StoryPage() {
               z: le.zIndex ?? 20,
               label: le.lineType === "straight" ? "직선" : le.lineType === "curved" ? "곡선" : "꺾인선",
               thumb: undefined as string | undefined,
->>>>>>> origin/claude/svg-story-effects-0ou2v
             })),
           ].sort((a, b) => b.z - a.z);
 
