@@ -4534,7 +4534,7 @@ export default function StoryPage() {
     });
   }, []);
   const LEFT_TABS: { id: LeftTab; icon: typeof Wand2; label: string }[] = [
-    { id: "image", icon: ImageIcon as any, label: "이미지선택/업로드" },
+    { id: "image", icon: ImageIcon as any, label: "이미지 선택" },
     { id: "ai", icon: Wand2, label: "AI 프롬프트" },
     { id: "tools", icon: Pen as any, label: "도구" },
     { id: "script", icon: Type as any, label: "자막 설정" },
@@ -4546,18 +4546,12 @@ export default function StoryPage() {
   const TOOL_ITEMS: { id: string; icon: typeof Pen; label: string; color?: string }[] = [
     { id: "select", icon: MousePointer2, label: "선택" },
     { id: "drawing", icon: Pen, label: "드로잉", color: "#ef4444" },
+    { id: "shape", icon: Circle, label: "도형", color: "#6b7280" },
     { id: "line", icon: Minus, label: "선", color: "#3b82f6" },
+    { id: "sticky", icon: StickyNote, label: "메모", color: "#eab308" },
     { id: "text", icon: Type, label: "텍스트", color: "#8b5cf6" },
-    { id: "eraser", icon: Eraser, label: "지우개", color: "#f472b6" },
+    { id: "grid", icon: Grid3X3, label: "그리드", color: "#3b82f6" },
   ];
-
-  const LINE_SUB_ITEMS: { id: string; icon: typeof Pen; label: string }[] = [
-    { id: "straight", icon: Minus, label: "직선" },
-    { id: "curve", icon: Spline, label: "곡선" },
-    { id: "polyline", icon: GitCommitHorizontal, label: "꺾인선" },
-  ];
-
-  const [lineSubType, setLineSubType] = useState<"straight" | "curve" | "polyline">("straight");
 
   // ─── Drawing brush items for sub-panel ──────────────────────────────
   const DRAWING_BRUSH_ITEMS: { id: string; icon: typeof Pen; label: string; color?: string }[] = [
