@@ -291,7 +291,7 @@ export default function CreatePage() {
             size="lg"
             className="w-full gap-2"
             onClick={() => generateMutation.mutate()}
-            disabled={!prompt.trim() || generateMutation.isPending || isOutOfCredits || usageLoading}
+            disabled={!canGenerate || generateMutation.isPending || isOutOfCredits || usageLoading}
             data-testid="button-generate"
           >
             {generateMutation.isPending ? (
