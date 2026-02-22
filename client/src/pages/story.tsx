@@ -3092,6 +3092,7 @@ export default function StoryPage() {
       bottomScript: p.bottomScript ? { ...p.bottomScript } : null,
       backgroundImageUrl: p.backgroundImageUrl,
       backgroundImageEl: p.backgroundImageEl,
+      drawingLayers: (p.drawingLayers || []).map((dl) => ({ ...dl })),
     }));
   }, []);
 
