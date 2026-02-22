@@ -4183,7 +4183,7 @@ export default function StoryPage() {
     opacity: 1,
   });
   const drawingCanvasRef = useRef<DrawingCanvasHandle | null>(null);
-  const isDrawingMode = activeLeftTab === "tools" && ["drawing", "line", "text"].includes(selectedToolItem);
+  const isDrawingMode = activeLeftTab === "tools" && ["drawing", "line", "text", "eraser"].includes(selectedToolItem);
 
   // Text tool input state
   const [textInputPos, setTextInputPos] = useState<{ x: number; y: number } | null>(null);
