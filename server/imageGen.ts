@@ -157,7 +157,7 @@ function getStyleConfig(style: string) {
   return defaultStyle;
 }
 
-const noTextRule = `CRITICAL: Do NOT include ANY text, letters, words, labels, captions, watermarks, or writing of any kind in the image. The image must contain ONLY the visual illustration with absolutely zero text.`;
+const noTextRule = `CRITICAL TEXT PROHIBITION: Do NOT include ANY text, letters, words, labels, captions, watermarks, or writing of ANY kind in the image - this includes Korean (한글/Hangul), English, Japanese, Chinese, or any other language. NO characters, NO letters, NO words, NO numbers, NO symbols that look like text. The image must contain ONLY the visual illustration with absolutely ZERO text or text-like elements. Any attempt to render non-Latin scripts like Korean will result in garbled, broken characters - so do NOT attempt it under any circumstances.`;
 
 export async function generateCharacterImage(prompt: string, style: string, sourceImageData?: string): Promise<string> {
   const config = getStyleConfig(style);
