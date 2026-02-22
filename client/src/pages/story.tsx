@@ -4543,7 +4543,6 @@ export default function StoryPage() {
           y: c.y,
           scale: c.scale,
         })),
-<<<<<<< HEAD
         drawingLayers: (p.drawingLayers || []).map((dl) => ({
           id: dl.id,
           type: dl.type,
@@ -4553,10 +4552,8 @@ export default function StoryPage() {
           label: dl.label,
           opacity: dl.opacity ?? 1,
         })),
-=======
         textElements: p.textElements || [],
         lineElements: p.lineElements || [],
->>>>>>> origin/claude/svg-story-effects-0ou2v
       })),
       topic,
     });
