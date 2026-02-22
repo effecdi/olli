@@ -5155,22 +5155,6 @@ export default function StoryPage() {
   const [showDrawingSettings, setShowDrawingSettings] = useState(false);
   const colorInputRef = useRef<HTMLInputElement | null>(null);
 
-<<<<<<< HEAD
-  // ─── Canva drawing editor state ─────────────────────────────────────
-  const canvaEditorRef = useRef<CanvaEditorHandle | null>(null);
-  const isDrawingMode = activeLeftTab === "drawing";
-  const [canvaToolMode, setCanvaToolMode] = useState<ToolMode>("select");
-  const [canvaDrawConfig, setCanvaDrawConfig] = useState<DrawingConfig>({
-    subTool: "pencil", color: "#000000", size: 4, opacity: 1,
-  });
-  const [canvaLineConfig, setCanvaLineConfig] = useState<LineConfig>({
-    subTool: "straight", color: "#000000", size: 3, opacity: 1,
-  });
-  const [canvaTextConfig, setCanvaTextConfig] = useState<TextConfig>({
-    fontFamily: "Pretendard, Apple SD Gothic Neo, sans-serif",
-    fontSize: 24, color: "#000000", bold: false, italic: false,
-  });
-=======
   // ─── Drawing tool state ─────────────────────────────────────────────
   const [drawingToolState, setDrawingToolState] = useState<DrawingToolState>({
     tool: "brush",
@@ -5181,7 +5165,6 @@ export default function StoryPage() {
   });
   const drawingCanvasRef = useRef<DrawingCanvasHandle | null>(null);
   const isDrawingMode = activeLeftTab === "tools" && selectedToolItem === "drawing";
->>>>>>> 424aa13 (refactor: 도구 탭을 컴팩트 아이콘 패널로 변경, 효과 탭 삭제)
 
   const toggleLeftTab = (tab: LeftTab) => {
     setActiveLeftTab((prev) => {
