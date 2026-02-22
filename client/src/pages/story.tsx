@@ -5193,6 +5193,7 @@ export default function StoryPage() {
                             key={item.id}
                             onClick={() => {
                               setSelectedToolItem(item.id);
+                              setSelectedDrawingLayerId(null);
                               if (item.id === "drawing") {
                                 setDrawingToolState(s => ({ ...s, tool: "brush" }));
                               } else if (item.id === "line") {
