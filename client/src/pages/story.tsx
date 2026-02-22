@@ -87,6 +87,19 @@ import {
 } from "@/components/ui/context-menu";
 import { KOREAN_FONTS, FONT_CSS, getFontFamily, getDefaultTailTip, getTailGeometry, drawBubble, STYLE_LABELS, FLASH_STYLE_LABELS, TAIL_LABELS } from "@/lib/bubble-utils";
 import { SpeechBubble, BubbleStyle, TailStyle, TailDrawMode } from "@/lib/bubble-types";
+import {
+  TextContextToolbar,
+  LineContextToolbar,
+  DrawingContextToolbar,
+  FloatingSettingsModal,
+  createTextElement,
+  createLineElement,
+  type CanvasTextElement,
+  type CanvasLineElement,
+  type LineType,
+} from "@/components/canvas-context-toolbar";
+import "@/components/canvas-context-toolbar.scss";
+import { Spline } from "lucide-react";
 
 function bubblePath(n: number) {
   return `/assets/bubbles/bubble_${String(n).padStart(3, "0")}.png`;
@@ -264,6 +277,8 @@ interface PanelData {
   bottomScript: ScriptData | null;
   bubbles: SpeechBubble[];
   characters: CharacterPlacement[];
+  textElements: CanvasTextElement[];
+  lineElements: CanvasLineElement[];
   backgroundImageUrl?: string;
   backgroundImageEl?: HTMLImageElement | null;
 }
@@ -320,6 +335,8 @@ function createPanel(): PanelData {
     bottomScript: null,
     bubbles: [],
     characters: [],
+    textElements: [],
+    lineElements: [],
     backgroundImageUrl: undefined,
     backgroundImageEl: null,
   };
@@ -809,6 +826,8 @@ function PanelCanvas({
     const drawables: Array<
       | { type: "char"; z: number; ch: CharacterPlacement }
       | { type: "bubble"; z: number; b: SpeechBubble }
+      | { type: "text"; z: number; te: CanvasTextElement }
+      | { type: "line"; z: number; le: CanvasLineElement }
     > = [
         ...p.characters.map((ch) => ({
           type: "char" as const,
@@ -820,10 +839,156 @@ function PanelCanvas({
           z: b.zIndex ?? 10,
           b,
         })),
+        ...(p.textElements || []).map((te) => ({
+          type: "text" as const,
+          z: te.zIndex ?? 20,
+          te,
+        })),
+        ...(p.lineElements || []).map((le) => ({
+          type: "line" as const,
+          z: le.zIndex ?? 20,
+          le,
+        })),
       ];
     drawables.sort((a, b) => a.z - b.z);
     drawables.forEach((d) => {
-      if (d.type === "char") {
+      if (d.type === "text") {
+        const te = d.te;
+        ctx.save();
+        ctx.globalAlpha = te.opacity;
+        let fontStyle = "";
+        if (te.italic) fontStyle += "italic ";
+        if (te.bold) fontStyle += "bold ";
+        fontStyle += `${te.fontSize}px `;
+        fontStyle += te.fontFamily === "default" ? "sans-serif" : `"${te.fontFamily}", sans-serif`;
+        ctx.font = fontStyle;
+        ctx.fillStyle = te.color;
+        ctx.textAlign = te.textAlign as CanvasTextAlign;
+        ctx.textBaseline = "top";
+
+        let displayText = te.text;
+        if (te.textTransform === "uppercase") displayText = displayText.toUpperCase();
+        else if (te.textTransform === "lowercase") displayText = displayText.toLowerCase();
+
+        const textX =
+          te.textAlign === "center"
+            ? te.x + te.width / 2
+            : te.textAlign === "right"
+              ? te.x + te.width
+              : te.x;
+        const textY = te.y + 8;
+
+        // Word wrap
+        const words = displayText.split("");
+        let line = "";
+        let lineY = textY;
+        const lineHeight = te.fontSize * 1.3;
+        for (let i = 0; i < words.length; i++) {
+          const testLine = line + words[i];
+          const metrics = ctx.measureText(testLine);
+          if (metrics.width > te.width && line.length > 0) {
+            ctx.fillText(line, textX, lineY);
+            // Underline
+            if (te.underline) {
+              const lw = ctx.measureText(line).width;
+              const lx = te.textAlign === "center" ? textX - lw / 2 : te.textAlign === "right" ? textX - lw : textX;
+              ctx.fillRect(lx, lineY + te.fontSize + 1, lw, 1);
+            }
+            // Strikethrough
+            if (te.strikethrough) {
+              const lw = ctx.measureText(line).width;
+              const lx = te.textAlign === "center" ? textX - lw / 2 : te.textAlign === "right" ? textX - lw : textX;
+              ctx.fillRect(lx, lineY + te.fontSize / 2, lw, 1);
+            }
+            line = words[i];
+            lineY += lineHeight;
+          } else {
+            line = testLine;
+          }
+        }
+        if (line) {
+          ctx.fillText(line, textX, lineY);
+          if (te.underline) {
+            const lw = ctx.measureText(line).width;
+            const lx = te.textAlign === "center" ? textX - lw / 2 : te.textAlign === "right" ? textX - lw : textX;
+            ctx.fillRect(lx, lineY + te.fontSize + 1, lw, 1);
+          }
+          if (te.strikethrough) {
+            const lw = ctx.measureText(line).width;
+            const lx = te.textAlign === "center" ? textX - lw / 2 : te.textAlign === "right" ? textX - lw : textX;
+            ctx.fillRect(lx, lineY + te.fontSize / 2, lw, 1);
+          }
+        }
+
+        // Selection box
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = "hsl(173,80%,45%)";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 3]);
+        ctx.strokeRect(te.x - 2, te.y - 2, te.width + 4, te.height + 4);
+        ctx.setLineDash([]);
+        ctx.restore();
+      } else if (d.type === "line") {
+        const le = d.le;
+        ctx.save();
+        ctx.globalAlpha = le.opacity;
+        ctx.strokeStyle = le.color;
+        ctx.lineWidth = le.strokeWidth;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+
+        // Dash pattern
+        if (le.dashPattern === "dashed") ctx.setLineDash([8, 4]);
+        else if (le.dashPattern === "dotted") ctx.setLineDash([2, 4]);
+        else ctx.setLineDash([]);
+
+        const pts = le.points;
+        if (pts.length >= 2) {
+          ctx.beginPath();
+          if (le.lineType === "curved" && pts.length >= 3) {
+            ctx.moveTo(pts[0].x, pts[0].y);
+            if (pts.length === 3) {
+              ctx.quadraticCurveTo(pts[1].x, pts[1].y, pts[2].x, pts[2].y);
+            } else {
+              for (let i = 1; i < pts.length - 1; i++) {
+                const midX = (pts[i].x + pts[i + 1].x) / 2;
+                const midY = (pts[i].y + pts[i + 1].y) / 2;
+                ctx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
+              }
+              ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+            }
+          } else {
+            ctx.moveTo(pts[0].x, pts[0].y);
+            for (let i = 1; i < pts.length; i++) {
+              ctx.lineTo(pts[i].x, pts[i].y);
+            }
+          }
+          ctx.stroke();
+
+          // Draw arrows
+          const drawArrow = (from: { x: number; y: number }, to: { x: number; y: number }) => {
+            const angle = Math.atan2(to.y - from.y, to.x - from.x);
+            const headLen = Math.max(le.strokeWidth * 3, 8);
+            ctx.beginPath();
+            ctx.moveTo(to.x, to.y);
+            ctx.lineTo(to.x - headLen * Math.cos(angle - Math.PI / 6), to.y - headLen * Math.sin(angle - Math.PI / 6));
+            ctx.moveTo(to.x, to.y);
+            ctx.lineTo(to.x - headLen * Math.cos(angle + Math.PI / 6), to.y - headLen * Math.sin(angle + Math.PI / 6));
+            ctx.stroke();
+          };
+
+          ctx.setLineDash([]);
+          if (le.startArrow && pts.length >= 2) {
+            drawArrow(pts[1], pts[0]);
+          }
+          if (le.endArrow && pts.length >= 2) {
+            drawArrow(pts[pts.length - 2], pts[pts.length - 1]);
+          }
+        }
+
+        ctx.setLineDash([]);
+        ctx.restore();
+      } else if (d.type === "char") {
         const ch = d.ch;
         if (ch.imageEl) {
           const w = ch.imageEl.naturalWidth * ch.scale;
@@ -4096,6 +4261,8 @@ export default function StoryPage() {
         bottomScript: null,
         bubbles: [],
         characters: [],
+        textElements: [],
+        lineElements: [],
       };
       setPanels([fresh]);
       setActivePanelIndex(0);
@@ -4124,6 +4291,8 @@ export default function StoryPage() {
       backgroundImageEl: source.backgroundImageEl,
       bubbles: source.bubbles.map((b) => ({ ...b, id: generateId() })),
       characters: source.characters.map((c) => ({ ...c, id: generateId() })),
+      textElements: (source.textElements || []).map((t) => ({ ...t, id: generateId() })),
+      lineElements: (source.lineElements || []).map((l) => ({ ...l, id: generateId(), points: l.points.map(p => ({ ...p })) })),
     };
     const newPanels = [...panels];
     newPanels.splice(idx + 1, 0, cloned);
@@ -4163,6 +4332,65 @@ export default function StoryPage() {
   });
   const drawingCanvasRef = useRef<DrawingCanvasHandle | null>(null);
   const isDrawingMode = activeLeftTab === "tools" && selectedToolItem === "drawing";
+  const isTextMode = activeLeftTab === "tools" && selectedToolItem === "text";
+  const isLineMode = activeLeftTab === "tools" && selectedToolItem === "line";
+
+  // ─── Context toolbar state ────────────────────────────────────────────
+  const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
+  const [selectedLineId, setSelectedLineId] = useState<string | null>(null);
+  const [showLineSettings, setShowLineSettings] = useState(false);
+  const [showDrawingContextSettings, setShowDrawingContextSettings] = useState(false);
+  const [drawingLayerSelected, setDrawingLayerSelected] = useState(false);
+  const [selectedLineSubType, setSelectedLineSubType] = useState<LineType>("straight");
+
+  // Helper: get selected text element
+  const selectedTextElement = selectedTextId && panels[activePanelIndex]
+    ? panels[activePanelIndex].textElements?.find((t) => t.id === selectedTextId) ?? null
+    : null;
+
+  // Helper: get selected line element
+  const selectedLineElement = selectedLineId && panels[activePanelIndex]
+    ? panels[activePanelIndex].lineElements?.find((l) => l.id === selectedLineId) ?? null
+    : null;
+
+  // ─── Text/Line creation handlers ──────────────────────────────────────
+  const handleAddText = useCallback(() => {
+    const p = panels[activePanelIndex];
+    if (!p) return;
+    const newText = createTextElement(CANVAS_W, CANVAS_H);
+    const updated = { ...p, textElements: [...(p.textElements || []), newText] };
+    updatePanel(activePanelIndex, updated);
+    setSelectedTextId(newText.id);
+    setSelectedLineId(null);
+    setSelectedBubbleId(null);
+    setSelectedCharId(null);
+  }, [panels, activePanelIndex, updatePanel]);
+
+  const handleAddLine = useCallback((lineType: LineType) => {
+    const p = panels[activePanelIndex];
+    if (!p) return;
+    const newLine = createLineElement(CANVAS_W, CANVAS_H, lineType);
+    const updated = { ...p, lineElements: [...(p.lineElements || []), newLine] };
+    updatePanel(activePanelIndex, updated);
+    setSelectedLineId(newLine.id);
+    setSelectedTextId(null);
+    setSelectedBubbleId(null);
+    setSelectedCharId(null);
+  }, [panels, activePanelIndex, updatePanel]);
+
+  const handleUpdateTextElement = useCallback((updated: CanvasTextElement) => {
+    const p = panels[activePanelIndex];
+    if (!p) return;
+    const newTexts = (p.textElements || []).map((t) => t.id === updated.id ? updated : t);
+    updatePanel(activePanelIndex, { ...p, textElements: newTexts });
+  }, [panels, activePanelIndex, updatePanel]);
+
+  const handleUpdateLineElement = useCallback((updated: CanvasLineElement) => {
+    const p = panels[activePanelIndex];
+    if (!p) return;
+    const newLines = (p.lineElements || []).map((l) => l.id === updated.id ? updated : l);
+    updatePanel(activePanelIndex, { ...p, lineElements: newLines });
+  }, [panels, activePanelIndex, updatePanel]);
 
   const toggleLeftTab = (tab: LeftTab) => {
     setActiveLeftTab((prev) => (prev === tab ? null : tab));
@@ -4280,6 +4508,8 @@ export default function StoryPage() {
           y: c.y,
           scale: c.scale,
         })),
+        textElements: p.textElements || [],
+        lineElements: p.lineElements || [],
       })),
       topic,
     });
@@ -4374,6 +4604,8 @@ export default function StoryPage() {
               ...c,
               imageEl: null,
             })),
+            textElements: p.textElements || [],
+            lineElements: p.lineElements || [],
           }));
           rehydrateImages(restoredPanels);
           setPanelsRaw(restoredPanels);
@@ -5141,7 +5373,15 @@ export default function StoryPage() {
                               if (item.id === "drawing") {
                                 setDrawingToolState(s => ({ ...s, tool: "brush" }));
                               }
+                              if (item.id === "text") {
+                                handleAddText();
+                              }
+                              if (item.id === "line") {
+                                handleAddLine(selectedLineSubType);
+                              }
                               setShowDrawingSettings(false);
+                              setShowLineSettings(false);
+                              setShowDrawingContextSettings(false);
                             }}
                             className={`tools-compact-panel__tool-btn ${selectedToolItem === item.id ? "tools-compact-panel__tool-btn--active" : ""}`}
                             title={item.label}
@@ -5255,6 +5495,35 @@ export default function StoryPage() {
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           </div>
+                        </div>
+                      )}
+
+                      {/* Line sub-tools strip */}
+                      {selectedToolItem === "line" && (
+                        <div className="tools-compact-panel__strip tools-compact-panel__strip--sub">
+                          <button
+                            onClick={() => { setSelectedLineSubType("straight"); handleAddLine("straight"); }}
+                            className={`tools-compact-panel__tool-btn ${selectedLineSubType === "straight" ? "tools-compact-panel__tool-btn--active" : ""}`}
+                            title="직선"
+                          >
+                            <Minus className="h-5 w-5" style={selectedLineSubType !== "straight" ? { color: "#3b82f6" } : undefined} />
+                          </button>
+                          <button
+                            onClick={() => { setSelectedLineSubType("curved"); handleAddLine("curved"); }}
+                            className={`tools-compact-panel__tool-btn ${selectedLineSubType === "curved" ? "tools-compact-panel__tool-btn--active" : ""}`}
+                            title="곡선"
+                          >
+                            <Spline className="h-5 w-5" style={selectedLineSubType !== "curved" ? { color: "#8b5cf6" } : undefined} />
+                          </button>
+                          <button
+                            onClick={() => { setSelectedLineSubType("polyline"); handleAddLine("polyline"); }}
+                            className={`tools-compact-panel__tool-btn ${selectedLineSubType === "polyline" ? "tools-compact-panel__tool-btn--active" : ""}`}
+                            title="꺾인선"
+                          >
+                            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={selectedLineSubType !== "polyline" ? { color: "#f97316" } : undefined}>
+                              <polyline points="4,18 10,8 14,16 20,6" />
+                            </svg>
+                          </button>
                         </div>
                       )}
                     </div>
@@ -5826,6 +6095,62 @@ export default function StoryPage() {
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
 
+                        {/* ─── Context Toolbars ─── absolute above canvas */}
+                        {activePanelIndex === i && selectedTextElement && (
+                          <div className="context-toolbar-wrapper" style={{ position: "absolute", top: -52, left: "50%", transform: "translateX(-50%)", zIndex: 50 }}>
+                            <TextContextToolbar
+                              element={selectedTextElement}
+                              onChange={handleUpdateTextElement}
+                            />
+                          </div>
+                        )}
+                        {activePanelIndex === i && selectedLineElement && (
+                          <>
+                            <div className="context-toolbar-wrapper" style={{ position: "absolute", top: -52, left: "50%", transform: "translateX(-50%)", zIndex: 50 }}>
+                              <LineContextToolbar
+                                element={selectedLineElement}
+                                onChange={handleUpdateLineElement}
+                                showSettings={showLineSettings}
+                                onShowSettings={() => setShowLineSettings(s => !s)}
+                              />
+                            </div>
+                            {showLineSettings && (
+                              <div style={{ position: "absolute", top: -190, left: "50%", transform: "translateX(-50%)", zIndex: 55 }}>
+                                <FloatingSettingsModal
+                                  strokeWidth={selectedLineElement.strokeWidth}
+                                  opacity={selectedLineElement.opacity}
+                                  onStrokeWidthChange={(v) => handleUpdateLineElement({ ...selectedLineElement, strokeWidth: v })}
+                                  onOpacityChange={(v) => handleUpdateLineElement({ ...selectedLineElement, opacity: v })}
+                                  onClose={() => setShowLineSettings(false)}
+                                />
+                              </div>
+                            )}
+                          </>
+                        )}
+                        {activePanelIndex === i && isDrawingMode && drawingLayerSelected && (
+                          <>
+                            <div className="context-toolbar-wrapper" style={{ position: "absolute", top: -52, left: "50%", transform: "translateX(-50%)", zIndex: 50 }}>
+                              <DrawingContextToolbar
+                                color={drawingToolState.color}
+                                onColorChange={(c) => setDrawingToolState(s => ({ ...s, color: c }))}
+                                showSettings={showDrawingContextSettings}
+                                onShowSettings={() => setShowDrawingContextSettings(s => !s)}
+                              />
+                            </div>
+                            {showDrawingContextSettings && (
+                              <div style={{ position: "absolute", top: -190, left: "50%", transform: "translateX(-50%)", zIndex: 55 }}>
+                                <FloatingSettingsModal
+                                  strokeWidth={drawingToolState.size}
+                                  opacity={drawingToolState.opacity}
+                                  onStrokeWidthChange={(v) => setDrawingToolState(s => ({ ...s, size: v }))}
+                                  onOpacityChange={(v) => setDrawingToolState(s => ({ ...s, opacity: v }))}
+                                  onClose={() => setShowDrawingContextSettings(false)}
+                                />
+                              </div>
+                            )}
+                          </>
+                        )}
+
                         <PanelCanvas
                           key={panel.id + "-main"}
                           panel={panel}
@@ -5834,12 +6159,16 @@ export default function StoryPage() {
                           onSelectBubble={(id) => {
                             setSelectedBubbleId(id);
                             setSelectedCharId(null);
+                            setSelectedTextId(null);
+                            setSelectedLineId(null);
                             setActivePanelIndex(i);
                           }}
                           selectedCharId={activePanelIndex === i ? selectedCharId : null}
                           onSelectChar={(id) => {
                             setSelectedCharId(id);
                             setSelectedBubbleId(null);
+                            setSelectedTextId(null);
+                            setSelectedLineId(null);
                             setActivePanelIndex(i);
                             // Auto-switch to image tab when character is clicked on canvas
                             if (id) setActiveLeftTab("image");
@@ -5882,6 +6211,7 @@ export default function StoryPage() {
                               height={600}
                               toolState={drawingToolState}
                               className="rounded-md"
+                              onStrokeEnd={() => setDrawingLayerSelected(true)}
                             />
                             <div className="drawing-mode-indicator">
                               <span className="drawing-mode-indicator__dot" />
@@ -5998,6 +6328,20 @@ export default function StoryPage() {
               z: b.zIndex ?? 10,
               label: b.text || STYLE_LABELS[b.style] || `말풍선 ${i + 1}`,
               thumb: b.style === "image" && (b as any).templateSrc ? (b as any).templateSrc : undefined,
+            })),
+            ...(activePanel.textElements || []).map((te: CanvasTextElement, i: number) => ({
+              type: "text" as const,
+              id: te.id,
+              z: te.zIndex ?? 20,
+              label: te.text || `텍스트 ${i + 1}`,
+              thumb: undefined as string | undefined,
+            })),
+            ...(activePanel.lineElements || []).map((le: CanvasLineElement, i: number) => ({
+              type: "line" as const,
+              id: le.id,
+              z: le.zIndex ?? 20,
+              label: le.lineType === "straight" ? "직선" : le.lineType === "curved" ? "곡선" : "꺾인선",
+              thumb: undefined as string | undefined,
             })),
           ].sort((a, b) => b.z - a.z);
 
