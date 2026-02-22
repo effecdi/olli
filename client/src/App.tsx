@@ -22,26 +22,18 @@ import BackgroundPage from "@/pages/background";
 import StoryPage from "@/pages/story";
 import EditsPage from "@/pages/edits";
 import LoginPage from "@/pages/login";
+import AuthCallbackPage from "@/pages/auth-callback";
 import DashboardPage from "@/pages/dashboard";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
-  // BUG FIX 1: When Kakao OAuth redirects back to "/", the URL contains
-  // #access_token=... which Supabase needs a moment to parse.
-  // If we're on "/" with an OAuth hash, show loading spinner until auth resolves.
-  const hasOAuthHash = typeof window !== "undefined" &&
-    (window.location.hash.includes("access_token") ||
-     window.location.hash.includes("error_description"));
-
-  if (isLoading || hasOAuthHash) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-3.5rem)]">
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">
-            {hasOAuthHash ? "로그인 처리 중..." : "Loading..."}
-          </p>
+          <p className="text-sm text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -66,6 +58,7 @@ function Router() {
       <Route path="/dashboard" component={DashboardPage} />
       <Route path="/pricing" component={PricingPage} />
       <Route path="/login" component={LoginPage} />
+      <Route path="/auth/callback" component={AuthCallbackPage} />
       <Route component={NotFound} />
     </Switch>
   );
