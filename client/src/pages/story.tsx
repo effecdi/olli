@@ -6795,18 +6795,25 @@ export default function StoryPage() {
                       key={`${item.type}:${item.id}`}
                       className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${typeBg} ${item.type === "drawing" && item.visible === false ? "opacity-40" : ""}`}
                       onClick={() => {
+                        // Clear all selections first
+                        setSelectedCharId(null);
+                        setSelectedBubbleId(null);
+                        setSelectedDrawingLayerId(null);
+                        setSelectedTextId(null);
+                        setSelectedLineId(null);
+
                         if (item.type === "char") {
                           setSelectedCharId(item.id);
-                          setSelectedBubbleId(null);
-                          setSelectedDrawingLayerId(null);
                         } else if (item.type === "bubble") {
                           setSelectedBubbleId(item.id);
-                          setSelectedCharId(null);
-                          setSelectedDrawingLayerId(null);
                         } else if (item.type === "drawing") {
                           setSelectedDrawingLayerId(item.id);
-                          setSelectedCharId(null);
-                          setSelectedBubbleId(null);
+                          setSelectedToolItem("select");
+                        } else if (item.type === "text") {
+                          setSelectedTextId(item.id);
+                          setSelectedToolItem("select");
+                        } else if (item.type === "line") {
+                          setSelectedLineId(item.id);
                           setSelectedToolItem("select");
                         }
                       }}
