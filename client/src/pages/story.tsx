@@ -59,17 +59,11 @@ import {
   Zap,
   Star,
   Pen,
-<<<<<<< HEAD
   ArrowLeft,
   Boxes,
   FlipHorizontal2,
   MousePointer2,
   Eraser,
-=======
-  MousePointer2,
-  Eraser,
-  StickyNote,
->>>>>>> claude/svg-story-effects-0ou2v
   Highlighter,
   Pencil,
   PenLine,
