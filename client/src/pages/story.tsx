@@ -5909,10 +5909,67 @@ export default function StoryPage() {
                               height={600}
                               toolState={drawingToolState}
                               className="rounded-md"
+                              onRequestTextInput={(x, y) => {
+                                // Convert canvas coords to percentage for overlay positioning
+                                setTextInputPos({ x: (x / 450) * 100, y: (y / 600) * 100 });
+                                setTextInputValue("");
+                              }}
                             />
+                            {/* Text input overlay */}
+                            {textInputPos && selectedToolItem === "text" && (
+                              <textarea
+                                autoFocus
+                                value={textInputValue}
+                                onChange={(e) => setTextInputValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault();
+                                    if (textInputValue.trim()) {
+                                      const canvasX = (textInputPos.x / 100) * 450;
+                                      const canvasY = (textInputPos.y / 100) * 600;
+                                      drawingCanvasRef.current?.commitText(canvasX, canvasY, textInputValue, 20, drawingToolState.color);
+                                    }
+                                    setTextInputPos(null);
+                                    setTextInputValue("");
+                                  }
+                                  if (e.key === "Escape") {
+                                    setTextInputPos(null);
+                                    setTextInputValue("");
+                                  }
+                                }}
+                                onBlur={() => {
+                                  if (textInputValue.trim()) {
+                                    const canvasX = (textInputPos.x / 100) * 450;
+                                    const canvasY = (textInputPos.y / 100) * 600;
+                                    drawingCanvasRef.current?.commitText(canvasX, canvasY, textInputValue, 20, drawingToolState.color);
+                                  }
+                                  setTextInputPos(null);
+                                  setTextInputValue("");
+                                }}
+                                style={{
+                                  position: "absolute",
+                                  left: `${textInputPos.x}%`,
+                                  top: `${textInputPos.y}%`,
+                                  minWidth: "120px",
+                                  minHeight: "28px",
+                                  fontSize: "14px",
+                                  lineHeight: "1.2",
+                                  padding: "2px 4px",
+                                  border: "2px solid hsl(var(--primary))",
+                                  borderRadius: "4px",
+                                  background: "rgba(255,255,255,0.9)",
+                                  color: drawingToolState.color,
+                                  outline: "none",
+                                  resize: "none",
+                                  zIndex: 30,
+                                  fontFamily: "sans-serif",
+                                }}
+                                placeholder="텍스트 입력..."
+                              />
+                            )}
                             <div className="drawing-mode-indicator">
                               <span className="drawing-mode-indicator__dot" />
-                              드로잉 모드
+                              {selectedToolItem === "line" ? "선 모드" : selectedToolItem === "text" ? "텍스트 모드" : "드로잉 모드"}
                             </div>
                           </div>
                         )}
