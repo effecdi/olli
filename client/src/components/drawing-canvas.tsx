@@ -11,7 +11,7 @@ export type BrushType =
   | "watercolor";
 
 export interface DrawingToolState {
-  tool: "brush" | "eraser";
+  tool: "brush" | "eraser" | "line" | "text";
   brushType: BrushType;
   color: string;
   size: number; // 1-100
