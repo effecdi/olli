@@ -258,7 +258,7 @@ interface ScriptData {
 // Effect layer for canvas-rendered effects (arrows, flash lines, sparkles, etc.)
 interface EffectLayer {
   id: string;
-  type: string;  // "flash_lines"|"flash_dense"|"flash_small"|"firework"|"monologue_circles"|"speed_lines"|"star"|"sparkle"|"anger"|"surprise"|"collapse"|"arrow_up"|"arrow_down"|"exclamation"|"question"
+  type: string;  // "flash_lines"|"flash_dense"|"flash_small"|"firework"|"monologue_circles"|"speed_lines"|"star"|"sparkle"|"anger"|"surprise"|"collapse"|"arrow_up"|"arrow_down"|"exclamation"|"question"|"sunburst"|"scribble"|"x_mark"|"speech_cloud"
   x: number;
   y: number;
   width: number;
@@ -606,6 +606,130 @@ function drawEffectLayer(ctx: CanvasRenderingContext2D, ef: EffectLayer) {
       ctx.lineWidth = 2;
       ctx.strokeText("?", 0, 0);
       ctx.fillText("?", 0, 0);
+      break;
+    }
+    case "sunburst": {
+      // 집중선 (썬버스트) - bold black triangular rays from center
+      const rayCount = 24;
+      const innerR = Math.min(w, h) * 0.08;
+      const outerR = Math.min(w, h) * 0.5;
+      ctx.fillStyle = color;
+      for (let i = 0; i < rayCount; i++) {
+        const angle = (i / rayCount) * Math.PI * 2;
+        const nextAngle = ((i + 0.4) / rayCount) * Math.PI * 2;
+        const jitter = (r() - 0.5) * 0.03;
+        const a1 = angle + jitter;
+        const a2 = nextAngle + jitter;
+        const or1 = outerR * (0.85 + r() * 0.15);
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a1) * innerR, Math.sin(a1) * innerR);
+        ctx.lineTo(Math.cos(a1) * or1, Math.sin(a1) * or1);
+        ctx.lineTo(Math.cos(a2) * or1, Math.sin(a2) * or1);
+        ctx.lineTo(Math.cos(a2) * innerR, Math.sin(a2) * innerR);
+        ctx.closePath();
+        ctx.fill();
+      }
+      break;
+    }
+    case "scribble": {
+      // 엉킨 실타래 (낙서) - chaotic pen scribble loops
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 2;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      const hw = w * 0.4, hh = h * 0.4;
+      const loops = 5;
+      for (let l = 0; l < loops; l++) {
+        ctx.beginPath();
+        let px = (r() - 0.5) * hw;
+        let py = (r() - 0.5) * hh;
+        ctx.moveTo(px, py);
+        const segs = 30 + Math.floor(r() * 20);
+        for (let s = 0; s < segs; s++) {
+          const angle = r() * Math.PI * 2;
+          const dist = 8 + r() * 18;
+          const nx = px + Math.cos(angle) * dist;
+          const ny = py + Math.sin(angle) * dist;
+          const cpx = px + (r() - 0.5) * 30;
+          const cpy = py + (r() - 0.5) * 30;
+          ctx.quadraticCurveTo(cpx, cpy, nx, ny);
+          px = Math.max(-hw, Math.min(hw, nx));
+          py = Math.max(-hh, Math.min(hh, ny));
+        }
+        ctx.stroke();
+      }
+      break;
+    }
+    case "x_mark": {
+      // X 표시 - two rough X marks drawn with sketchy strokes
+      ctx.strokeStyle = strokeColor;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      const drawX = (ox: number, oy: number, sz: number) => {
+        const jit = () => (r() - 0.5) * sz * 0.08;
+        // First stroke of X (top-left to bottom-right)
+        ctx.lineWidth = 3 + r() * 2;
+        ctx.beginPath();
+        ctx.moveTo(ox - sz + jit(), oy - sz + jit());
+        ctx.lineTo(ox - sz * 0.3 + jit(), oy - sz * 0.3 + jit());
+        ctx.lineTo(ox + sz * 0.3 + jit(), oy + sz * 0.3 + jit());
+        ctx.lineTo(ox + sz + jit(), oy + sz + jit());
+        ctx.stroke();
+        // Second stroke of X (top-right to bottom-left)
+        ctx.lineWidth = 3 + r() * 2;
+        ctx.beginPath();
+        ctx.moveTo(ox + sz + jit(), oy - sz + jit());
+        ctx.lineTo(ox + sz * 0.3 + jit(), oy - sz * 0.3 + jit());
+        ctx.lineTo(ox - sz * 0.3 + jit(), oy + sz * 0.3 + jit());
+        ctx.lineTo(ox - sz + jit(), oy + sz + jit());
+        ctx.stroke();
+      };
+      const sz = Math.min(w, h) * 0.22;
+      drawX(-w * 0.15, -h * 0.05, sz);
+      drawX(w * 0.18, h * 0.08, sz * 0.8);
+      break;
+    }
+    case "speech_cloud": {
+      // 말풍선 (구름형) - fluffy cloud speech bubble outline
+      ctx.strokeStyle = strokeColor;
+      ctx.fillStyle = "#ffffff";
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      const hw2 = w * 0.42, hh2 = h * 0.35;
+      // Draw cloud shape using overlapping arcs
+      const bumps = [
+        { x: 0, y: -hh2 * 0.6, r: hw2 * 0.5 },
+        { x: -hw2 * 0.55, y: -hh2 * 0.25, r: hw2 * 0.42 },
+        { x: hw2 * 0.55, y: -hh2 * 0.25, r: hw2 * 0.42 },
+        { x: -hw2 * 0.45, y: hh2 * 0.2, r: hw2 * 0.38 },
+        { x: hw2 * 0.45, y: hh2 * 0.2, r: hw2 * 0.38 },
+        { x: 0, y: hh2 * 0.35, r: hw2 * 0.45 },
+        { x: -hw2 * 0.2, y: -hh2 * 0.05, r: hw2 * 0.35 },
+        { x: hw2 * 0.2, y: -hh2 * 0.05, r: hw2 * 0.35 },
+      ];
+      // Fill the cloud white first
+      ctx.beginPath();
+      for (const b of bumps) {
+        ctx.moveTo(b.x + b.r, b.y);
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      }
+      ctx.fill();
+      // Stroke the outline
+      ctx.beginPath();
+      for (const b of bumps) {
+        ctx.moveTo(b.x + b.r, b.y);
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      }
+      ctx.stroke();
+      // Small tail circles
+      const tailSize = Math.min(w, h) * 0.06;
+      ctx.beginPath();
+      ctx.arc(w * 0.12, h * 0.32, tailSize, 0, Math.PI * 2);
+      ctx.fill(); ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(w * 0.2, h * 0.4, tailSize * 0.6, 0, Math.PI * 2);
+      ctx.fill(); ctx.stroke();
       break;
     }
   }
@@ -2551,6 +2675,14 @@ function EditorPanel({
         return "느낌표";
       case "question":
         return "물음표";
+      case "sunburst":
+        return "집중선(썬버스트)";
+      case "scribble":
+        return "엉킨 실타래";
+      case "x_mark":
+        return "X 표시";
+      case "speech_cloud":
+        return "말풍선";
       default:
         return `효과 ${index + 1}`;
     }
@@ -5765,6 +5897,10 @@ export default function StoryPage() {
                     { type: "arrow_down", label: "아래 화살표", emoji: "⬇️", desc: "아래 화살" },
                     { type: "exclamation", label: "느낌표", emoji: "❗", desc: "!" },
                     { type: "question", label: "물음표", emoji: "❓", desc: "?" },
+                    { type: "sunburst", label: "집중선(썬버스트)", emoji: "☀️", desc: "방사형 집중선" },
+                    { type: "scribble", label: "엉킨 실타래", emoji: "〰️", desc: "낙서 효과" },
+                    { type: "x_mark", label: "X 표시", emoji: "✖️", desc: "거친 X 마크" },
+                    { type: "speech_cloud", label: "말풍선", emoji: "☁️", desc: "구름형 말풍선" },
                   ];
 
                   const addEffect = (type: string) => {
@@ -6564,6 +6700,10 @@ export default function StoryPage() {
                   case "arrow_down": return "아래 화살표";
                   case "exclamation": return "느낌표";
                   case "question": return "물음표";
+                  case "sunburst": return "집중선(썬버스트)";
+                  case "scribble": return "엉킨 실타래";
+                  case "x_mark": return "X 표시";
+                  case "speech_cloud": return "말풍선";
                   default: return `효과 ${i + 1}`;
                 }
               })(),

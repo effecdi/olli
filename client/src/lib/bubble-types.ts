@@ -130,7 +130,11 @@ export type EffectLayerType =
     | "arrow_up"      // 화살표 위
     | "arrow_down"    // 화살표 아래
     | "exclamation"   // 느낌표
-    | "question";     // 물음표
+    | "question"      // 물음표
+    | "sunburst"      // 집중선 (썬버스트)
+    | "scribble"      // 엉킨 실타래 (낙서)
+    | "x_mark"        // X 표시
+    | "speech_cloud"; // 말풍선 (구름형)
 
 export interface EffectLayer {
     id: string;
