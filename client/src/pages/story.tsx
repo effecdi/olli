@@ -5374,10 +5374,7 @@ export default function StoryPage() {
                               className="w-full"
                             />
                           </div>
-<<<<<<< HEAD
                           {selectedToolItem !== "eraser" && (
-=======
->>>>>>> claude/svg-story-effects-0ou2v
                           <div className="tools-compact-panel__settings-section">
                             <div className="tools-compact-panel__settings-row">
                               <span className="text-[11px] text-muted-foreground font-medium">불투명도</span>
