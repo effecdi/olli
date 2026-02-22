@@ -2133,6 +2133,15 @@ function PanelCanvas({
     updateCharInPanel(cid, { rotation: next });
   }, [updateCharInPanel]);
 
+  const handleFlipCharX = useCallback(() => {
+    const cid = selectedCharIdRef.current;
+    if (!cid) return;
+    const p = panelRef.current;
+    const c = p.characters.find((ch) => ch.id === cid);
+    if (!c) return;
+    updateCharInPanel(cid, { flipX: !c.flipX });
+  }, [updateCharInPanel]);
+
   const handleCopy = useCallback(() => {
     const sid = selectedBubbleIdRef.current;
     const cid = selectedCharIdRef.current;
