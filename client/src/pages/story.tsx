@@ -2945,7 +2945,7 @@ function EditorPanel({
             </p>
           ) : (
             <div
-              className="grid grid-cols-3 gap-1.5 max-h-[180px] overflow-y-auto"
+              className="grid grid-cols-3 gap-1.5 overflow-y-auto"
               data-testid="character-picker-grid"
             >
               {charImages.map((gen) => (
