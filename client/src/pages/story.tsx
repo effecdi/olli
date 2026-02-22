@@ -4565,7 +4565,7 @@ export default function StoryPage() {
     <div className="editor-page h-[calc(100vh-3.5rem)] flex overflow-hidden bg-muted/30 dark:bg-background relative">
       <EditorOnboarding editor="story" />
       <div
-        className="flex flex-col items-center py-3 px-1.5 gap-1 w-[70px] shrink-0 bg-card dark:bg-card border-r"
+        className="flex flex-col items-center py-3 px-1.5 gap-1 w-[100px] shrink-0 bg-card dark:bg-card border-r"
         data-testid="left-icon-sidebar"
       >
         {LEFT_TABS.map((tab) => (
