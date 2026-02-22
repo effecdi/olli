@@ -97,7 +97,10 @@ export default function CreatePage() {
 
   const generateMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/generate-character", { prompt, style, format: "png", transparent: true });
+      const effectivePrompt = prompt.trim() || (sourceImage ? "이 이미지의 캐릭터를 그대로 재현해주세요" : "");
+      const body: any = { prompt: effectivePrompt, style };
+      if (sourceImage) body.sourceImageData = sourceImage;
+      const res = await apiRequest("POST", "/api/generate-character", body);
       return res.json();
     },
     onSuccess: (data) => {
