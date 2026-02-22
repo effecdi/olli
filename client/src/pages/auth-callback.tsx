@@ -12,70 +12,102 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout>;
+    let cancelled = false;
 
     const handleCallback = async () => {
       try {
-        // 1. Check for error in URL hash (e.g. #error_description=...)
+        // 1. Check for error in URL hash (e.g. #error=... or #error_description=...)
         const hash = window.location.hash.substring(1);
-        const hashParams = new URLSearchParams(hash);
-        const errorDesc = hashParams.get("error_description") || hashParams.get("error");
-        if (errorDesc) {
-          setError(decodeURIComponent(errorDesc));
-          return;
+        if (hash) {
+          const hashParams = new URLSearchParams(hash);
+          const errorDesc = hashParams.get("error_description") || hashParams.get("error");
+          if (errorDesc) {
+            if (!cancelled) setError(errorDesc);
+            return;
+          }
         }
 
         // 2. Check for error in query params
         const searchParams = new URLSearchParams(window.location.search);
         const queryError = searchParams.get("error_description") || searchParams.get("error");
         if (queryError) {
-          setError(decodeURIComponent(queryError));
+          if (!cancelled) setError(queryError);
           return;
         }
 
         // 3. PKCE flow: exchange code for session
+        //    detectSessionInUrl may have already consumed the code,
+        //    so we try exchange first, then fall back to checking existing session.
         const code = searchParams.get("code");
         if (code) {
           const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
           if (exchangeError) {
-            console.error("Code exchange failed:", exchangeError);
-            setError(exchangeError.message);
-            return;
+            // Code may have been already exchanged by detectSessionInUrl — check session instead
+            console.warn("Code exchange returned error (may be already consumed):", exchangeError.message);
           }
         }
 
-        // 4. Verify session is established (handles both PKCE and implicit flows)
+        // 4. Verify session is established (works for both PKCE and implicit flows)
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (cancelled) return;
+
         if (sessionError) {
           setError(sessionError.message);
           return;
         }
 
         if (session) {
-          // Session established — invalidate auth query and redirect
+          // Session established — update auth state and redirect to home
           queryClient.invalidateQueries({ queryKey: ["auth-user"] });
-          // Clean up URL before navigating
-          window.history.replaceState(null, "", window.location.pathname);
+          window.history.replaceState(null, "", "/");
           navigate("/", { replace: true });
           return;
         }
 
-        // 5. No code, no hash tokens, no session — wait briefly for Supabase auto-detection
-        //    then fail gracefully
-        setError("로그인에 실패했습니다. 다시 시도해주세요.");
+        // 5. No session yet — listen for auth state change (auto-detection in progress)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          (event, session) => {
+            if (cancelled) return;
+            if (event === "SIGNED_IN" && session) {
+              queryClient.invalidateQueries({ queryKey: ["auth-user"] });
+              window.history.replaceState(null, "", "/");
+              navigate("/", { replace: true });
+              subscription.unsubscribe();
+            }
+          }
+        );
+
+        // If still nothing after a brief wait, show error
+        setTimeout(() => {
+          if (!cancelled) {
+            supabase.auth.getSession().then(({ data: { session } }) => {
+              if (cancelled) return;
+              if (!session) {
+                setError("로그인에 실패했습니다. 다시 시도해주세요.");
+              }
+            });
+          }
+          subscription.unsubscribe();
+        }, 5000);
       } catch (err) {
         console.error("Auth callback error:", err);
-        setError("로그인 처리 중 오류가 발생했습니다.");
+        if (!cancelled) setError("로그인 처리 중 오류가 발생했습니다.");
       }
     };
 
     handleCallback();
 
-    // Safety timeout: prevent infinite loading if something unexpected happens
+    // Safety timeout: prevent infinite loading
     timeoutId = setTimeout(() => {
-      setError((prev) => prev ?? "로그인 응답 시간이 초과되었습니다. 다시 시도해주세요.");
-    }, 10000);
+      if (!cancelled) {
+        setError((prev) => prev ?? "로그인 응답 시간이 초과되었습니다. 다시 시도해주세요.");
+      }
+    }, 15000);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
   }, [navigate, queryClient]);
 
   if (error) {
