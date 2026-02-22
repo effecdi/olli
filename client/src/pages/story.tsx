@@ -336,6 +336,7 @@ function createPanel(): PanelData {
     characters: [],
     backgroundImageUrl: undefined,
     backgroundImageEl: null,
+    drawingLayers: [],
   };
 }
 
