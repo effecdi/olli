@@ -1038,6 +1038,7 @@ function PanelCanvas({
   onSelectEffect,
   selectedEffectId,
   onDoubleClickBubble,
+  onDeletePanel,
 }: {
   panel: PanelData;
   onUpdate: (updated: PanelData) => void;
@@ -1053,6 +1054,7 @@ function PanelCanvas({
   onSelectEffect?: (id: string | null) => void;
   selectedEffectId?: string | null;
   onDoubleClickBubble?: () => void;
+  onDeletePanel?: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
