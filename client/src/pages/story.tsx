@@ -5244,17 +5244,6 @@ export default function StoryPage() {
                               <brush.icon className="h-5 w-5" style={brush.color && !(drawingToolState.tool === "brush" && drawingToolState.brushType === brush.id) ? { color: brush.color } : undefined} />
                             </button>
                           ))}
-<<<<<<< HEAD
-=======
-                          {/* Eraser */}
-                          <button
-                            onClick={() => setDrawingToolState(s => ({ ...s, tool: "eraser" }))}
-                            className={`tools-compact-panel__tool-btn ${drawingToolState.tool === "eraser" ? "tools-compact-panel__tool-btn--active" : ""}`}
-                            title="지우개"
-                          >
-                            <Eraser className="h-5 w-5" style={drawingToolState.tool !== "eraser" ? { color: "#f472b6" } : undefined} />
-                          </button>
->>>>>>> claude/svg-story-effects-0ou2v
                           {/* Color picker */}
                           <button
                             onClick={() => colorInputRef.current?.click()}
