@@ -4836,19 +4836,23 @@ export default function StoryPage() {
   }, [panels, topic]);
 
   const getStoryThumbnail = useCallback(() => {
-    const firstPanel = panels[0];
-    if (!firstPanel) return "";
-    const canvas = panelCanvasRefs.current.get(firstPanel.id);
-    if (!canvas) return "";
-    const thumbCanvas = document.createElement("canvas");
-    const thumbW = 300;
-    const thumbH = Math.round((CANVAS_H / CANVAS_W) * thumbW);
-    thumbCanvas.width = thumbW;
-    thumbCanvas.height = thumbH;
-    const ctx = thumbCanvas.getContext("2d");
-    if (!ctx) return "";
-    ctx.drawImage(canvas, 0, 0, thumbW, thumbH);
-    return thumbCanvas.toDataURL("image/png", 0.7);
+    try {
+      const firstPanel = panels[0];
+      if (!firstPanel) return "";
+      const canvas = panelCanvasRefs.current.get(firstPanel.id);
+      if (!canvas) return "";
+      const thumbCanvas = document.createElement("canvas");
+      const thumbW = 300;
+      const thumbH = Math.round((CANVAS_H / CANVAS_W) * thumbW);
+      thumbCanvas.width = thumbW;
+      thumbCanvas.height = thumbH;
+      const ctx = thumbCanvas.getContext("2d");
+      if (!ctx) return "";
+      ctx.drawImage(canvas, 0, 0, thumbW, thumbH);
+      return thumbCanvas.toDataURL("image/png", 0.7);
+    } catch {
+      return "";
+    }
   }, [panels]);
 
   const handleSaveProject = async () => {
