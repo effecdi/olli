@@ -120,7 +120,7 @@ function configureBrushCtx(
 // ─── Component ─────────────────────────────────────────────────────────────
 
 const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
-  ({ width, height, toolState, backgroundImage, className, onStrokeEnd }, ref) => {
+  ({ width, height, toolState, backgroundImage, className, onStrokeEnd, onRequestTextInput }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const drawLayerRef = useRef<HTMLCanvasElement | null>(null);
     const historyRef = useRef<ImageData[]>([]);
@@ -130,6 +130,10 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
     const isDrawingRef = useRef(false);
     const pointsRef = useRef<Point[]>([]);
     const lastPointRef = useRef<Point | null>(null);
+
+    // Line tool refs
+    const lineStartRef = useRef<Point | null>(null);
+    const preStrokeImageRef = useRef<ImageData | null>(null);
 
     // Touch optimization: track active touch id
     const activeTouchIdRef = useRef<number | null>(null);
