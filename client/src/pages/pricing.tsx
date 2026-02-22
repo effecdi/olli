@@ -253,7 +253,7 @@ export default function PricingPage() {
                 variant={plan.highlighted ? "default" : "outline"}
                 className={`mt-auto w-full h-11 rounded-full ${
                   plan.highlighted
-                    ? "bg-white text-slate-900 hover:bg-slate-100"
+                    ? "bg-white text-slate-900 hover:bg-slate-100 border-0"
                     : "border-slate-500/70 text-slate-50 hover:bg-slate-900/60"
                 }`}
                 disabled={
