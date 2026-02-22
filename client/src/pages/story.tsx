@@ -2782,7 +2782,6 @@ function EditorPanel({
 
   const isImageMode = mode === "image";
   const isBubbleMode = mode === "bubble";
-  const isTemplateMode = mode === "template";
 
   const handleRemoveBackground = async () => {
     if (!selectedChar) return;
