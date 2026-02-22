@@ -69,15 +69,10 @@ import {
   PenLine,
   Minus,
   Menu,
-<<<<<<< HEAD
   Spline,
   GitCommitHorizontal,
   Eye,
   EyeOff,
-=======
-  Grid3X3,
-  Circle,
->>>>>>> claude/svg-story-effects-0ou2v
 } from "lucide-react";
 import DrawingCanvas, { type DrawingToolState, type DrawingCanvasHandle } from "@/components/drawing-canvas";
 import "@/components/drawing-tools-panel.scss";
