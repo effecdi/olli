@@ -536,6 +536,30 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
           return maskCanvas.toDataURL("image/png");
         },
         getCanvas: () => canvasRef.current,
+        commitText: (x: number, y: number, text: string, fontSize: number, color: string) => {
+          const drawLayer = drawLayerRef.current;
+          if (!drawLayer) return;
+          const ctx = drawLayer.getContext("2d");
+          if (!ctx) return;
+
+          saveToHistory();
+
+          ctx.save();
+          ctx.font = `${fontSize}px sans-serif`;
+          ctx.fillStyle = color;
+          ctx.globalAlpha = 1;
+          ctx.globalCompositeOperation = "source-over";
+          ctx.textBaseline = "top";
+
+          // Support multi-line text
+          const lines = text.split("\n");
+          lines.forEach((line, i) => {
+            ctx.fillText(line, x, y + i * (fontSize * 1.2));
+          });
+
+          ctx.restore();
+          composite();
+        },
       }),
       [width, height, composite, saveToHistory],
     );
