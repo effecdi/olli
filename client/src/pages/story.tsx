@@ -6334,6 +6334,7 @@ export default function StoryPage() {
                     const isSelected =
                       item.type === "char" ? selectedCharId === item.id
                       : item.type === "bubble" ? selectedBubbleId === item.id
+                      : item.type === "drawing" ? selectedDrawingLayerId === item.id
                       : false;
                     const typeBg = item.type === "bubble"
                       ? isSelected ? "bg-sky-500/15 border border-sky-500/30" : "hover:bg-sky-500/5"
