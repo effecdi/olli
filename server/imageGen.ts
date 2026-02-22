@@ -1,6 +1,35 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 import type { Character } from "@shared/schema";
 
+// 한국어 프롬프트를 영어로 번역하는 함수
+// AI 이미지 생성 모델은 한글 텍스트를 정확히 렌더링할 수 없으므로
+// 프롬프트를 영어로 번역하여 한글 텍스트가 이미지에 포함되는 것을 방지
+async function translateToEnglish(text: string, aiClient: GoogleGenAI): Promise<string> {
+  // 영어만 포함된 경우 번역 불필요
+  if (/^[\x00-\x7F\s]*$/.test(text)) return text;
+
+  try {
+    const response = await aiClient.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [{
+        role: "user",
+        parts: [{
+          text: `Translate the following text to English. This is a character/scene description for image generation. Output ONLY the English translation, nothing else. Keep it concise and descriptive.
+
+Text: ${text}`
+        }]
+      }],
+    });
+
+    const candidate = response.candidates?.[0];
+    const translatedText = candidate?.content?.parts?.find((part: any) => part.text)?.text?.trim();
+    return translatedText || text;
+  } catch (error) {
+    console.warn("Translation failed, using original text:", error);
+    return text;
+  }
+}
+
 // 개발 모드에서 API 키가 없으면 더미 클라이언트 생성
 let ai: GoogleGenAI;
 try {
