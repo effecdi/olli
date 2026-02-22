@@ -247,6 +247,7 @@ interface CharacterPlacement {
   width?: number;   // explicit pixel width (optional, overrides scale if set)
   height?: number;  // explicit pixel height
   rotation?: number;
+  flipX?: boolean;  // 좌우 반전
   imageEl: HTMLImageElement | null;
   zIndex?: number;
   locked?: boolean;

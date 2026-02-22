@@ -33,7 +33,8 @@
       "Bash(find /Users/ihyeonjeong/olli_project -name \"*.woff\" -o -name \"*.ttf\" -o -name \"*.otf\" 2>/dev/null | grep -v node_modules)",
       "Bash(npx tsc --noEmit 2>&1 | head -30)",
       "Bash(git add server/imageGen.ts && git commit -m \"$\\(cat <<'EOF'\nFix Korean text garbling in AI image generation\n\n- Add translateToEnglish\\(\\) function to convert Korean prompts to English\n  before sending to Gemini image model, preventing garbled Korean text\n- Strengthen noTextRule with explicit Korean/CJK text prohibition\n- Add noTextRule to generateWithBackground \\(was missing before\\)\n- Add \"Do NOT render any Korean, Japanese, Chinese\" reminder to all prompts\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
-      "Bash(git push origin main)"
+      "Bash(git push origin main)",
+      "Bash(grep -n \"class.*Layer\\\\|interface.*Layer\" /Users/ihyeonjeong/olli_project/client/src/**/*.{ts,tsx} 2>/dev/null | head -20)"
     ]
   }
 }
