@@ -4437,13 +4437,10 @@ export default function StoryPage() {
               ...c,
               imageEl: null,
             })),
-<<<<<<< HEAD
             drawingLayers: (p.drawingLayers || []).map((dl: any) => ({
               ...dl,
               imageEl: null,
             })),
-=======
->>>>>>> claude/svg-story-effects-0ou2v
           }));
           rehydrateImages(restoredPanels);
           setPanelsRaw(restoredPanels);
