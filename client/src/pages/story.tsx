@@ -5169,7 +5169,6 @@ export default function StoryPage() {
   const toggleLeftTab = (tab: LeftTab) => {
     setActiveLeftTab((prev) => {
       const next = prev === tab ? null : tab;
-      if (next !== "element") setActiveElementSubTab(null);
       return next;
     });
   };
