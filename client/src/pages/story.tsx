@@ -73,6 +73,9 @@ import {
   GitCommitHorizontal,
   Eye,
   EyeOff,
+  StickyNote,
+  Grid3X3,
+  Circle,
 } from "lucide-react";
 import DrawingCanvas, { type DrawingToolState, type DrawingCanvasHandle } from "@/components/drawing-canvas";
 import CanvasFloatingToolbar from "@/components/canvas-floating-toolbar";
