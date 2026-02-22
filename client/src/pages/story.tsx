@@ -6289,7 +6289,7 @@ export default function StoryPage() {
                     </div>
                   )}
 
-                {activeLeftTab === "element" && activeElementSubTab === "bubble" && activePanel && (
+                {activeLeftTab === "bubble" && activePanel && (
                   <>
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <div className="flex items-center gap-1.5">
