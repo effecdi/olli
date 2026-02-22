@@ -5138,8 +5138,13 @@ export default function StoryPage() {
                               setSelectedToolItem(item.id);
                               if (item.id === "drawing") {
                                 setDrawingToolState(s => ({ ...s, tool: "brush" }));
+                              } else if (item.id === "line") {
+                                setDrawingToolState(s => ({ ...s, tool: "line" }));
+                              } else if (item.id === "text") {
+                                setDrawingToolState(s => ({ ...s, tool: "text" }));
                               }
                               setShowDrawingSettings(false);
+                              setTextInputPos(null);
                             }}
                             className={`tools-compact-panel__tool-btn ${selectedToolItem === item.id ? "tools-compact-panel__tool-btn--active" : ""}`}
                             title={item.label}
