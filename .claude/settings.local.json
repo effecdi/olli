@@ -37,7 +37,8 @@
       "Bash(grep -n \"class.*Layer\\\\|interface.*Layer\" /Users/ihyeonjeong/olli_project/client/src/**/*.{ts,tsx} 2>/dev/null | head -20)",
       "Bash(npx tsc --noEmit 2>&1 | grep -i \"flip\\\\|FlipHorizontal\" | head -10)",
       "Bash(npx tsc --noEmit 2>&1 | head -10)",
-      "Bash(git merge origin/claude/svg-story-effects-0ou2v --no-edit 2>&1)"
+      "Bash(git merge origin/claude/svg-story-effects-0ou2v --no-edit 2>&1)",
+      "Bash(cd /Users/ihyeonjeong/olli_project/client && npx next build 2>&1 | tail -5)"
     ]
   }
 }
