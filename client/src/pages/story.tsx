@@ -60,6 +60,8 @@ import {
   Zap,
   Star,
   Pen,
+  ArrowLeft,
+  Boxes,
 } from "lucide-react";
 import { CanvaEditor, type CanvaEditorHandle } from "@/components/canva-editor";
 import { FlowStepper } from "@/components/flow-stepper";
