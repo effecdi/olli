@@ -107,6 +107,7 @@ export default function CreatePage() {
       setGeneratedImage(data.imageUrl);
       setCharacterId(data.characterId);
       queryClient.invalidateQueries({ queryKey: ["/api/usage"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/gallery"] });
       toast({ title: "캐릭터 완성!", description: "캐릭터가 성공적으로 생성되었습니다." });
     },
     onError: (error: Error) => {
