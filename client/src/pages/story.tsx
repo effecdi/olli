@@ -5824,6 +5824,7 @@ export default function StoryPage() {
                     const newEffects = [...(activePanel.effects ?? []), newEffect];
                     updatePanel(activePanelIndex, { ...activePanel, effects: newEffects });
                     setSelectedEffectId(newEffect.id);
+                    setShowRightPanel(true);
                   };
 
                   const selEf = selectedEffectId ? activePanel.effects?.find(e => e.id === selectedEffectId) : null;
