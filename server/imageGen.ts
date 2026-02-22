@@ -130,9 +130,17 @@ function getStyleConfig(style: string) {
 
 const noTextRule = `CRITICAL: Do NOT include ANY text, letters, words, labels, captions, watermarks, or writing of any kind in the image. The image must contain ONLY the visual illustration with absolutely zero text.`;
 
-export async function generateCharacterImage(prompt: string, style: string): Promise<string> {
+export async function generateCharacterImage(prompt: string, style: string, sourceImageData?: string): Promise<string> {
   const config = getStyleConfig(style);
-  const fullPrompt = `${config.instruction}
+  const parts: any[] = [];
+
+  const hasImage = sourceImageData && sourceImageData.startsWith("data:");
+  const hasPrompt = prompt && prompt.trim().length > 0;
+
+  if (hasImage && hasPrompt) {
+    // Image + prompt: analyze image and apply prompt modifications
+    parts.push({
+      text: `${config.instruction}
 
 ${noTextRule}
 
@@ -140,13 +148,65 @@ IMPORTANT: The character must be on a completely plain solid white background wi
 
 IMPORTANT: Generate the image in 3:4 portrait aspect ratio (width:height = 3:4). The image must be taller than it is wide.
 
-Create a character: ${prompt}. 
-Style: ${config.keywords}. 
-Single character only, full body view, pure solid white background, no shadows on background. Do NOT write any text or words in the image.`;
+Look at this reference image carefully. Analyze the character, person, or subject in it. Now create a NEW character illustration based on this image, but with the following modifications: ${prompt}
+
+Keep the core appearance from the reference image (face features, body type, clothing style etc.) but apply the requested changes and draw it in this style: ${config.keywords}.
+
+Single character only, full body view, pure solid white background, no shadows on background. Do NOT write any text or words in the image.`
+    });
+    const match = sourceImageData.match(/^data:([^;]+);base64,(.+)$/);
+    if (match) {
+      parts.push({
+        inlineData: {
+          mimeType: match[1],
+          data: match[2],
+        }
+      });
+    }
+  } else if (hasImage) {
+    // Image only: analyze and recreate as character
+    parts.push({
+      text: `${config.instruction}
+
+${noTextRule}
+
+IMPORTANT: The character must be on a completely plain solid white background with NOTHING else - no shadows, no ground, no decorations, no patterns. Just the character floating on pure white. This is critical because the image will be used as a sticker/cutout.
+
+IMPORTANT: Generate the image in 3:4 portrait aspect ratio (width:height = 3:4). The image must be taller than it is wide.
+
+Look at this reference image carefully. Analyze the character, person, or subject in it - their appearance, clothing, pose, expression, and key features. Now recreate this as a character illustration in the following style: ${config.keywords}.
+
+Capture the essence and key visual features of the reference but draw it as a stylized character illustration. Single character only, full body view, pure solid white background, no shadows on background. Do NOT write any text or words in the image.`
+    });
+    const match = sourceImageData.match(/^data:([^;]+);base64,(.+)$/);
+    if (match) {
+      parts.push({
+        inlineData: {
+          mimeType: match[1],
+          data: match[2],
+        }
+      });
+    }
+  } else {
+    // Prompt only (original behavior)
+    parts.push({
+      text: `${config.instruction}
+
+${noTextRule}
+
+IMPORTANT: The character must be on a completely plain solid white background with NOTHING else - no shadows, no ground, no decorations, no patterns. Just the character floating on pure white. This is critical because the image will be used as a sticker/cutout.
+
+IMPORTANT: Generate the image in 3:4 portrait aspect ratio (width:height = 3:4). The image must be taller than it is wide.
+
+Create a character: ${prompt}.
+Style: ${config.keywords}.
+Single character only, full body view, pure solid white background, no shadows on background. Do NOT write any text or words in the image.`
+    });
+  }
 
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash-image",
-    contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
+    contents: [{ role: "user", parts }],
     config: {
       responseModalities: [Modality.TEXT, Modality.IMAGE],
     },
