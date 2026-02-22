@@ -4661,10 +4661,29 @@ export default function StoryPage() {
   };
 
   const removePanel = (idx: number) => {
-    if (panels.length <= 1) return;
+    if (panels.length <= 1) {
+      // Last panel: replace with a fresh empty panel
+      const fresh: PanelData = {
+        id: generateId(),
+        topScript: null,
+        bottomScript: null,
+        bubbles: [],
+        characters: [],
+        effects: [],
+      };
+      setPanels([fresh]);
+      setActivePanelIndex(0);
+      setSelectedBubbleId(null);
+      setSelectedCharId(null);
+      setSelectedEffectId(null);
+      return;
+    }
     const newPanels = panels.filter((_, i) => i !== idx);
     setPanels(newPanels);
     setActivePanelIndex(Math.min(activePanelIndex, newPanels.length - 1));
+    setSelectedBubbleId(null);
+    setSelectedCharId(null);
+    setSelectedEffectId(null);
   };
 
   const duplicatePanel = (idx: number) => {
