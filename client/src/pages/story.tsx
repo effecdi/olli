@@ -2316,38 +2316,53 @@ function EditorPanel({
 
   return (
     <div className="space-y-5" data-testid={`panel-editor-${index}`}>
-      <div className="flex gap-1 flex-wrap">
-        {isBubbleMode && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={addBubble}
-            disabled={!canBubbleEdit || panel.bubbles.length >= 5}
-            data-testid={`button-add-bubble-${index}`}
-            title={
-              !canBubbleEdit ? "신인 작가 등급(5회+)부터 사용 가능" : undefined
-            }
-          >
-            <MessageSquare className="h-3.5 w-3.5 mr-1" />
-            말풍선{!canBubbleEdit && " (잠김)"}
-          </Button>
-        )}
-        {isTemplateMode && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowBubbleTemplatePicker(true)}
-            disabled={!canBubbleEdit || panel.bubbles.length >= 5}
-            data-testid={`button-bubble-templates-${index}`}
-          >
-            <Layers className="h-3.5 w-3.5 mr-1" />
-            템플릿 가져오기
-          </Button>
-        )}
-      </div>
+      {
+        (isBubbleMode || isTemplateMode) && showBubbleTemplatePicker && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowBubbleTemplatePicker(false)} data-testid="modal-story-template-picker">
+            <Card className="w-full max-w-lg max-h-[70vh] flex flex-col m-4" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border flex-wrap">
+                <h3 className="text-sm font-semibold">말풍선 템플릿</h3>
+                <Button variant="ghost" size="icon" onClick={() => setShowBubbleTemplatePicker(false)} data-testid="button-close-story-templates">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex gap-1.5 px-4 pt-3 pb-1 overflow-x-auto flex-wrap">
+                {BUBBLE_TEMPLATE_CATEGORIES.map((cat, ci) => (
+                  <Badge
+                    key={ci}
+                    className={`cursor-pointer shrink-0 toggle-elevate ${ci === templateCatIdx ? "toggle-elevated" : ""}`}
+                    variant={ci === templateCatIdx ? "default" : "outline"}
+                    onClick={() => setTemplateCatIdx(ci)}
+                    data-testid={`badge-story-template-cat-${ci}`}
+                  >
+                    {cat.label}
+                  </Badge>
+                ))}
+              </div>
+              <div className="overflow-y-auto p-4 flex-1">
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                  {BUBBLE_TEMPLATE_CATEGORIES[templateCatIdx]?.ids.map((id) => {
+                    const path = bubblePath(id);
+                    return (
+                      <div
+                        key={id}
+                        className="aspect-square rounded-md border border-border overflow-hidden cursor-pointer hover-elevate bg-muted/30 p-1.5"
+                        onClick={() => addBubbleTemplate(path)}
+                        data-testid={`story-template-item-${id}`}
+                      >
+                        <img src={path} alt={`말풍선 ${id}`} className="w-full h-full object-contain" loading="lazy" />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </Card>
+          </div>
+        )
+      }
 
       {isImageMode && (
-        <div className="rounded-md p-3 space-y-3">
+        <div className="rounded-md space-y-3">
           <div className="space-y-1.5">
             <Label className="text-[12px] text-muted-foreground">이미지 업로드 (여러 장 가능)</Label>
             <button
