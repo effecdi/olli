@@ -4850,15 +4850,30 @@ export default function StoryPage() {
     const p = panels[idx];
     const canvas = panelCanvasRefs.current.get(p.id);
     if (!canvas) return;
-    const link = document.createElement("a");
-    link.download = `panel_${idx + 1}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
+    try {
+      const link = document.createElement("a");
+      link.download = `panel_${idx + 1}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (err: any) {
+      if (err?.name === "SecurityError" || /tainted/.test(err?.message ?? "")) {
+        toast({ title: "다운로드 실패", description: "외부 이미지가 포함되어 다운로드할 수 없습니다. 이미지를 다시 업로드하거나 로컬 이미지를 사용해주세요.", variant: "destructive" });
+      } else {
+        toast({ title: "다운로드 실패", description: err?.message || "알 수 없는 오류가 발생했습니다.", variant: "destructive" });
+      }
+    }
   };
 
   const downloadAll = () => {
+    let errorCount = 0;
     panels.forEach((_, i) => {
-      setTimeout(() => downloadPanel(i), i * 200);
+      setTimeout(() => {
+        try {
+          downloadPanel(i);
+        } catch {
+          errorCount++;
+        }
+      }, i * 200);
     });
   };
 
