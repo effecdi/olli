@@ -4168,6 +4168,32 @@ export default function StoryPage() {
   const drawingCanvasRef = useRef<DrawingCanvasHandle | null>(null);
   const isDrawingMode = activeLeftTab === "tools" && ["drawing", "line", "text", "eraser"].includes(selectedToolItem);
 
+  // Clear drawing layer selection on panel switch
+  useEffect(() => {
+    setSelectedDrawingLayerId(null);
+  }, [activePanelIndex]);
+
+  // Hit test drawing layers — returns topmost visible layer at (canvasX, canvasY)
+  const hitTestDrawingLayers = useCallback((
+    layers: DrawingLayer[], canvasX: number, canvasY: number,
+    canvasWidth: number, canvasHeight: number
+  ): DrawingLayer | null => {
+    const sorted = [...layers].filter(l => l.visible).sort((a, b) => b.zIndex - a.zIndex);
+    const testCanvas = document.createElement("canvas");
+    testCanvas.width = canvasWidth;
+    testCanvas.height = canvasHeight;
+    const ctx = testCanvas.getContext("2d");
+    if (!ctx) return null;
+    for (const layer of sorted) {
+      if (!layer.imageEl) continue;
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      ctx.drawImage(layer.imageEl, 0, 0);
+      const pixel = ctx.getImageData(Math.floor(canvasX), Math.floor(canvasY), 1, 1);
+      if (pixel.data[3] > 10) return layer;
+    }
+    return null;
+  }, []);
+
   // Drawing layer undo/redo
   const drawingUndoStackRef = useRef<DrawingLayer[]>([]);
 
