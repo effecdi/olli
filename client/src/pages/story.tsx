@@ -6653,7 +6653,7 @@ export default function StoryPage() {
                         </Button>
                       </div>
                     </div>
-                  ))}
+                  ); })}
                 </div>
 
                 {/* Selected effect: inline color picker */}
