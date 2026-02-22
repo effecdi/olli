@@ -117,20 +117,29 @@ export interface PageData {
 }
 
 export type EffectLayerType =
-    | "flash_lines"   // 파열 효과선
-    | "flash_dense"   // 집중선
-    | "flash_small"   // 작은 파열
-    | "firework"      // 불꽃놀이 / 짜잔!     // 몽글몽글 생각 효과
-    | "speed_lines"   // 두둥 등장선
-    | "anger"         // 화를 내는 효과
-    | "surprise"      // 놀라는 효과
-    | "collapse"      // 무너지는 효과
-    | "star"          // 별
-    | "sparkle"       // 빛나는 효과
-    | "arrow_up"      // 화살표 위
-    | "arrow_down"    // 화살표 아래
-    | "exclamation"   // 느낌표
-    | "question";     // 물음표
+    | "flash_lines"        // 파열 효과선
+    | "flash_dense"        // 집중선
+    | "flash_small"        // 작은 파열
+    | "firework"           // 불꽃놀이 / 짜잔!
+    | "monologue_circles"  // 몽글몽글 생각 효과
+    | "speed_lines"        // 두둥 등장선
+    | "anger"              // 화를 내는 효과
+    | "surprise"           // 놀라는 효과
+    | "collapse"           // 무너지는 효과
+    | "star"               // 별
+    | "sparkle"            // 빛나는 효과
+    | "arrow_up"           // 화살표 위
+    | "arrow_down"         // 화살표 아래
+    | "exclamation"        // 느낌표
+    | "question"           // 물음표
+    | "sunburst"           // 집중선 (썬버스트)
+    | "scribble"           // 엉킨 실타래 (낙서)
+    | "x_mark"             // X 표시
+    | "speech_cloud"       // 말풍선 (구름형)
+    | "focus_zoom"         // 집중선 (놀라는 효과) — SVG path 기반
+    | "surprise_sparkle"   // 깜짝/재잘재잘 — SVG path 기반
+    | "gloom_lines"        // 우울/침울 — SVG path 기반
+    | "tangled_ball";      // 복잡한 감정 (실타래) — SVG path 기반
 
 export interface EffectLayer {
     id: string;
