@@ -6310,18 +6310,17 @@ export default function StoryPage() {
                             {i + 1}
                           </div>
                         </div>
-                        {panels.length > 1 && (
-                          <button
-                            type="button"
-                            className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-red-500 shadow hover:bg-white"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removePanel(i);
-                            }}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-red-500 shadow hover:bg-white z-10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removePanel(i);
+                          }}
+                          title="페이지 삭제"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
 
                         <PanelCanvas
                           key={panel.id + "-main"}
