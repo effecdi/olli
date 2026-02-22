@@ -2136,7 +2136,6 @@ function EditorPanel({
       onUpdate({ ...panel, characters: [...panel.characters, newChar] });
       setSelectedCharId(newChar.id);
       setSelectedBubbleId(null);
-      setShowCharPicker(false);
     };
     img.src = gen.resultImageUrl;
   };
