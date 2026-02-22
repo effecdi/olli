@@ -6777,11 +6777,17 @@ export default function StoryPage() {
                       item.type === "char" ? selectedCharId === item.id
                       : item.type === "bubble" ? selectedBubbleId === item.id
                       : item.type === "drawing" ? selectedDrawingLayerId === item.id
+                      : item.type === "text" ? selectedTextId === item.id
+                      : item.type === "line" ? selectedLineId === item.id
                       : false;
                     const typeBg = item.type === "bubble"
                       ? isSelected ? "bg-sky-500/15 border border-sky-500/30" : "hover:bg-sky-500/5"
                       : item.type === "drawing"
                       ? isSelected ? "bg-amber-500/15 border border-amber-500/30" : "hover:bg-amber-500/5"
+                      : item.type === "text"
+                      ? isSelected ? "bg-violet-500/15 border border-violet-500/30" : "hover:bg-violet-500/5"
+                      : item.type === "line"
+                      ? isSelected ? "bg-rose-500/15 border border-rose-500/30" : "hover:bg-rose-500/5"
                       : isSelected ? "bg-emerald-500/15 border border-emerald-500/30" : "hover:bg-muted/50";
                     const DrawingIcon = item.drawingType ? (DRAWING_TYPE_ICONS[item.drawingType] || Pen) : Pen;
                     return (
