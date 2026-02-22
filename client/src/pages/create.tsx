@@ -377,21 +377,6 @@ export default function CreatePage() {
           </Card>
         </div>
       </div>
-
-      <div className="mt-10">
-        <Card className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-base font-semibold">자동화 인스타툰 메뉴</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              만든 캐릭터나 이미지를 활용해 배경과 자막이 포함된 인스타툰 컷을 자동으로 만들 수 있어요.
-            </p>
-          </div>
-          {/* <Button size="sm" variant="outline" onClick={() => navigate("/create-instatoon")}>
-            인스타툰 자동 생성하기
-            <ArrowRight className="ml-1.5 h-4 w-4" />
-          </Button> */}
-        </Card>
-      </div>
     </div>
   );
 }
