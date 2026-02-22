@@ -4744,8 +4744,10 @@ export default function StoryPage() {
   const panelCanvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map());
   const bubbleTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  type LeftTab = "image" | "ai" | "script" | "bubble" | "template" | "effects" | "drawing" | null;
+  type LeftTab = "image" | "ai" | "element" | "effects" | "drawing" | null;
   const [activeLeftTab, setActiveLeftTab] = useState<LeftTab>(null);
+  type ElementSubTab = "script" | "bubble" | "template" | null;
+  const [activeElementSubTab, setActiveElementSubTab] = useState<ElementSubTab>(null);
   const [selectedEffectId, setSelectedEffectId] = useState<string | null>(null);
 
   // ─── Canva drawing editor state ─────────────────────────────────────
