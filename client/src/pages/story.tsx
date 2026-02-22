@@ -5217,14 +5217,6 @@ export default function StoryPage() {
                               <brush.icon className="h-5 w-5" style={brush.color && !(drawingToolState.tool === "brush" && drawingToolState.brushType === brush.id) ? { color: brush.color } : undefined} />
                             </button>
                           ))}
-                          {/* Eraser */}
-                          <button
-                            onClick={() => setDrawingToolState(s => ({ ...s, tool: "eraser" }))}
-                            className={`tools-compact-panel__tool-btn ${drawingToolState.tool === "eraser" ? "tools-compact-panel__tool-btn--active" : ""}`}
-                            title="지우개"
-                          >
-                            <Eraser className="h-5 w-5" style={drawingToolState.tool !== "eraser" ? { color: "#f472b6" } : undefined} />
-                          </button>
                           {/* Color picker */}
                           <button
                             onClick={() => colorInputRef.current?.click()}
@@ -5257,6 +5249,20 @@ export default function StoryPage() {
                       {/* Line sub-tools strip */}
                       {selectedToolItem === "line" && (
                         <div className="tools-compact-panel__strip tools-compact-panel__strip--sub">
+                          {LINE_SUB_ITEMS.map((sub) => (
+                            <button
+                              key={sub.id}
+                              onClick={() => {
+                                const st = sub.id as "straight" | "curve" | "polyline";
+                                setLineSubType(st);
+                                setDrawingToolState(s => ({ ...s, tool: "line", lineSubType: st }));
+                              }}
+                              className={`tools-compact-panel__tool-btn ${lineSubType === sub.id ? "tools-compact-panel__tool-btn--active" : ""}`}
+                              title={sub.label}
+                            >
+                              <sub.icon className="h-5 w-5" />
+                            </button>
+                          ))}
                           {/* Color picker */}
                           <button
                             onClick={() => colorInputRef.current?.click()}
@@ -5310,8 +5316,22 @@ export default function StoryPage() {
                         </div>
                       )}
 
+                      {/* Eraser sub-tools strip */}
+                      {selectedToolItem === "eraser" && (
+                        <div className="tools-compact-panel__strip tools-compact-panel__strip--sub">
+                          {/* Settings menu */}
+                          <button
+                            onClick={() => setShowDrawingSettings(s => !s)}
+                            className={`tools-compact-panel__tool-btn ${showDrawingSettings ? "tools-compact-panel__tool-btn--active" : ""}`}
+                            title="설정"
+                          >
+                            <Menu className="h-5 w-5" />
+                          </button>
+                        </div>
+                      )}
+
                       {/* Drawing settings popover */}
-                      {(selectedToolItem === "drawing" || selectedToolItem === "line") && showDrawingSettings && (
+                      {(selectedToolItem === "drawing" || selectedToolItem === "line" || selectedToolItem === "eraser") && showDrawingSettings && (
                         <div className="tools-compact-panel__settings">
                           <div className="tools-compact-panel__settings-section">
                             <div className="tools-compact-panel__settings-row">
@@ -5327,6 +5347,7 @@ export default function StoryPage() {
                               className="w-full"
                             />
                           </div>
+                          {selectedToolItem !== "eraser" && (
                           <div className="tools-compact-panel__settings-section">
                             <div className="tools-compact-panel__settings-row">
                               <span className="text-[11px] text-muted-foreground font-medium">불투명도</span>
@@ -5341,23 +5362,24 @@ export default function StoryPage() {
                               className="w-full"
                             />
                           </div>
+                          )}
                           <div className="tools-compact-panel__settings-actions">
                             <button
-                              onClick={() => drawingCanvasRef.current?.undo()}
+                              onClick={() => handleDrawingUndo()}
                               className="tools-compact-panel__action-btn"
                               title="실행 취소"
                             >
                               <Undo2 className="h-3.5 w-3.5" />
                             </button>
                             <button
-                              onClick={() => drawingCanvasRef.current?.redo()}
+                              onClick={() => handleDrawingRedo()}
                               className="tools-compact-panel__action-btn"
                               title="다시 실행"
                             >
                               <Redo2 className="h-3.5 w-3.5" />
                             </button>
                             <button
-                              onClick={() => drawingCanvasRef.current?.clear()}
+                              onClick={() => handleDrawingClear()}
                               className="tools-compact-panel__action-btn tools-compact-panel__action-btn--danger"
                               title="전체 삭제"
                             >
