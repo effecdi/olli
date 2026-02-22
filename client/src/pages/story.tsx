@@ -6587,8 +6587,8 @@ export default function StoryPage() {
           </div>
         </div>
 
-        {/* Right Layer Panel */}
-        {showRightPanel && activePanel && (() => {
+        {/* Right Layer Panel — always visible */}
+        {activePanel && (() => {
           const rightLayerItems = [
             ...activePanel.characters.map((c: CharacterPlacement) => ({
               type: "char" as const,

@@ -9,7 +9,20 @@
       "Bash(find /Users/ihyeonjeong/olli_project -type d -name \".env*\" -o -name \"supabase\" -o -name \"migrations\" 2>/dev/null | grep -v node_modules | grep -v \".git\")",
       "Bash(npx vite build 2>&1 | tail -30)",
       "Bash(npx vite build 2>&1 | tail -25)",
-      "Bash(npx tsc --noEmit --pretty 2>&1 | head -30)"
+      "Bash(npx tsc --noEmit --pretty 2>&1 | head -30)",
+      "Bash(npx tsc --noEmit --pretty 2>&1 | head -20)",
+      "Bash(git -C /Users/ihyeonjeong/olli_project status -u)",
+      "Bash(git -C /Users/ihyeonjeong/olli_project diff --stat)",
+      "Bash(git -C /Users/ihyeonjeong/olli_project log --oneline -5)",
+      "Bash(git -C /Users/ihyeonjeong/olli_project diff --name-only HEAD~1)",
+      "Bash(git -C /Users/ihyeonjeong/olli_project diff --name-only HEAD~2)",
+      "Bash(git -C /Users/ihyeonjeong/olli_project log --oneline -10 --all)",
+      "Bash(git -C /Users/ihyeonjeong/olli_project diff HEAD -- client/src/pages/create.tsx | head -30)",
+      "Bash(git -C /Users/ihyeonjeong/olli_project diff HEAD -- client/src/pages/story.tsx server/imageGen.ts server/routes.ts shared/models/app.ts | wc -l)",
+      "Bash(git -C /Users/ihyeonjeong/olli_project log --oneline -20 --all)",
+      "Bash(for c in cb856b1 cb17c6c fd0f1dd 30ffa7f bfd16f4 ba42556 0828604 9bd8b77; do echo \"=== $c ===\" && git -C /Users/ihyeonjeong/olli_project show --stat $c | head -8; done)",
+      "Bash(git -C /Users/ihyeonjeong/olli_project diff .claude/settings.local.json)",
+      "Bash(git -C /Users/ihyeonjeong/olli_project push)"
     ]
   }
 }
