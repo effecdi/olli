@@ -174,6 +174,8 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
     // Store callbacks refs to avoid stale closures
     const onLayerCreatedRef = useRef(onLayerCreated);
     onLayerCreatedRef.current = onLayerCreated;
+    const onStrokeEndRef = useRef(onStrokeEnd);
+    onStrokeEndRef.current = onStrokeEnd;
 
     // Initialize off-screen canvases
     useEffect(() => {
