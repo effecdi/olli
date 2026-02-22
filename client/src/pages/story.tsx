@@ -107,7 +107,6 @@ import {
   type LineType,
 } from "@/components/canvas-context-toolbar";
 import "@/components/canvas-context-toolbar.scss";
-import { Spline } from "lucide-react";
 
 function bubblePath(n: number) {
   return `/assets/bubbles/bubble_${String(n).padStart(3, "0")}.png`;
@@ -6138,7 +6137,7 @@ export default function StoryPage() {
                 }
               }}
             >
-              <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-8 pb-32">
+              <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-8 pt-16 pb-32">
                 {panels.map((panel, i) => (
                   <ContextMenu key={panel.id}>
                     <ContextMenuTrigger>
@@ -6190,7 +6189,7 @@ export default function StoryPage() {
                               />
                             </div>
                             {showLineSettings && (
-                              <div style={{ position: "absolute", top: -190, left: "50%", transform: "translateX(-50%)", zIndex: 55 }}>
+                              <div style={{ position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)", zIndex: 55 }}>
                                 <FloatingSettingsModal
                                   strokeWidth={selectedLineElement.strokeWidth}
                                   opacity={selectedLineElement.opacity}
@@ -6202,7 +6201,7 @@ export default function StoryPage() {
                             )}
                           </>
                         )}
-                        {activePanelIndex === i && isDrawingMode && drawingLayerSelected && (
+                        {activePanelIndex === i && selectedToolItem === "select" && selectedDrawingLayerId && (
                           <>
                             <div className="context-toolbar-wrapper" style={{ position: "absolute", top: -52, left: "50%", transform: "translateX(-50%)", zIndex: 50 }}>
                               <DrawingContextToolbar
@@ -6213,7 +6212,7 @@ export default function StoryPage() {
                               />
                             </div>
                             {showDrawingContextSettings && (
-                              <div style={{ position: "absolute", top: -190, left: "50%", transform: "translateX(-50%)", zIndex: 55 }}>
+                              <div style={{ position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)", zIndex: 55 }}>
                                 <FloatingSettingsModal
                                   strokeWidth={drawingToolState.size}
                                   opacity={drawingToolState.opacity}
@@ -6267,8 +6266,8 @@ export default function StoryPage() {
                           onDeletePanel={() => removePanel(i)}
                         />
 
-                        {/* Canva-style drawing editor overlay — on active panel in drawing/text/line mode */}
-                        {(isDrawingMode || isTextMode || isLineMode) && activePanelIndex === i && (
+                        {/* Canva-style drawing editor overlay — only in drawing mode */}
+                        {isDrawingMode && activePanelIndex === i && (
                           <div
                             className={`drawing-canvas-wrapper drawing-canvas-wrapper--active`}
                             style={{
@@ -6302,67 +6301,15 @@ export default function StoryPage() {
                               }}
                               onStrokeEnd={() => setDrawingLayerSelected(true)}
                             />
-                            {/* Text input overlay */}
-                            {textInputPos && selectedToolItem === "text" && (
-                              <textarea
-                                autoFocus
-                                value={textInputValue}
-                                onChange={(e) => setTextInputValue(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" && !e.shiftKey) {
-                                    e.preventDefault();
-                                    if (textInputValue.trim()) {
-                                      const canvasX = (textInputPos.x / 100) * 450;
-                                      const canvasY = (textInputPos.y / 100) * 600;
-                                      drawingCanvasRef.current?.commitText(canvasX, canvasY, textInputValue, 20, drawingToolState.color);
-                                    }
-                                    setTextInputPos(null);
-                                    setTextInputValue("");
-                                  }
-                                  if (e.key === "Escape") {
-                                    setTextInputPos(null);
-                                    setTextInputValue("");
-                                  }
-                                }}
-                                onBlur={() => {
-                                  if (textInputValue.trim()) {
-                                    const canvasX = (textInputPos.x / 100) * 450;
-                                    const canvasY = (textInputPos.y / 100) * 600;
-                                    drawingCanvasRef.current?.commitText(canvasX, canvasY, textInputValue, 20, drawingToolState.color);
-                                  }
-                                  setTextInputPos(null);
-                                  setTextInputValue("");
-                                }}
-                                style={{
-                                  position: "absolute",
-                                  left: `${textInputPos.x}%`,
-                                  top: `${textInputPos.y}%`,
-                                  minWidth: "120px",
-                                  minHeight: "28px",
-                                  fontSize: "14px",
-                                  lineHeight: "1.2",
-                                  padding: "2px 4px",
-                                  border: "2px solid hsl(var(--primary))",
-                                  borderRadius: "4px",
-                                  background: "rgba(255,255,255,0.9)",
-                                  color: drawingToolState.color,
-                                  outline: "none",
-                                  resize: "none",
-                                  zIndex: 30,
-                                  fontFamily: "sans-serif",
-                                }}
-                                placeholder="텍스트 입력..."
-                              />
-                            )}
                             <div className="drawing-mode-indicator">
                               <span className="drawing-mode-indicator__dot" />
-                              {selectedToolItem === "line" ? "선 모드" : selectedToolItem === "text" ? "텍스트 모드" : "드로잉 모드"}
+                              드로잉 모드
                             </div>
                           </div>
                         )}
 
                         {/* Select-mode: click to select drawing/text/line layers + visual feedback + floating toolbar */}
-                        {selectedToolItem === "select" && activePanelIndex === i && (
+                        {(selectedToolItem === "select" || selectedToolItem === "text" || selectedToolItem === "line") && activePanelIndex === i && (
                           (panel.drawingLayers || []).length > 0 ||
                           (panel.textElements || []).length > 0 ||
                           (panel.lineElements || []).length > 0
@@ -6377,11 +6324,8 @@ export default function StoryPage() {
                               // Hit test text elements (topmost first by zIndex)
                               const textEls = [...(panel.textElements || [])].sort((a, b) => (b.zIndex ?? 0) - (a.zIndex ?? 0));
                               for (const te of textEls) {
-                                const tx = (te.x / 100) * 450;
-                                const ty = (te.y / 100) * 600;
-                                const tw = (te.width / 100) * 450;
-                                const th = (te.height / 100) * 600;
-                                if (canvasX >= tx && canvasX <= tx + tw && canvasY >= ty && canvasY <= ty + th) {
+                                // Text elements use pixel coordinates directly
+                                if (canvasX >= te.x && canvasX <= te.x + te.width && canvasY >= te.y && canvasY <= te.y + te.height) {
                                   setSelectedTextId(te.id);
                                   setSelectedLineId(null);
                                   setSelectedDrawingLayerId(null);
@@ -6398,10 +6342,11 @@ export default function StoryPage() {
                                 const HIT_DIST = 12; // px threshold
                                 let hitLine = false;
                                 for (let pi = 0; pi < le.points.length - 1; pi++) {
-                                  const ax = (le.points[pi].x / 100) * 450;
-                                  const ay = (le.points[pi].y / 100) * 600;
-                                  const bx = (le.points[pi + 1].x / 100) * 450;
-                                  const by = (le.points[pi + 1].y / 100) * 600;
+                                  // Line elements use pixel coordinates directly
+                                  const ax = le.points[pi].x;
+                                  const ay = le.points[pi].y;
+                                  const bx = le.points[pi + 1].x;
+                                  const by = le.points[pi + 1].y;
                                   // Point-to-segment distance
                                   const dx = bx - ax, dy = by - ay;
                                   const lenSq = dx * dx + dy * dy;

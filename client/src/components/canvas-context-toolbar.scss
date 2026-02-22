@@ -266,10 +266,7 @@ $transition-fast: 150ms ease;
 // ─── Floating Settings Modal ──────────────────────────────────────────────────
 
 .floating-settings-modal {
-  position: absolute;
-  top: -140px;
-  left: 50%;
-  transform: translateX(-50%);
+  position: relative;
   z-index: 55;
   width: 220px;
   padding: 12px 14px;
@@ -284,11 +281,11 @@ $transition-fast: 150ms ease;
   @keyframes settings-modal-in {
     from {
       opacity: 0;
-      transform: translateX(-50%) translateY(6px) scale(0.96);
+      transform: translateY(-6px) scale(0.96);
     }
     to {
       opacity: 1;
-      transform: translateX(-50%) translateY(0) scale(1);
+      transform: translateY(0) scale(1);
     }
   }
 
