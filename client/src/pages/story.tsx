@@ -5187,9 +5187,11 @@ export default function StoryPage() {
                               if (item.id === "drawing") {
                                 setDrawingToolState(s => ({ ...s, tool: "brush" }));
                               } else if (item.id === "line") {
-                                setDrawingToolState(s => ({ ...s, tool: "line" }));
+                                setDrawingToolState(s => ({ ...s, tool: "line", lineSubType }));
                               } else if (item.id === "text") {
                                 setDrawingToolState(s => ({ ...s, tool: "text" }));
+                              } else if (item.id === "eraser") {
+                                setDrawingToolState(s => ({ ...s, tool: "eraser" }));
                               }
                               setShowDrawingSettings(false);
                               setTextInputPos(null);
