@@ -280,6 +280,7 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
       img.onload = () => {
         newLayer.imageEl = img;
         onLayerCreatedRef.current?.(newLayer);
+        onStrokeEndRef.current?.();
       };
       img.src = base64;
 
