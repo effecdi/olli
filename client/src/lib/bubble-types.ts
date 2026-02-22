@@ -139,7 +139,10 @@ export type EffectLayerType =
     | "focus_zoom"         // 집중선 (놀라는 효과) — SVG path 기반
     | "surprise_sparkle"   // 깜짝/재잘재잘 — SVG path 기반
     | "gloom_lines"        // 우울/침울 — SVG path 기반
-    | "tangled_ball";      // 복잡한 감정 (실타래) — SVG path 기반
+    | "tangled_ball"       // 복잡한 감정 (실타래) — SVG path 기반
+    | "blush_lines"       // 뿌끄 (부끄러움 사선) — SVG path 기반
+    | "sigh_breath"       // 한숨/입김 — SVG path 기반
+    | "bubble_circles";   // 몽글몽글 (비눗방울) — SVG path 기반
 
 export interface EffectLayer {
     id: string;
