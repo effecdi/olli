@@ -6557,16 +6557,20 @@ export default function StoryPage() {
                 )}
 
                 <div className="space-y-1">
-                  {rightLayerItems.map((item, i) => (
+                  {rightLayerItems.map((item, i) => {
+                    const isSelected =
+                      item.type === "char" ? selectedCharId === item.id
+                      : item.type === "bubble" ? selectedBubbleId === item.id
+                      : selectedEffectId === item.id;
+                    const typeBg = item.type === "effect"
+                      ? isSelected ? "bg-violet-500/15 border border-violet-500/30" : "hover:bg-violet-500/5"
+                      : item.type === "bubble"
+                      ? isSelected ? "bg-sky-500/15 border border-sky-500/30" : "hover:bg-sky-500/5"
+                      : isSelected ? "bg-emerald-500/15 border border-emerald-500/30" : "hover:bg-muted/50";
+                    return (
                     <div
                       key={`${item.type}:${item.id}`}
-                      className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${
-                        item.type === "char"
-                          ? selectedCharId === item.id ? "bg-primary/10" : "hover:bg-muted/50"
-                          : item.type === "bubble"
-                          ? selectedBubbleId === item.id ? "bg-primary/10" : "hover:bg-muted/50"
-                          : selectedEffectId === item.id ? "bg-primary/10" : "hover:bg-muted/50"
-                      }`}
+                      className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${typeBg}`}
                       onClick={() => {
                         if (item.type === "char") {
                           setSelectedCharId(item.id);
