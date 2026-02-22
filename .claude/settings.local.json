@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /Users/ihyeonjeong/olli_project -maxdepth 3 -type d -name \"auth*\" -o -name \"*login*\" -o -name \"*oauth*\" 2>/dev/null | grep -v node_modules)"
+    ]
+  }
+}
